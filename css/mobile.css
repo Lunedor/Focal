@@ -8,7 +8,7 @@
     left: 0;
     width: 80vw;
     max-width: 320px;
-    height: 100vh;
+    height: 100dvh;
     background: var(--color-sidebar-bg);
     z-index: 1001;
     transform: translateX(-100%);
