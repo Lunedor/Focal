@@ -180,4 +180,8 @@
     width: 100%;
     margin-bottom: 0.5rem;
   }
+  .markdown-toolbar {
+    gap: 0px;
+    padding: 4px 2px;
+  }
 }
