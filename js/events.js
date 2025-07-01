@@ -396,14 +396,14 @@ DOM.sidebar.addEventListener('click', async (e) => {
     if (confirmed) {
       const key = `page-${page}`;
       localStorage.removeItem(key);
+      // Update lastModified timestamp immediately after deletion
+      localStorage.setItem('lastModified', new Date().toISOString());
       // Remove from pins if present
       let pins = getPinnedPages();
       if (pins.includes(page)) {
         pins = pins.filter(t => t !== page);
         setPinnedPages(pins);
       }
-      // Update lastModified timestamp to mark local as newer (same as save/create logic)
-      localStorage.setItem('lastModified', new Date().toISOString());
       if (appState.currentView === page) {
         appState.currentView = 'weekly';
       }
