@@ -402,10 +402,16 @@ DOM.sidebar.addEventListener('click', async (e) => {
         pins = pins.filter(t => t !== page);
         setPinnedPages(pins);
       }
+      // Update lastModified timestamp to mark local as newer (same as save/create logic)
+      localStorage.setItem('lastModified', new Date().toISOString());
       if (appState.currentView === page) {
         appState.currentView = 'weekly';
       }
       renderApp();
+      // Trigger cloud sync after deletion
+      if (typeof syncWithCloud === 'function') {
+        syncWithCloud();
+      }
     }
   }
 });
