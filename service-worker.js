@@ -1,15 +1,35 @@
-// This is the service worker for Focal Planner PWA
 const CACHE_NAME = 'focal-cache-v1';
 const URLS_TO_CACHE = [
   '/',
   '/index.html',
   '/favicon.png',
+  '/favicon.ico',
+  '/faviconabout.png',
+  '/manifest.json',
   '/css/base.css',
+  '/css/buttons.css',
+  '/css/calendar.css',
+  '/css/goal-tracker.css',
+  '/css/layout.css',
   '/css/main.css',
-  '/js/init.js',
-  '/js/planner.js',
+  '/css/markdown.css',
+  '/css/mobile.css',
+  '/css/modal.css',
+  '/css/planner.css',
+  '/css/settings.css',
+  '/css/sidebar.css',
+  '/css/style.css',
+  '/js/calendar.js',
   '/js/cloud.js',
-  // Add more files as needed
+  '/js/dom.js',
+  '/js/events.js',
+  '/js/init.js',
+  '/js/library.js',
+  '/js/markdown.js',
+  '/js/planner.js',
+  '/js/settings.js',
+  '/js/state.js',
+  '/js/utils.js'
 ];
 
 self.addEventListener('install', event => {
