@@ -49,7 +49,7 @@ function initGoogleAuth() {
     client_id: GOOGLE_CLIENT_ID,
     scope: GOOGLE_API_SCOPES,
     auto_select: true,
-    callback: (tokenResponse) => {
+    callback: async (tokenResponse) => {
       if (tokenResponse && tokenResponse.access_token) {
         accessToken = tokenResponse.access_token;
         isSignedIn = true;
@@ -61,19 +61,23 @@ function initGoogleAuth() {
       }
       authChecked = true;
       updateAuthUI();
+      // After auth check, if signed in, sync with cloud
+      if (isSignedIn) {
+        await syncWithCloud();
+      }
     }
   });
 
   // On load, check if a token exists in localStorage
   accessToken = localStorage.getItem('google_access_token');
-  isSignedIn = false;
   if (accessToken) {
-    // If token exists, check validity (show 'Checking...')
-    authChecked = false;
+    isSignedIn = true;
+    authChecked = true;
     updateAuthUI();
-    tokenClient.requestAccessToken({ prompt: '' });
+    // Sync with cloud if signed in
+    syncWithCloud();
   } else {
-    // No token, just show 'Sign In'
+    isSignedIn = false;
     authChecked = true;
     updateAuthUI();
   }
