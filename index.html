@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Focal Journal</title>
   <link rel="icon" type="image/x-icon" href="favicon.png">
+  <link rel="apple-touch-icon" href="favicon.png">
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1976d2">
   
   <!-- Libraries: date-fns for date logic, marked for Markdown -->
   <script src="https://cdn.jsdelivr.net/npm/date-fns@4.1.0/cdn.min.js"></script>
@@ -20,6 +24,18 @@
   <button id="hamburger-menu" class="hamburger-menu" aria-label="Open menu">
     <i data-feather="menu"></i>
   </button>
+  <script>
+    // Register service worker for PWA support
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('service-worker.js').then(function(registration) {
+          console.log('ServiceWorker registration successful with scope: ', registration.scope);
+        }, function(err) {
+          console.log('ServiceWorker registration failed: ', err);
+        });
+      });
+    }
+  </script>
   <!-- Settings Modal Overlay -->
     <div id="settings-modal-overlay" class="settings-modal-overlay hidden">
       <div class="settings-modal">
