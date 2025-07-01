@@ -1,0 +1,59 @@
+/* Button and action styles */
+.page-action-btn {
+  background: none;
+  border: none;
+  color: var(--color-sidebar-text);
+  border-radius: 3px;
+  cursor: pointer;
+  line-height: 1;
+  font-size: 11px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.page-action-btn:hover {
+  background: var(--color-sidebar-active-bg);
+  color: var(--color-text);
+}
+.page-action-btn.delete:hover {
+  background: #ff4444;
+  color: white;
+}
+.page-action-btn:focus, 
+.new-page-btn:focus,
+.planner-nav a:focus,
+#sidebar a:focus {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+.modal-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+.modal-btn.primary {
+  background: var(--color-link);
+  color: white;
+  border-color: var(--color-link);
+}
+.modal-btn.primary:hover {
+  background: #0051d5;
+  border-color: #0051d5;
+}
+.modal-btn.secondary {
+  background: var(--color-background);
+  color: var(--color-text);
+}
+.modal-btn.secondary:hover {
+  background: var(--color-sidebar-active-bg);
+}
+
+.filled {
+  fill: var(--color-text);
+}

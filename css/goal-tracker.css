@@ -1,0 +1,126 @@
+/* Goal tracker and related progress bars */
+.goal-tracker {
+    background: var(--color-planner-bg);
+    border: 2px solid var(--color-border);
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+    transition: all 0.3s ease;
+}
+.goal-tracker.completed {
+    border-color: #28a745;
+    background: rgba(40, 167, 69, 0.1);
+}
+.goal-tracker.overdue {
+    border-color: #dc3545;
+    background: rgba(220, 53, 69, 0.1);
+}
+.goal-tracker.in-progress {
+    border-color: var(--color-link);
+    background: rgba(0, 122, 255, 0.05);
+}
+.goal-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.goal-icon {
+    font-size: 1.2em;
+    min-width: 24px;
+}
+.goal-title {
+    font-weight: 600;
+    font-size: 1.1em;
+    color: var(--color-text);
+    flex: 1;
+}
+.goal-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.goal-stats {
+    font-size: 0.9em;
+    color: var(--color-sidebar-text);
+    font-weight: 500;
+}
+.goal-progress-bar {
+    background: var(--color-progress-bar-bg);
+    border-radius: 6px;
+    height: 12px;
+    overflow: hidden;
+    position: relative;
+}
+.goal-progress-bar div {
+    background: var(--color-progress-bar);
+    height: 100%;
+    border-radius: 6px;
+    transition: width .4s ease;
+}
+.goal-tracker.completed .goal-progress-bar div {
+    background: #28a745;
+}
+.goal-tracker.overdue .goal-progress-bar div {
+    background: #dc3545;
+}
+.goal-percentage {
+    font-size: 0.85em;
+    font-weight: 600;
+    color: var(--color-text);
+    text-align: right;
+}
+.goal-tracker.basic {
+    border-style: dashed;
+    opacity: 0.8;
+}
+.goal-tracker.basic .goal-progress {
+    display: none;
+}
+body.dark-mode .goal-tracker.completed { background: rgba(40, 167, 69, 0.15); }
+body.dark-mode .goal-tracker.overdue { background: rgba(220, 53, 69, 0.15); }
+body.dark-mode .goal-tracker.in-progress { background: rgba(10, 132, 255, 0.1); }
+.progress-bar {
+    background: var(--color-progress-bar-bg);
+    border-radius: 5px;
+    height: 12px;
+    overflow: hidden;
+    margin: 8px 0;
+}
+.progress-bar div {
+    background: var(--color-progress-bar);
+    height: 100%;
+    border-radius: 5px;
+    transition: width .3s ease;
+}
+.task-summary {
+    background: var(--color-planner-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 12px;
+    margin: 12px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.task-summary-label {
+    font-weight: 600;
+    font-size: 0.9em;
+    color: var(--color-text);
+}
+.task-summary-stats {
+    font-size: 0.85em;
+    color: var(--color-sidebar-text);
+}
+.task-progress-bar {
+    background: var(--color-progress-bar-bg);
+    border-radius: 4px;
+    height: 8px;
+    overflow: hidden;
+}
+.task-progress-bar div {
+    background: var(--color-progress-bar);
+    height: 100%;
+    border-radius: 4px;
+    transition: width .3s ease;
+}

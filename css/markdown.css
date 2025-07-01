@@ -1,0 +1,36 @@
+/* Rendered markdown, links, checkboxes, etc. */
+.view { 
+  display: none; 
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.view.active { 
+  display: block; 
+  opacity: 1;
+}
+.view-indicator {
+  font-size: 0.85em;
+  color: var(--color-sidebar-text);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.view-indicator::before {
+  content: "📋";
+  margin-right: 0.25rem;
+}
+.library-page-view .view-indicator::before {
+  content: "📄";
+}
+.rendered-content a { color: var(--color-link); text-decoration: none; }
+.rendered-content a:hover { text-decoration: underline; }
+.rendered-content a[data-page-link] {
+  background-color: rgba(144, 202, 249, 0.15);
+  border-bottom: 1px solid rgba(144, 202, 249, 0.4);
+  padding: 0 2px;
+  border-radius: 3px;
+}
+.rendered-content ul { padding-left: 1.5em; }
+.rendered-content li { margin-bottom: .25em; }
+.rendered-content input[type="checkbox"] { margin-right: .5em; }

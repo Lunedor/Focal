@@ -1,0 +1,305 @@
+.scheduled-items-scroll input,
+.scheduled-items-scroll button,
+.scheduled-items-scroll a,
+.scheduled-items-scroll label {
+  pointer-events: auto;
+}
+/* Remove dots before checkboxes of scheduled/event items in planner view */
+.planner-note .scheduled-items-scroll ul,
+.planner-note .scheduled-items-scroll ol {
+  list-style-type: none;
+  padding-left: 0;
+  margin-left: 0;
+}
+/* Remove dots before checkboxes in planner view scheduled/repeat and main content */
+.planner-note .scheduled-items-scroll ul,
+.planner-note .scheduled-items-scroll ol,
+.planner-note .content-wrapper ul,
+.planner-note .content-wrapper ol {
+  list-style-type: none;
+  padding-left: 0;
+  margin-left: 0;
+}
+/* --- Scrollable scheduled/repeat items block in planner --- */
+.scheduled-items-scroll {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 2em;
+  background: var(--color-background, #f9f9f9);
+  border-radius: 6px;
+  border: 1px solid var(--color-border, #e0e0e0);
+  padding: 0.5em 1em;
+  pointer-events: none;
+}
+/* --- Scheduled Items Section (Planner) --- */
+.scheduled-items-section {
+  margin-bottom: 1em;
+  max-height: 120px;
+  overflow-y: auto;
+  background: var(--color-background, #f9f9f9);
+  border-radius: 6px;
+  border: 1px solid var(--color-border, #e0e0e0);
+  padding: 0.5em 1em;
+}
+.scheduled-items-heading {
+  font-size: 1em;
+  font-weight: 600;
+  margin-bottom: 0.5em;
+}
+.scheduled-items-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.scheduled-item {
+  margin-bottom: 0.4em;
+  line-height: 1.4;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.scheduled-item-text {
+  font-weight: 500;
+}
+.scheduled-item-source {
+  color: var(--color-sidebar-text, #888);
+  font-size: 0.95em;
+  margin-left: 0.5em;
+}
+/* Planner view, notes, planner-specific elements */
+.planner-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+.planner-header h1 { 
+  font-size: 1.5rem; 
+  margin: 0;
+  color: var(--color-text);
+}
+.planner-nav {
+  display: flex;
+  gap: 0.5rem;
+}
+.planner-nav a {
+  font-size: 1rem;
+  padding: .5rem .75rem;
+  color: var(--color-sidebar-text);
+  text-decoration: none;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background: var(--color-background);
+  transition: all 0.15s ease;
+}
+.planner-nav a:hover { 
+  background: var(--color-sidebar-active-bg);
+  border-color: var(--color-link);
+  color: var(--color-text);
+}
+.plan-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-gap: .75rem;
+  height: 80vh;
+}
+.planner-note {
+  background: var(--color-planner-bg);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  color: var(--color-planner-text);
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  height: 75vh;
+}
+.planner-note:hover {
+  border-color: var(--color-border);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.planner-note .heading {
+  padding: .5rem .75rem;
+  border-bottom: 1px solid var(--color-planner-border);
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: .05em;
+  background: rgba(0,0,0,0.02);
+  border-radius: 8px 8px 0 0;
+}
+body.dark-mode .planner-note:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+body.dark-mode .rendered-content a[data-page-link] {
+  background-color: rgba(135, 116, 225, 0.15);
+  border-bottom-color: rgba(135, 116, 225, 0.4);
+}
+.content-wrapper {
+  flex-grow: 1;
+  overflow-y: auto;
+  cursor: text;
+  padding: 0.5rem;
+  height: 90%;
+  background-color: var(--color-planner-bg);
+}
+.planner-note[data-istoday="true"] .heading {
+  background: var(--color-today-bg);
+  border-color: var(--color-today-border);
+  color: var(--color-today-text);
+}
+textarea {
+  width: 100%;
+  height: 95%;
+  border: none;
+  resize: none;
+  background: none;
+  font: inherit;
+  line-height: inherit;
+  color: var(--color-planner-text);
+  padding: 0.5rem;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+#library-page-view .content-wrapper {
+  background: var(--color-background);
+  border-radius: 8px;
+  height: 80vh;
+  padding: 1rem 2rem;
+  margin: 0;
+  border: 1px solid var(--color-border);
+  font-size: 16px;
+  line-height: 1.6;
+  max-width: 700px;
+}
+#library-page-view textarea {
+  min-height: 500px;
+  font-size: 16px;
+  line-height: 1.6;
+}
+.content-wrapper:focus-within { 
+  box-shadow: none;
+}
+.content-wrapper textarea {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-top: none;
+  height: 70vh;
+}
+textarea:focus { 
+  outline: none !important;
+  border: none !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+
+#plan-grid-container hr {
+  margin: 1rem 0;
+  border: none;
+  border-top: 2px solid var(--color-text);
+}
+
+.page-header {
+  max-width: 700px;
+  margin-bottom: 20px;
+}
+
+.backlinks-list {
+  padding-left: 0 !important;
+}
+
+/* Scheduled date links in page content */
+.scheduled-link {
+  color: var(--color-link, #007aff);
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.scheduled-link:hover {
+  color: var(--color-progress-bar, #005bb5);
+  text-decoration: underline;
+}
+
+/* --- Backlinks (Linked Mentions) Section --- */
+.backlinks-section {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-border, #e0e0e0);
+  font-size: 0.98em;
+}
+.backlinks-heading {
+  font-size: 1.1em;
+  font-weight: 600;
+  margin-bottom: 0.7em;
+  color: var(--color-sidebar-text, #666);
+}
+.backlinks-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.backlink-item {
+  margin-bottom: 0.8em;
+  line-height: 1.5;
+}
+.backlink-source {
+  font-weight: 500;
+  color: var(--color-link, #0077cc);
+  text-decoration: none;
+  margin-right: 0.5em;
+}
+.backlink-source:hover {
+  text-decoration: underline;
+}
+.backlink-snippet {
+  color: var(--color-sidebar-text, #888);
+  font-style: italic;
+  font-size: 0.97em;
+}
+.backlinks-section mark {
+  background: var(--color-border, #ffe9a8);
+  color: inherit;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+/* --- Markdown Editor Toolbar --- */
+.markdown-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background-color: var(--color-sidebar-bg);
+  border-bottom: 1px solid var(--color-border);
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.toolbar-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  color: var(--color-sidebar-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toolbar-btn:hover {
+  background-color: var(--color-sidebar-active-bg);
+  color: var(--color-text);
+}
+
+.toolbar-btn .feather {
+  width: 16px;
+  height: 16px;
+}
