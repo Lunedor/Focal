@@ -218,7 +218,7 @@ async function syncWithCloud() {
     }
 
     // Only allow upload if local is newer or cloud is empty
-    if (!cloudData || (localModified && (!cloudModified || localModified < localModified))) {
+    if (!cloudData || (localModified && (!cloudModified || localModified > cloudModified))) {
       console.log('Uploading to cloud...');
       const now = new Date().toISOString();
       localData.lastModified = now;
