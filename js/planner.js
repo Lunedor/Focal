@@ -537,3 +537,4 @@ function renderWeeklyPlanner(scrollToToday = false) {
   // Enable snap-to-center after manual scroll (only needs to be enabled once, but safe to call repeatedly)
   if (window.innerWidth <= 768) enablePlannerSnapToCenter();
 }
+
