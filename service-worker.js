@@ -1,4 +1,4 @@
-const CACHE_NAME = 'focal-cache-v1';
+const CACHE_NAME = 'focal-cache-v2';
 const URLS_TO_CACHE = [
   'index.html',
   'manifest.json',
@@ -29,6 +29,9 @@ const URLS_TO_CACHE = [
   'favicon192.png',
   'favicon512.png',
   'faviconabout.png',
+  // Add the missing Firebase scripts for offline auth functionality
+  'https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js',
+  'https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js',
   'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/cdn.min.js',
   'https://cdn.jsdelivr.net/npm/marked/marked.min.js',
   'https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js'
@@ -48,11 +51,26 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('fetch', event => {
+  // Use a "Network falling back to Cache" strategy.
+  // This is ideal for development and for ensuring users get the latest assets
+  // while still providing full offline support.
   event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        return response || fetch(event.request);
+    // 1. Try to fetch the request from the network.
+    fetch(event.request)
+      .then(networkResponse => {
+        // 2. If successful, clone the response and update the cache in the background.
+        // This is a "stale-while-revalidate" side-effect that keeps the cache fresh.
+        const responseToCache = networkResponse.clone();
+        caches.open(CACHE_NAME).then(cache => {
+          // We only cache successful (2xx) responses.
+          if (responseToCache && responseToCache.status === 200) {
+            cache.put(event.request, responseToCache);
+          }
+        });
+        return networkResponse;
       })
+      // 3. If the network request fails (e.g., offline), serve the file from the cache.
+      .catch(() => caches.match(event.request))
   );
 });
 
