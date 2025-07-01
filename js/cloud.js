@@ -195,6 +195,14 @@ async function syncWithCloud() {
 
     if (!localModified && cloudData) {
       console.log('Restoring from cloud...');
+      // Remove local keys that are not in cloudData (for pages/planner)
+      const cloudKeys = new Set(Object.keys(cloudData));
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if ((key.startsWith('page-') || key.match(/^\d{4}-W\d{1,2}-(monday|tuesday|wednesday|thursday|friday|saturday|sunday|weekend)$/)) && !cloudKeys.has(key)) {
+          localStorage.removeItem(key);
+        }
+      }
       for (const key in cloudData) {
         if (key === 'lastModified') continue;
         localStorage.setItem(key, cloudData[key]);
@@ -209,6 +217,14 @@ async function syncWithCloud() {
       await uploadAppData(localData);
     } else if (cloudModified && (!localModified || cloudModified > localModified)) {
       console.log('Downloading from cloud...');
+      // Remove local keys that are not in cloudData (for pages/planner)
+      const cloudKeys = new Set(Object.keys(cloudData));
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if ((key.startsWith('page-') || key.match(/^\d{4}-W\d{1,2}-(monday|tuesday|wednesday|thursday|friday|saturday|sunday|weekend)$/)) && !cloudKeys.has(key)) {
+          localStorage.removeItem(key);
+        }
+      }
       for (const key in cloudData) {
         if (key === 'lastModified') continue;
         localStorage.setItem(key, cloudData[key]);
