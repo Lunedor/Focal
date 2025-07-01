@@ -8,7 +8,7 @@ function getUnpinnedPagesOrder() {
 }
 
 function setUnpinnedPagesOrder(arr) {
-  localStorage.setItem('unpinned-pages', JSON.stringify(arr));
+  setStorage('unpinned-pages', JSON.stringify(arr));
 }
 // --- INITIALIZATION & APP ENTRY ---
 function renderApp() {
