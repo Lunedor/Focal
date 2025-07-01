@@ -135,7 +135,8 @@ function updateAuthUI() {
 }
 
 async function uploadAppData(data) {
-  // ... (This function is correct, no changes needed)
+  // Debug: log all keys being uploaded
+  console.log('[cloud] Uploading keys to cloud:', Object.keys(data));
   data.lastModified = new Date().toISOString();
   const fileContent = JSON.stringify(data);
   const metadata = { name: 'focal-data.json', parents: ['appDataFolder'], mimeType: 'application/json' };
@@ -172,7 +173,7 @@ async function syncWithCloud() {
   isSyncing = true;
 
   try {
-    // ... (Your core sync logic is fine)
+    // Gather local data
     const localData = {};
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
@@ -193,10 +194,9 @@ async function syncWithCloud() {
 
     let needsUIRefresh = false;
 
-    if (!localModified && cloudData) {
-      console.log('Restoring from cloud...');
-      // Remove local keys that are not in cloudData (for pages/planner)
-      const cloudKeys = new Set(Object.keys(cloudData));
+    // --- Always download and merge latest cloud data if cloud is newer or equal ---
+    if (cloudData && cloudModified && (!localModified || cloudModified >= localModified)) {
+     const cloudKeys = new Set(Object.keys(cloudData));
       for (let i = localStorage.length - 1; i >= 0; i--) {
         const key = localStorage.key(i);
         if ((key.startsWith('page-') || key.match(/^\d{4}-W\d{1,2}-(monday|tuesday|wednesday|thursday|friday|saturday|sunday|weekend)$/)) && !cloudKeys.has(key)) {
@@ -209,39 +209,32 @@ async function syncWithCloud() {
       }
       localStorage.setItem('lastModified', cloudData.lastModified);
       needsUIRefresh = true;
-    } else if (!cloudData || (localModified && (!cloudModified || localModified > cloudModified))) {
+      // After merging, update localData to match cloud for any future upload
+      for (const key in localData) { delete localData[key]; }
+      for (const key in cloudData) {
+        if (key !== 'lastModified') localData[key] = cloudData[key];
+      }
+      localData.lastModified = cloudData.lastModified;
+    }
+
+    // Only allow upload if local is newer or cloud is empty
+    if (!cloudData || (localModified && (!cloudModified || localModified < localModified))) {
       console.log('Uploading to cloud...');
       const now = new Date().toISOString();
       localData.lastModified = now;
       localStorage.setItem('lastModified', now);
       await uploadAppData(localData);
-    } else if (cloudModified && (!localModified || cloudModified > localModified)) {
-      console.log('Downloading from cloud...');
-      // Remove local keys that are not in cloudData (for pages/planner)
-      const cloudKeys = new Set(Object.keys(cloudData));
-      for (let i = localStorage.length - 1; i >= 0; i--) {
-        const key = localStorage.key(i);
-        if ((key.startsWith('page-') || key.match(/^\d{4}-W\d{1,2}-(monday|tuesday|wednesday|thursday|friday|saturday|sunday|weekend)$/)) && !cloudKeys.has(key)) {
-          localStorage.removeItem(key);
-        }
-      }
-      for (const key in cloudData) {
-        if (key === 'lastModified') continue;
-        localStorage.setItem(key, cloudData[key]);
-      }
-      localStorage.setItem('lastModified', cloudData.lastModified);
-      needsUIRefresh = true;
-    } else {
+    } else if (!needsUIRefresh) {
       console.log('Data is already up to date!');
     }
-    
+
     if (needsUIRefresh) {
-        console.log("Refreshing UI with new data from the cloud.");
-        if (typeof renderApp === 'function') {
-            renderApp();
-        } else {
-            window.location.reload();
-        }
+      console.log("Refreshing UI with new data from the cloud.");
+      if (typeof renderApp === 'function') {
+        renderApp();
+      } else {
+        window.location.reload();
+      }
     }
   } catch (error) {
     console.error("Cloud sync failed:", error.message);
