@@ -1,9 +1,19 @@
 const CACHE_NAME = 'focal-cache-v1';
-// This list should include all your core application files.
 const URLS_TO_CACHE = [
   'index.html',
   'manifest.json',
   'css/style.css',
+  'css/base.css',
+  'css/layout.css',
+  'css/sidebar.css',
+  'css/buttons.css',
+  'css/planner.css',
+  'css/modal.css',
+  'css/markdown.css',
+  'css/goal-tracker.css',
+  'css/settings.css',
+  'css/calendar.css',
+  'css/mobile.css',
   'js/state.js',
   'js/dom.js',
   'js/utils.js',
@@ -18,13 +28,12 @@ const URLS_TO_CACHE = [
   'favicon.png',
   'favicon192.png',
   'favicon512.png',
-  // External CDN resources
+  'faviconabout.png',
   'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/cdn.min.js',
   'https://cdn.jsdelivr.net/npm/marked/marked.min.js',
   'https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js'
 ];
 
-// Install event: opens a cache and adds the core app shell files to it.
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -32,22 +41,21 @@ self.addEventListener('install', event => {
         console.log('Opened cache and caching app shell');
         return cache.addAll(URLS_TO_CACHE);
       })
+      .catch(error => {
+        console.error('Failed to cache app shell. One or more files could not be fetched.', error);
+      })
   );
 });
 
-// Fetch event: serves assets from the cache first (cache-first strategy).
-// This is what makes the app available offline and is required for installability.
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // If the request is in the cache, return it. Otherwise, fetch from the network.
         return response || fetch(event.request);
       })
   );
 });
 
-// Activate event: cleans up old, unused caches.
 self.addEventListener('activate', event => {
   const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
