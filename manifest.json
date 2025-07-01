@@ -1,0 +1,16 @@
+{
+  "name": "Focal Planner",
+  "short_name": "Focal",
+  "description": "A personal planner and goal tracker with cloud sync.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1976d2",
+  "icons": [
+    {
+      "src": "favicon.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    }
+  ]
+}
