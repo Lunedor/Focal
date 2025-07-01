@@ -158,7 +158,6 @@ body.dark-mode .library-page-item.pinned:last-of-type {
   align-items: center;
   margin-top: auto;
   padding-top: 1rem;
-  padding-bottom: 2rem;
   border-top: 1px solid var(--color-border);
   text-align: center;
 }
