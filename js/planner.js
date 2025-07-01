@@ -449,9 +449,8 @@ function renderWeeklyPlanner(scrollToToday = false) {
                   if (years > 0) ageStr = ` (${years} yr${years > 1 ? 's' : ''})`;
                 }
               }
-              const checked = /\[x\]/i.test(lines[foundIndex]);
-              // Add metadata for handler: data-pagekey and data-lineidx
-              return `<label class=\"planner-checkbox-label\"><input type=\"checkbox\" data-pagekey=\"${pageKey}\" data-lineidx=\"${foundIndex}\" ${checked ? 'checked' : ''}>${recurringIcon}${item.text}${ageStr} (from [[${item.displayName}]])</label>`;
+              // No checkbox for recurring events in planner view
+              return `${recurringIcon}${item.text}${ageStr} (from [[${item.displayName}]])`;
             })
             .filter(Boolean)
             .join('\n');
@@ -539,4 +538,3 @@ function renderWeeklyPlanner(scrollToToday = false) {
   // Enable snap-to-center after manual scroll (only needs to be enabled once, but safe to call repeatedly)
   if (window.innerWidth <= 768) enablePlannerSnapToCenter();
 }
-
