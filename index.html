@@ -198,7 +198,22 @@
       </div>
     </div>
   </div>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <!-- Firebase v8 CDN (namespaced) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script>
+    // Your web app's Firebase configuration
+    var firebaseConfig = {
+      apiKey: "AIzaSyAW8rAegPAaeNltFOSBOii8GISykx3S7eU",
+      authDomain: "focal-journal-app.firebaseapp.com",
+      projectId: "focal-journal-app",
+      storageBucket: "focal-journal-app.firebasestorage.app",
+      messagingSenderId: "454247718929",
+      appId: "1:454247718929:web:513ba2cbe7dc1f9e0fd1b0"
+    };
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+  </script>
   <script src="js/state.js"></script>
   <script src="js/dom.js"></script>
   <script src="js/utils.js"></script>
@@ -210,16 +225,6 @@
   <script src="js/events.js"></script>
   <script src="js/settings.js"></script>
   <script src="js/cloud.js"></script>
-  <script>
-    function waitForGoogle(callback, tries = 0) {
-      if (window.google && window.google.accounts && window.google.accounts.oauth2) {
-        callback();
-      } else if (tries < 30) {
-        setTimeout(() => waitForGoogle(callback, tries + 1), 100);
-      }
-    }
-    waitForGoogle(window.initGoogleAuth);
-  </script>
   <script>if(window.feather) feather.replace();</script>
 </body>
 </html>
