@@ -179,7 +179,7 @@ const hideConfirmModal = () => {
 // --- PINNED PAGES UTILITIES ---
 const getPinnedPages = () => {
   try {
-    return JSON.parse(localStorage.getItem('pinned-pages') || '[]');
+    return JSON.parse(getStorage('pinned-pages') || '[]');
   } catch {
     return [];
   }
