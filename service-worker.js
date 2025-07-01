@@ -3,7 +3,6 @@ const URLS_TO_CACHE = [
   '/Focal/',
   '/Focal/index.html',
   '/Focal/favicon.png',
-  '/Focal/favicon.ico',
   '/Focal/faviconabout.png',
   '/Focal/manifest.json',
   '/Focal/css/base.css',
