@@ -2,7 +2,7 @@
 
 A minimalist, local-first digital bullet journal designed for clarity and focus. Organize your tasks, notes, and goals using a powerful markdown-based system that runs entirely in your browser.
 
-![Focal Journal Screenshot](https://github.com/Lunedor/Focal/blob/main/Screenshots/Screenshot_2.jpg)
+![Focal Journal Screenshot](https://github.com/Lunedor/Focal/blob/main/Screenshots/Screenshot_1.jpg)
 *(Replace this with a real screenshot of your application)*
 
 ## ✨ Key Features
