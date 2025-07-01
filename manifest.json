@@ -23,4 +23,20 @@
       "type": "image/png"
     }
   ]
+   "screenshots": [
+    {
+      "src": "/Focal/screenshot-mobile.jpg",
+      "sizes": "538x1165",
+      "type": "image/jpg",
+      "form_factor": "narrow",
+      "label": "Weekly Planner View on Mobile"
+    },
+    {
+      "src": "/Focal/screenshot-desktop.jpg",
+      "sizes": "2043x879",
+      "type": "image/jpg",
+      "form_factor": "wide",
+      "label": "Weekly Planner View on Desktop"
+    }
+  ]
 }
