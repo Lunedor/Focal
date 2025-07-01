@@ -221,7 +221,7 @@ async function downloadAppData() {
 }
 
 async function syncWithCloud() {
-  // Gather all relevant keys (page- and planner keys)
+  // Gather all relevant keys (page-, planner, pinned-pages, unpinned-pages)
   const localData = {};
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
@@ -231,6 +231,15 @@ async function syncWithCloud() {
     ) {
       localData[key] = localStorage.getItem(key);
     }
+  }
+  // Add pinned-pages and unpinned-pages using getStorage
+  const pinnedPages = typeof getStorage === 'function' ? getStorage('pinned-pages') : localStorage.getItem('pinned-pages');
+  if (pinnedPages !== null) {
+    localData['pinned-pages'] = pinnedPages;
+  }
+  const unpinnedPages = typeof getStorage === 'function' ? getStorage('unpinned-pages') : localStorage.getItem('unpinned-pages');
+  if (unpinnedPages !== null) {
+    localData['unpinned-pages'] = unpinnedPages;
   }
   // Only add lastModified if it exists in localStorage
   const localLastModified = localStorage.getItem('lastModified');
@@ -247,7 +256,14 @@ async function syncWithCloud() {
   // If there is NO local lastModified but cloud data exists, always restore from cloud!
   if (!localModified && cloudData) {
     for (const key in cloudData) {
-      if (key !== 'lastModified') {
+      if (key === 'lastModified') continue;
+      if (key === 'pinned-pages' || key === 'unpinned-pages') {
+        if (typeof setStorage === 'function') {
+          setStorage(key, cloudData[key]);
+        } else {
+          localStorage.setItem(key, cloudData[key]);
+        }
+      } else {
         localStorage.setItem(key, cloudData[key]);
       }
     }
@@ -270,7 +286,14 @@ async function syncWithCloud() {
   } else if (cloudModified && cloudModified > localModified) {
     // Cloud is newer: restore cloud data
     for (const key in cloudData) {
-      if (key !== 'lastModified') {
+      if (key === 'lastModified') continue;
+      if (key === 'pinned-pages' || key === 'unpinned-pages') {
+        if (typeof setStorage === 'function') {
+          setStorage(key, cloudData[key]);
+        } else {
+          localStorage.setItem(key, cloudData[key]);
+        }
+      } else {
         localStorage.setItem(key, cloudData[key]);
       }
     }
