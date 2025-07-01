@@ -216,7 +216,7 @@ async function syncWithCloud() {
     if (cloudData.lastModified) {
       localStorage.setItem('lastModified', cloudData.lastModified);
     }
-    alert('Cloud data restored to this device!');
+    console.log('Cloud data restored to this device!');
     if (typeof renderWeeklyPlanner === 'function') renderWeeklyPlanner(true);
     return;
   }
@@ -228,7 +228,7 @@ async function syncWithCloud() {
     localData.lastModified = now;
     localStorage.setItem('lastModified', now);
     await uploadAppData(localData);
-    // alert('Local data synced to cloud!');
+    console.log('Local data synced to cloud!');
   } else if (cloudModified && cloudModified > localModified) {
     // Cloud is newer: restore cloud data
     for (const key in cloudData) {
@@ -239,10 +239,10 @@ async function syncWithCloud() {
     if (cloudData.lastModified) {
       localStorage.setItem('lastModified', cloudData.lastModified);
     }
-    alert('Cloud data restored to this device!');
+    console.log('Cloud data restored to this device!');
     if (typeof renderWeeklyPlanner === 'function') renderWeeklyPlanner(true);
   } else {
-    // alert('Data is already up to date!');
+    console.log('Data is already up to date!');
   }
 }
 
