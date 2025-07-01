@@ -10,6 +10,7 @@ function attachPlannerCheckboxHandler(contentWrapper, key, content) {
         let pageContent = getStorage(pageKey);
         let lines = pageContent.split('\n');
         let match = lines[lineIdx].match(/^([-*])\s*\[( |x)\]\s*(.*)$/i);
+        // Only update if the line is a real markdown task (starts with - [ ] or - [x])
         if (match) {
           let lineText = match[3].replace(/\s*(\(REPEAT:[^)]+\))?\s*(\(SCHEDULED:[^)]+\))?\s*$/, '').trim();
           let repeatTag = (lines[lineIdx].match(/\(REPEAT:[^)]+\)/) || [''])[0];
@@ -29,6 +30,7 @@ function attachPlannerCheckboxHandler(contentWrapper, key, content) {
       let changed = false;
       for (let i = 0; i < lines.length; i++) {
         let match = lines[i].match(/^([-*])\s*\[( |x)\]\s*(.*)$/i);
+        // Only update if the line is a real markdown task (starts with - [ ] or - [x])
         if (match) {
           let lineText = match[3].replace(/\s*(\(REPEAT:[^)]+\))?\s*(\(SCHEDULED:[^)]+\))?\s*$/, '').trim();
           if (lineText === checkboxText) {
@@ -96,40 +98,37 @@ function updatePlannerDay(key) {
           .join('\n');
       }
       if (recurringItems.length > 0) {
-        recurringContent = recurringItems
-          .map(item => {
-            const pageKey = item.pageKey;
-            const pageContent = getStorage(pageKey);
-            const lines = pageContent.split('\n');
-            let foundIndex = -1;
-            for (let idx = 0; idx < lines.length; idx++) {
-              if (!lines[idx].includes(item.text)) continue;
-              if (lines[idx].includes('(REPEAT:')) { foundIndex = idx; break; }
-            }
-            if (foundIndex === -1) return '';
-            const recurringIcon = '🔁 ';
-            let ageStr = '';
-            if (item.originalDate && item.originalDate.match(/^\d{4}-\d{2}-\d{2}|\d{2}[./-]\d{2}[./-]\d{4}$/)) {
-              const origDate = window.parseDateString(item.originalDate);
-              if (origDate) {
-                const thisYear = dateFns.getYear(dayDate);
-                const origYear = dateFns.getYear(origDate);
-                const years = thisYear - origYear;
-                if (years > 0) ageStr = ` (${years} yr${years > 1 ? 's' : ''})`;
+        // Render recurring events as a plain HTML list (no checkboxes), but parse with parseMarkdown for wiki-links
+        recurringContent = '<ul class="recurring-events-list">' +
+          recurringItems
+            .map(item => {
+              const recurringIcon = '🔁 ';
+              let ageStr = '';
+              if (item.originalDate && item.originalDate.match(/^\d{4}-\d{2}-\d{2}|\d{2}[./-]\d{2}[./-]\d{4}$/)) {
+                const origDate = window.parseDateString(item.originalDate);
+                if (origDate) {
+                  const thisYear = dateFns.getYear(dayDate);
+                  const origYear = dateFns.getYear(origDate);
+                  const years = thisYear - origYear;
+                  if (years > 0) ageStr = ` (${years} yr${years > 1 ? 's' : ''})`;
+                }
               }
-            }
-            const checked = /\[x\]/i.test(lines[foundIndex]);
-            // Add metadata for handler: data-pagekey and data-lineidx
-            return `<label class=\"planner-checkbox-label\"><input type=\"checkbox\" data-pagekey=\"${pageKey}\" data-lineidx=\"${foundIndex}\" ${checked ? 'checked' : ''}>${recurringIcon}${item.text}${ageStr} (from [[${item.displayName}]])</label>`;
-          })
-          .filter(Boolean)
-          .join('\n');
+              // Parse the line with parseMarkdown to render wiki-links
+              const line = `${recurringIcon}${item.text}${ageStr} (from [[${item.displayName}]])`;
+              return `<li>${parseMarkdown(line)}</li>`;
+            })
+            .filter(Boolean)
+            .join('') + '</ul>';
       }
       let block = '';
       if (scheduledContent) block += `**Scheduled**\n${scheduledContent}`;
-      if (recurringContent) block += (block ? '\n\n---\n' : '') + `**Event**\n${recurringContent}`;
-      if (block) {
-        scheduledBlock = `<div class="scheduled-items-scroll">${parseMarkdown(block)}</div>`;
+      let blockHtml = '';
+      if (block) blockHtml += `<div class="scheduled-items-scroll">${parseMarkdown(block)}</div>`;
+      if (recurringContent) {
+        blockHtml += `<div class="scheduled-items-scroll"><div class="event-header"><b>Event</b></div>${recurringContent}</div>`;
+      }
+      if (blockHtml) {
+        scheduledBlock = blockHtml;
       }
     }
   }
