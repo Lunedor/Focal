@@ -1,3 +1,5 @@
+// --- START OF FILE cloud.js ---
+
 // Cloud sync setting: set to true to enable, false to disable
 function isCloudSyncEnabled() {
   // Default to false if not set
@@ -28,25 +30,32 @@ window.autoCloudSync = function() {
 
 // Helper: fetch with Google auth, auto-refresh on 401, and retry once (robust, prevents race conditions)
 let tokenRefreshPromise = null;
-async function refreshAccessToken(forcePrompt = false) {
+async function refreshAccessToken() {
   if (!tokenClient) throw new Error('Token client not initialized');
   if (tokenRefreshPromise) return tokenRefreshPromise; // Prevent race conditions
-  tokenRefreshPromise = new Promise((resolve) => {
+
+  console.log('[cloud] Refreshing access token...');
+  tokenRefreshPromise = new Promise((resolve, reject) => {
+    // This callback is temporarily set to handle the response of this specific refresh request.
     tokenClient.callback = (tokenResponse) => {
+      tokenRefreshPromise = null; // Allow next refresh to start
       if (tokenResponse && tokenResponse.access_token) {
         accessToken = tokenResponse.access_token;
         isSignedIn = true;
         localStorage.setItem('google_access_token', accessToken);
+        console.log('[cloud] Token refreshed successfully.');
+        resolve();
       } else {
+        // This happens if silent refresh fails.
+        console.error('[cloud] Failed to refresh token silently.');
         accessToken = null;
         isSignedIn = false;
         localStorage.removeItem('google_access_token');
+        reject(new Error('Failed to refresh token.'));
       }
       updateAuthUI();
-      tokenRefreshPromise = null;
-      resolve();
     };
-    tokenClient.requestAccessToken(forcePrompt ? {} : { prompt: '' });
+    tokenClient.requestAccessToken({ prompt: '' });
   });
   return tokenRefreshPromise;
 }
@@ -55,9 +64,11 @@ async function googleFetch(url, options = {}, retry = true) {
   if (!options.headers) options.headers = {};
   options.headers['Authorization'] = 'Bearer ' + accessToken;
   let res = await fetch(url, options);
+
   if (res.status === 401 && retry && tokenClient) {
-    // Token expired or invalid, try to get a new one (queue refreshes)
+    // Token expired or invalid, try to get a new one silently.
     await refreshAccessToken();
+    // Retry the request with the new token.
     options.headers['Authorization'] = 'Bearer ' + accessToken;
     res = await fetch(url, options);
   }
@@ -69,72 +80,93 @@ const GOOGLE_API_SCOPES = 'https://www.googleapis.com/auth/drive.appdata openid 
 let tokenClient;
 let accessToken = null;
 let isSignedIn = false;
-let authChecked = false; // Track if we've finished the silent check
+let authChecked = false;
 
+// REFINED and CORRECTED initGoogleAuth
 function initGoogleAuth() {
   // 🛠️ Set up Google OAuth 2.0 Token Client
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: GOOGLE_CLIENT_ID,
     scope: GOOGLE_API_SCOPES,
-    auto_select: true,
+    // This callback runs only after a user explicitly clicks the Sign In button
+    // and completes the popup flow.
     callback: async (tokenResponse) => {
       if (tokenResponse && tokenResponse.access_token) {
         accessToken = tokenResponse.access_token;
         isSignedIn = true;
         localStorage.setItem('google_access_token', accessToken);
+        
+        // After a fresh sign-in, enable cloud sync and perform the initial sync.
+        setCloudSyncEnabled(true); 
+        console.log('[cloud] User signed in successfully. Syncing with cloud...');
+        await syncWithCloud();
       } else {
+        // User closed the popup or the sign-in failed.
+        console.log('[cloud] Token request was cancelled or failed.');
         accessToken = null;
         isSignedIn = false;
         localStorage.removeItem('google_access_token');
       }
       authChecked = true;
       updateAuthUI();
-      // After auth check, only sync if signed in and cloud sync enabled
-      if (isSignedIn) {
-        const syncEnabled = isCloudSyncEnabled();
-        console.log('[cloud] tokenClient callback: isSignedIn:', isSignedIn, 'cloudSyncEnabled:', syncEnabled);
-        if (syncEnabled) {
-          console.log('[cloud] Calling syncWithCloud() from tokenClient callback');
-          await syncWithCloud();
-        }
-      }
     }
   });
 
-  // On load, check if a token exists in localStorage
+  // --- ON PAGE LOAD LOGIC ---
   accessToken = localStorage.getItem('google_access_token');
   if (accessToken) {
+    // OPTIMISTIC: Assume user is signed in. UI will show "Sign Out".
+    console.log('[cloud] Found existing token. Attempting to restore session.');
     isSignedIn = true;
     authChecked = true;
     updateAuthUI();
+
+    // Now, check if sync is enabled and try to sync.
+    // googleFetch will handle the silent token refresh if the token has expired.
     const syncEnabled = isCloudSyncEnabled();
-    console.log('[cloud] initGoogleAuth: isSignedIn:', isSignedIn, 'cloudSyncEnabled:', syncEnabled);
     if (syncEnabled) {
-      console.log('[cloud] Calling syncWithCloud() from initGoogleAuth');
-      syncWithCloud();
+      console.log('[cloud] Auto-syncing on page load...');
+      // We wrap this in a try/catch in case the silent refresh fails
+      // (e.g., user logged out of Google entirely or revoked permissions).
+      syncWithCloud().catch(error => {
+          console.error('[cloud] Auto-sync failed. This may be due to loss of authentication.', error);
+          // If sync fails due to auth, the user is effectively signed out of our app.
+          signOut(); 
+      });
     }
   } else {
+    // No token, definitely not signed in.
     isSignedIn = false;
     authChecked = true;
     updateAuthUI();
   }
 }
 
-function signIn() {
-  if (tokenClient) {
-    authChecked = false;
-    updateAuthUI();
-    // This will show the consent prompt
-    tokenClient.requestAccessToken();
-  }
-}
-
+// REFINED signOut
 function signOut() {
+  // Revoke the token to invalidate it on Google's side (best practice)
+  if (accessToken) {
+    google.accounts.oauth2.revoke(accessToken, () => {
+      console.log('[cloud] Access token revoked.');
+    });
+  }
+  
   localStorage.removeItem('google_access_token');
   accessToken = null;
   isSignedIn = false;
-  setCloudSyncEnabled(false); // Turn off sync after sign out
+  // It's good practice to turn off the setting when the user explicitly signs out.
+  setCloudSyncEnabled(false); 
   updateAuthUI();
+}
+
+// REVISED signIn
+function signIn() {
+  if (tokenClient) {
+    authChecked = false;
+    updateAuthUI(); // Immediately show "Checking..." for better UX
+    // This will show the consent prompt, which is allowed because it's a user click
+    tokenClient.requestAccessToken({});
+  }
 }
 
 function updateAuthUI() {
@@ -161,6 +193,7 @@ async function uploadAppData(data) {
   const listRes = await googleFetch(
     'https://www.googleapis.com/drive/v3/files?q=name=%27focal-data.json%27+and+%27appDataFolder%27+in+parents&spaces=appDataFolder&fields=files(id,name)'
   );
+  if (!listRes.ok) throw new Error('Could not check for existing file.');
   const list = await listRes.json();
   const fileId = list.files && list.files[0] && list.files[0].id;
 
@@ -209,6 +242,7 @@ async function downloadAppData() {
   const listRes = await googleFetch(
     'https://www.googleapis.com/drive/v3/files?q=name=%27focal-data.json%27+and+%27appDataFolder%27+in+parents&spaces=appDataFolder&fields=files(id,name)'
   );
+  if (!listRes.ok) throw new Error('Could not list files from Google Drive.');
   const list = await listRes.json();
   const file = list.files && list.files[0];
   if (!file) return null;
@@ -217,11 +251,12 @@ async function downloadAppData() {
   const resp = await googleFetch(
     `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`
   );
+  if (!resp.ok) throw new Error('Could not download file content.');
   return await resp.json();
 }
 
 async function syncWithCloud() {
-  // Gather all relevant keys (page-, planner, pinned-pages, unpinned-pages)
+  // Gather all relevant local data
   const localData = {};
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
@@ -232,7 +267,6 @@ async function syncWithCloud() {
       localData[key] = localStorage.getItem(key);
     }
   }
-  // Add pinned-pages and unpinned-pages using getStorage
   const pinnedPages = typeof getStorage === 'function' ? getStorage('pinned-pages') : localStorage.getItem('pinned-pages');
   if (pinnedPages !== null) {
     localData['pinned-pages'] = pinnedPages;
@@ -241,7 +275,6 @@ async function syncWithCloud() {
   if (unpinnedPages !== null) {
     localData['unpinned-pages'] = unpinnedPages;
   }
-  // Only add lastModified if it exists in localStorage
   const localLastModified = localStorage.getItem('lastModified');
   if (localLastModified) {
     localData.lastModified = localLastModified;
@@ -252,19 +285,16 @@ async function syncWithCloud() {
   const localModified = localLastModified ? new Date(localLastModified) : null;
   const cloudModified = cloudData && cloudData.lastModified ? new Date(cloudData.lastModified) : null;
 
-  // --- CRITICAL LOGIC ---
-  // If there is NO local lastModified but cloud data exists, always restore from cloud!
+  // --- SYNC LOGIC ---
   if (!localModified && cloudData) {
+    // Case: First time on a new device, restore from cloud.
+    console.log('No local data found. Restoring from cloud...');
     for (const key in cloudData) {
       if (key === 'lastModified') continue;
-      if (key === 'pinned-pages' || key === 'unpinned-pages') {
-        if (typeof setStorage === 'function') {
+      if (typeof setStorage === 'function' && (key === 'pinned-pages' || key === 'unpinned-pages')) {
           setStorage(key, cloudData[key]);
-        } else {
-          localStorage.setItem(key, cloudData[key]);
-        }
       } else {
-        localStorage.setItem(key, cloudData[key]);
+          localStorage.setItem(key, cloudData[key]);
       }
     }
     if (cloudData.lastModified) {
@@ -275,26 +305,23 @@ async function syncWithCloud() {
     return;
   }
 
-  // If cloud is empty or local is newer, upload local
   if (!cloudData || (localModified && (!cloudModified || localModified > cloudModified))) {
-    // Set and store lastModified
+    // Case: Cloud is empty or local is newer, so upload.
+    console.log('Local data is newer. Syncing to cloud...');
     const now = new Date().toISOString();
     localData.lastModified = now;
     localStorage.setItem('lastModified', now);
     await uploadAppData(localData);
     console.log('Local data synced to cloud!');
-  } else if (cloudModified && cloudModified > localModified) {
-    // Cloud is newer: restore cloud data
+  } else if (cloudModified && (!localModified || cloudModified > localModified)) {
+    // Case: Cloud is newer, so download (restore).
+    console.log('Cloud data is newer. Restoring to this device...');
     for (const key in cloudData) {
       if (key === 'lastModified') continue;
-      if (key === 'pinned-pages' || key === 'unpinned-pages') {
-        if (typeof setStorage === 'function') {
+      if (typeof setStorage === 'function' && (key === 'pinned-pages' || key === 'unpinned-pages')) {
           setStorage(key, cloudData[key]);
-        } else {
-          localStorage.setItem(key, cloudData[key]);
-        }
       } else {
-        localStorage.setItem(key, cloudData[key]);
+          localStorage.setItem(key, cloudData[key]);
       }
     }
     if (cloudData.lastModified) {
@@ -303,11 +330,13 @@ async function syncWithCloud() {
     console.log('Cloud data restored to this device!');
     if (typeof renderWeeklyPlanner === 'function') renderWeeklyPlanner(true);
   } else {
+    // Case: Timestamps match.
     console.log('Data is already up to date!');
   }
 }
 
-// Make it available globally
+// Make functions available globally
 window.syncWithCloud = syncWithCloud;
-
 window.initGoogleAuth = initGoogleAuth;
+window.signIn = signIn;
+window.signOut = signOut;
