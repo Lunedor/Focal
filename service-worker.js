@@ -51,25 +51,22 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('fetch', event => {
+  // Only handle GET requests for caching
+  if (event.request.method !== 'GET') {
+    return;
+  }
   // Use a "Network falling back to Cache" strategy.
-  // This is ideal for development and for ensuring users get the latest assets
-  // while still providing full offline support.
   event.respondWith(
-    // 1. Try to fetch the request from the network.
     fetch(event.request)
       .then(networkResponse => {
-        // 2. If successful, clone the response and update the cache in the background.
-        // This is a "stale-while-revalidate" side-effect that keeps the cache fresh.
         const responseToCache = networkResponse.clone();
         caches.open(CACHE_NAME).then(cache => {
-          // We only cache successful (2xx) responses.
           if (responseToCache && responseToCache.status === 200) {
             cache.put(event.request, responseToCache);
           }
         });
         return networkResponse;
       })
-      // 3. If the network request fails (e.g., offline), serve the file from the cache.
       .catch(() => caches.match(event.request))
   );
 });
