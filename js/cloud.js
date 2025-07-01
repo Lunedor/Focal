@@ -1,3 +1,31 @@
+// Cloud sync setting: set to true to enable, false to disable
+function isCloudSyncEnabled() {
+  // Default to false if not set
+  const val = localStorage.getItem('cloudSyncEnabled');
+  return val === null ? false : val === 'true';
+}
+
+// Call this to enable or disable cloud sync (e.g. from a button)
+function setCloudSyncEnabled(enabled) {
+  localStorage.setItem('cloudSyncEnabled', enabled ? 'true' : 'false');
+  window.isCloudSyncOn = enabled;
+  console.log('[cloud] cloudSyncEnabled set to', enabled);
+}
+
+// On first load, set default if not present
+if (localStorage.getItem('cloudSyncEnabled') === null) {
+  localStorage.setItem('cloudSyncEnabled', 'false');
+}
+// Keep window.isCloudSyncOn in sync with the setting on load
+window.isCloudSyncOn = isCloudSyncEnabled();
+
+// Optionally, set this to auto-sync after every change
+window.autoCloudSync = function() {
+  if (typeof isSignedIn !== 'undefined' && isSignedIn && isCloudSyncEnabled() && typeof syncWithCloud === 'function') {
+    syncWithCloud();
+  }
+};
+
 // Helper: fetch with Google auth, auto-refresh on 401, and retry once (robust, prevents race conditions)
 let tokenRefreshPromise = null;
 async function refreshAccessToken(forcePrompt = false) {
@@ -61,9 +89,14 @@ function initGoogleAuth() {
       }
       authChecked = true;
       updateAuthUI();
-      // After auth check, if signed in, sync with cloud
+      // After auth check, only sync if signed in and cloud sync enabled
       if (isSignedIn) {
-        await syncWithCloud();
+        const syncEnabled = isCloudSyncEnabled();
+        console.log('[cloud] tokenClient callback: isSignedIn:', isSignedIn, 'cloudSyncEnabled:', syncEnabled);
+        if (syncEnabled) {
+          console.log('[cloud] Calling syncWithCloud() from tokenClient callback');
+          await syncWithCloud();
+        }
       }
     }
   });
@@ -74,8 +107,12 @@ function initGoogleAuth() {
     isSignedIn = true;
     authChecked = true;
     updateAuthUI();
-    // Sync with cloud if signed in
-    syncWithCloud();
+    const syncEnabled = isCloudSyncEnabled();
+    console.log('[cloud] initGoogleAuth: isSignedIn:', isSignedIn, 'cloudSyncEnabled:', syncEnabled);
+    if (syncEnabled) {
+      console.log('[cloud] Calling syncWithCloud() from initGoogleAuth');
+      syncWithCloud();
+    }
   } else {
     isSignedIn = false;
     authChecked = true;
@@ -96,6 +133,7 @@ function signOut() {
   localStorage.removeItem('google_access_token');
   accessToken = null;
   isSignedIn = false;
+  setCloudSyncEnabled(false); // Turn off sync after sign out
   updateAuthUI();
 }
 
