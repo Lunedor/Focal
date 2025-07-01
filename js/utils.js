@@ -185,9 +185,9 @@ const getPinnedPages = () => {
   }
 };
 
-const setPinnedPages = (arr) => {
-  localStorage.setItem('pinned-pages', JSON.stringify(arr));
-};
+function setPinnedPages(arr) {
+  setStorage('pinned-pages', JSON.stringify(arr));
+}
 
 const isPagePinned = (title) => getPinnedPages().includes(title);
 
