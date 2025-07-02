@@ -174,6 +174,11 @@ function renderMonthlyCalendar(date) {
       dayEl.classList.add('other-month');
     }
 
+    // Highlight today
+    if (dateFns.isToday(day)) {
+      dayEl.classList.add('today');
+    }
+
     dayEl.innerHTML = `<div class="day-number">${dateFns.format(day, 'd')}</div>`;
 
     if (datesWithData.has(dayDateStr)) {
