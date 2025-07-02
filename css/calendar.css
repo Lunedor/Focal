@@ -70,6 +70,12 @@
     opacity: 0.6;
 }
 
+.calendar-day.today {
+  border: 2px solid var(--color-link);
+  box-shadow: 0 0 0 2px var(--color-focus);
+  background: var(--color-sidebar-active-bg);
+}
+
 .calendar-day .dot-indicator {
   position: absolute;
   bottom: 5px;
