@@ -129,7 +129,7 @@ async function syncWithCloud() {
           keysToRemove.push(key);
         }
       }
-      keysToRemove.forEach(key => localStorage.removeItem(key));
+      keysToRemove.forEach(key => deleteStorage(key));
 
       // Write ALL cloud data to local storage
       for (const key in cloudData.appData) {
