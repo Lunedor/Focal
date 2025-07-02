@@ -112,8 +112,6 @@ function updateAuthUI() {
   }
 }
 
-// --- REMOVED --- uploadAppData and downloadAppData are replaced by syncWithCloud.
-
 /**
  * The new, all-in-one sync function using Firestore.
  */
@@ -122,13 +120,11 @@ async function syncWithCloud() {
     console.log('[cloud] Sync already in progress. Skipping.');
     return;
   }
-
   const user = auth.currentUser;
   if (!user) {
     console.log('[cloud] Cannot sync, user is not signed in.');
     return;
   }
-
   isSyncing = true;
   console.log('[cloud] Starting sync with Firestore...');
 
@@ -137,21 +133,14 @@ async function syncWithCloud() {
     const localDataKeys = [];
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key.startsWith('page-') || key.match(/^\d{4}-W\d{1,2}-(monday|tuesday|wednesday|thursday|friday|saturday|sunday|weekend)$/)) {
+        // Only sync relevant app data, ignore other localStorage items
+        if (key.startsWith('page-') || key.startsWith('pinned-') || key.startsWith('unpinned-') || key.match(/^\d{4}-W\d{1,2}/)) {
             localData[key] = localStorage.getItem(key);
             localDataKeys.push(key);
         }
     }
-    const pinned = localStorage.getItem('pinned-pages');
-    if (pinned) localData['pinned-pages'] = pinned;
-    const unpinned = localStorage.getItem('unpinned-pages');
-    if (unpinned) localData['unpinned-pages'] = unpinned;
 
-
-    // Path to the user's private data collection
     const collectionRef = db.collection('users').doc(user.uid).collection('appData');
-
-    // 1. Download cloud data
     const querySnapshot = await collectionRef.get();
     const cloudData = {};
     querySnapshot.forEach(doc => {
@@ -159,59 +148,50 @@ async function syncWithCloud() {
     });
     console.log(`[cloud] Downloaded ${Object.keys(cloudData).length} items from cloud.`);
 
-    // 2. Merge data (local data wins over cloud data)
     const mergedData = { ...cloudData, ...localData };
-
-    // 3. Update local storage if cloud had newer items
     let needsUIRefresh = false;
-    for (const key in mergedData) {
-      if (localData[key] !== mergedData[key]) {
-        localStorage.setItem(key, mergedData[key]);
+    for (const key in cloudData) {
+      if (!localData.hasOwnProperty(key)) {
+        // Item exists in cloud but not locally, so add it to local
+        localStorage.setItem(key, cloudData[key]);
         needsUIRefresh = true;
       }
     }
 
-    // 4. Batch upload the merged data back to Firestore for consistency.
-    // This is very efficient and uses only 1 write operation for any number of changes.
     const batch = db.batch();
-    const mergedKeys = Object.keys(mergedData);
-
-    // Add or update documents
-    mergedKeys.forEach(key => {
-        const docRef = collectionRef.doc(key);
-        batch.set(docRef, { content: mergedData[key] });
-    });
-
-    // Find and delete any cloud documents that are no longer in the merged data
+    // --- FIX FOR DELETE ---
+    // Identify keys that are in the cloud but NOT in our current local storage.
     const cloudKeys = Object.keys(cloudData);
-    const keysToDelete = cloudKeys.filter(key => !mergedKeys.includes(key));
-    keysToDelete.forEach(key => {
-        batch.delete(collectionRef.doc(key));
-    });
-
-    if (mergedKeys.length > 0 || keysToDelete.length > 0) {
-      await batch.commit();
-      console.log(`[cloud] Uploaded/synced ${mergedKeys.length} items and deleted ${keysToDelete.length} items.`);
-    } else {
-      console.log('[cloud] No data to sync.');
+    const keysToDelete = cloudKeys.filter(key => !localDataKeys.includes(key));
+    if (keysToDelete.length > 0) {
+        console.log('[cloud] Deleting obsolete keys from cloud:', keysToDelete);
+        keysToDelete.forEach(key => {
+            batch.delete(collectionRef.doc(key));
+        });
     }
+
+    // Identify keys that need to be uploaded/updated
+    for(const key in localData) {
+        if(localData[key] !== cloudData[key]) {
+            console.log(`[cloud] Updating key in cloud: ${key}`);
+            batch.set(collectionRef.doc(key), { content: localData[key] });
+        }
+    }
+
+    await batch.commit();
+    console.log('[cloud] Sync batch committed.');
 
     if (needsUIRefresh) {
       console.log("[cloud] UI needs refresh due to new data from cloud.");
-      if (typeof renderApp === 'function') {
-        renderApp();
-      } else {
-        window.location.reload();
-      }
+      renderApp();
     } else {
-        console.log('[cloud] Local data is already up to date.');
+        console.log('[cloud] Local data is already up to date or pushed to cloud.');
     }
 
   } catch (error) {
     console.error("Cloud sync failed:", error);
-    // You could add UI feedback here, like a toast notification
   } finally {
-    isSyncing = false; // Release the guard
+    isSyncing = false;
   }
 }
 
