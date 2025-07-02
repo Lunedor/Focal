@@ -101,7 +101,7 @@
 /* Styles for month and year select dropdowns */
 #month-select,
 #year-select {
-  font-size: 1rem;
+  font-size: 1.5rem;
   padding: .5rem .75rem;
   color: var(--color-sidebar-text);
   background: var(--color-background);
