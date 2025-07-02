@@ -196,7 +196,7 @@ function enablePlannerSnapToCenter() {
 
         isProgrammaticScroll = true; // Set flag to prevent this scroll from re-triggering
         grid.scrollTo({ left: targetScrollLeft, behavior: 'smooth' });
-        setTimeout(() => { isProgrammaticScroll = false; }, 500); // Reset flag after animation
+        setTimeout(() => { isProgrammaticScroll = false; }, 700); // Reset flag after animation (longer)
       }
     }, 150); // A bit longer delay after scroll stops
   });
@@ -378,7 +378,7 @@ function isCurrentPlannerDayCentered() {
     const noteCenter = noteLeft + noteWidth / 2;
     const gridCenter = visibleLeft + gridWidth / 2;
     const delta = noteCenter - gridCenter;
-    const tolerance = 10; // A small tolerance to avoid unnecessary scrolls
+    const tolerance = 40; // Increased tolerance to avoid unnecessary scrolls
     return noteStart >= visibleLeft && noteEnd <= visibleRight && Math.abs(delta) < tolerance;
   }
   return false;
@@ -407,11 +407,11 @@ function scrollToCurrentPlannerDay(smooth = true) {
 
     // Otherwise, center the note
     const noteCenter = noteLeft + noteWidth / 2;
-    // Use the same micro-adjustment as in enablePlannerSnapToCenter for consistent centering
+    // Use a slightly larger micro-adjustment for more reliable centering
     const microAdjust = -15;
     isProgrammaticScroll = true; // Set flag to prevent snap-to-center from interfering
     grid.scrollTo({ left: noteCenter - gridWidth / 2 + microAdjust, behavior: 'smooth' });
-    setTimeout(() => { isProgrammaticScroll = false; }, 500); // Reset flag after animation
+    setTimeout(() => { isProgrammaticScroll = false; }, 700); // Reset flag after animation (longer)
   }
 }
 
