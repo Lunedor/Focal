@@ -1,6 +1,7 @@
 // --- START OF FILE events.js (Corrected) ---
 
 // --- MOBILE SIDEBAR TOGGLE ---
+let swipeListenersAttached = false;
 document.addEventListener('DOMContentLoaded', () => {
   const hamburger = document.getElementById('hamburger-menu');
   const sidebar = document.getElementById('sidebar');
@@ -48,7 +49,49 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  // --- GESTURE LISTENERS (run once) ---
+  if (!swipeListenersAttached) {
+    // --- Calendar Swipe Gestures ---
+    const calendarView = document.getElementById('monthly-calendar-view');
+    if (calendarView) {
+        addSwipeListeners(calendarView,
+            () => goToNextMonth(),    // Swipe Left
+            () => goToPreviousMonth() // Swipe Right
+        );
+    }
+
+    // --- Planner Swipe Gestures ---
+    const plannerGrid = document.getElementById('plan-grid-container');
+    if (plannerGrid) {
+        addSwipeListeners(plannerGrid,
+            () => goToNextDay(),    // Swipe Left
+            () => goToPreviousDay() // Swipe Right
+        );
+    }
+
+    swipeListenersAttached = true;
+  }
 });
+
+// --- SWIPE GESTURE HELPER ---
+function addSwipeListeners(element, onSwipeLeft, onSwipeRight) {
+    let touchstartX = 0;
+    let touchendX = 0;
+    const swipeThreshold = 50; // minimum distance for a swipe in pixels
+
+    element.addEventListener('touchstart', e => {
+        touchstartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+
+    element.addEventListener('touchend', e => {
+        touchendX = e.changedTouches[0].screenX;
+        const deltaX = touchendX - touchstartX;
+        if (Math.abs(deltaX) < swipeThreshold) return; // not a swipe
+        if (touchendX < touchstartX) onSwipeLeft();   // Swiped left
+        if (touchendX > touchstartX) onSwipeRight();  // Swiped right
+    }, { passive: true });
+}
 // --- EVENT HANDLERS ---
 // Library search
 DOM.librarySearch.addEventListener('input', renderSidebar);
@@ -402,68 +445,9 @@ DOM.sidebar.addEventListener('click', async (e) => {
 });
 
 // ... (rest of the file is unchanged and correct)
-document.addEventListener('click', (e) => {
-  const actionTarget = e.target.closest('[data-action]');
-  if (actionTarget) {
-    e.preventDefault();
-    const action = actionTarget.dataset.action;
-    if (action === 'prev-week') appState.currentDate = dateFns.subWeeks(appState.currentDate, 1);
-    if (action === 'next-week') appState.currentDate = dateFns.addWeeks(appState.currentDate, 1);
-    if (action === 'today') appState.currentDate = new Date();
-    renderWeeklyPlanner(true);
-  }
-  const plannerLinkTarget = e.target.closest('[data-planner-key]');
-  if (plannerLinkTarget) {
-    e.preventDefault();
-    const plannerKey = plannerLinkTarget.dataset.plannerKey;
-    const match = plannerKey.match(/(\d{4})-W(\d{1,2})-([a-z]+)/i);
-    if (match && window.dateFns) {
-      const [_, year, week, day] = match;
-      const weekNum = parseInt(week, 10);
-      const yearNum = parseInt(year, 10);
-      const dayNames = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
-      const dayIndex = dayNames.indexOf(day.toLowerCase());
-      if (dayIndex !== -1) {
-        let start = window.dateFns.startOfISOWeek(window.dateFns.setISOWeek(new Date(yearNum, 0, 4), weekNum));
-        let date = window.dateFns.addDays(start, dayIndex);
-        appState.currentDate = date;
-        appState.currentView = 'weekly';
-        renderApp();
-        setTimeout(() => renderWeeklyPlanner(true), 0);
-        return;
-      }
-    }
-  }
-
-  const scheduledLink = e.target.closest('.scheduled-link[data-planner-date]');
-  if (scheduledLink) {
-    e.preventDefault();
-    const dateStr = scheduledLink.dataset.plannerDate;
-    if (window.dateFns && dateStr) {
-      const date = window.dateFns.parseISO(dateStr);
-      if (!isNaN(date)) {
-        appState.currentDate = date;
-        appState.currentView = 'weekly';
-        renderApp();
-        setTimeout(() => renderWeeklyPlanner(true), 0);
-      }
-    }
-    return;
-  }
-  const pageLinkTarget = e.target.closest('[data-page-link]');
-  if (pageLinkTarget) {
-    e.preventDefault();
-    const pageTitle = pageLinkTarget.dataset.pageLink;
-    const key = `page-${pageTitle}`;
-    if (!getStorage(key)) {
-      setStorage(key, `# ${pageTitle}\n\n`);
-    }
-    appState.currentView = pageTitle;
-    renderApp();
-  }
-});
-
-document.addEventListener('click', (e) => {
+// --- Centralized Click Handler for Navigation and Links ---
+document.addEventListener('click', async (e) => {
+  // Calendar Navigation (Monthly)
   const navTarget = e.target.closest('.calendar-nav a');
   if (navTarget) {
     e.preventDefault();
@@ -471,10 +455,32 @@ document.addEventListener('click', (e) => {
     if (action === 'prev-month') goToPreviousMonth();
     if (action === 'next-month') goToNextMonth();
     if (action === 'today-month') goToCurrentMonth();
+    return; // Action handled
   }
-});
+  // Planner Navigation (Weekly)
+  const plannerNavTarget = e.target.closest('.planner-nav a[data-action], .planner-nav button[data-action]');
+  if (plannerNavTarget) {
+    e.preventDefault();
+    const action = plannerNavTarget.dataset.action;
+    if (action === 'prev-week') {
+      goToPreviousWeek();
+    } else if (action === 'next-week') {
+      goToNextWeek();
+    } else if (action === 'today') {
+      appState.currentDate = new Date();
+      renderWeeklyPlanner(true);
+      return;
+    }
+    return; // Action handled
+  }
 
-document.addEventListener('keydown', async (e) => {
+  // Link to a specific planner day (from backlinks)
+  const plannerLinkTarget = e.target.closest('[data-planner-key]');
+  if (plannerLinkTarget) {
+    e.preventDefault();
+    const plannerKey = plannerLinkTarget.dataset.plannerKey;
+    const match = plannerKey.match(/(\d{4})-W(\d{1,2})-([a-z]+)/i);
+    
   if (e.target.matches('input, textarea') || DOM.modalOverlay.classList.contains('active')) {
     return;
   }
@@ -509,5 +515,6 @@ document.addEventListener('keydown', async (e) => {
         }
         break;
     }
+  }
   }
 });
