@@ -67,13 +67,30 @@ window.parseDateString = parseDateString;
 window.normalizeDateStringToYyyyMmDd = normalizeDateStringToYyyyMmDd;
 const getWeekKey = (date) => `${dateFns.getISOWeekYear(date)}-W${dateFns.getISOWeek(date)}`;
 const getStorage = (key) => localStorage.getItem(key) || '';
+// This function is probably in your main app.js or a utils.js file
+
 function setStorage(key, value) {
   localStorage.setItem(key, value);
-  if (window.isCloudSyncOn) { // Only update lastModified if sync is ON
-    localStorage.setItem('lastModified', new Date().toISOString());
+  // This is the crucial line that tells our sync logic that local data is now the newest.
+  localStorage.setItem('lastModified', new Date().toISOString());
+  
+  // Also trigger a sync if the user has it enabled.
+  if (typeof window.autoCloudSync === 'function') {
+    window.autoCloudSync();
   }
-  if (window.autoCloudSync) window.autoCloudSync();
 }
+
+// Utility for deleting a key and updating lastModified, then triggering sync
+function deleteStorage(key) {
+  localStorage.removeItem(key);
+  localStorage.setItem('lastModified', new Date().toISOString());
+  if (typeof window.autoCloudSync === 'function') {
+    window.autoCloudSync();
+  }
+}
+
+// Expose globally for use in other scripts
+window.deleteStorage = deleteStorage;
 
 // Modal utilities
 const showModal = (title, placeholder = '', defaultValue = '') => {
@@ -273,7 +290,7 @@ async function importAllData() {
             keysToRemove.push(key);
           }
         }
-        keysToRemove.forEach(key => localStorage.removeItem(key));
+        keysToRemove.forEach(key => deleteStorage(key));
 
         // Populate localStorage with imported data
         for (const key in importedData) {
