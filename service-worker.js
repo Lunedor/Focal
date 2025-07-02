@@ -60,9 +60,13 @@ self.addEventListener('fetch', event => {
   if (url.protocol !== 'http:' && url.protocol !== 'https:') {
     return;
   }
+  // Skip chrome-extension requests
+  if (url.protocol === 'chrome-extension:') {
+    return;
+  }
   // Use a "Network falling back to Cache" strategy.
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request, {cache: "no-store"})
       .then(networkResponse => {
         const responseToCache = networkResponse.clone();
         caches.open(CACHE_NAME).then(cache => {
