@@ -70,20 +70,39 @@ function signOut() {
 
 async function googleFetch(url, options = {}) {
   if (!accessToken) {
-    console.warn('[cloud] Attempted to fetch without an access token. Forcing sign-out.');
-    signOut();
-    throw new Error('Not authenticated.');
+    // Try to get a fresh token from Firebase
+    if (auth.currentUser) {
+      accessToken = await auth.currentUser.getIdToken(/* forceRefresh */ true);
+      localStorage.setItem('google_access_token', accessToken);
+    } else {
+      console.warn('[cloud] Attempted to fetch without an access token. Forcing sign-out.');
+      signOut();
+      throw new Error('Not authenticated.');
+    }
   }
-  
+
   if (!options.headers) options.headers = {};
   options.headers['Authorization'] = 'Bearer ' + accessToken;
 
   let res = await fetch(url, options);
 
   if (res.status === 401) {
-    console.warn('[cloud] Google API token is invalid (401). Forcing sign-out to refresh.');
-    signOut();
-    throw new Error('Google API token expired.');
+    // Try to refresh the token once
+    if (auth.currentUser) {
+      accessToken = await auth.currentUser.getIdToken(true);
+      localStorage.setItem('google_access_token', accessToken);
+      options.headers['Authorization'] = 'Bearer ' + accessToken;
+      res = await fetch(url, options);
+      if (res.status === 401) {
+        console.warn('[cloud] Google API token is invalid (401) after refresh. Forcing sign-out to refresh.');
+        signOut();
+        throw new Error('Google API token expired.');
+      }
+    } else {
+      console.warn('[cloud] Google API token is invalid (401). Forcing sign-out to refresh.');
+      signOut();
+      throw new Error('Google API token expired.');
+    }
   }
   return res;
 }
@@ -155,7 +174,6 @@ async function uploadAppData(data) {
 }
 
 async function downloadAppData() {
-  // ... (This function is correct, no changes needed)
   const listRes = await googleFetch('https://www.googleapis.com/drive/v3/files?q=name=%27focal-data.json%27+and+%27appDataFolder%27+in+parents&spaces=appDataFolder&fields=files(id,name)');
   const list = await listRes.json();
   const file = list.files && list.files[0];
