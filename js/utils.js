@@ -69,24 +69,24 @@ const getWeekKey = (date) => `${dateFns.getISOWeekYear(date)}-W${dateFns.getISOW
 const getStorage = (key) => localStorage.getItem(key) || '';
 // This function is probably in your main app.js or a utils.js file
 
+// Centralized function to update lastModified and trigger sync if enabled
+window.markLocalDataAsModified = function() {
+  if (typeof window.isCloudSyncEnabled === 'function' && window.isCloudSyncEnabled()) {
+    localStorage.setItem('lastModified', new Date().toISOString());
+    if (typeof window.autoCloudSync === 'function') {
+      window.autoCloudSync();
+    }
+  }
+};
+
 function setStorage(key, value) {
   localStorage.setItem(key, value);
-  // This is the crucial line that tells our sync logic that local data is now the newest.
-  localStorage.setItem('lastModified', new Date().toISOString());
-  
-  // Also trigger a sync if the user has it enabled.
-  if (typeof window.autoCloudSync === 'function') {
-    window.autoCloudSync();
-  }
+  window.markLocalDataAsModified();
 }
 
-// Utility for deleting a key and updating lastModified, then triggering sync
 function deleteStorage(key) {
   localStorage.removeItem(key);
-  localStorage.setItem('lastModified', new Date().toISOString());
-  if (typeof window.autoCloudSync === 'function') {
-    window.autoCloudSync();
-  }
+  window.markLocalDataAsModified();
 }
 
 // Expose globally for use in other scripts
