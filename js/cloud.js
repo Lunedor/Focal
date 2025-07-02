@@ -1,19 +1,23 @@
 // --- START OF FILE cloud.js ---
 
+// --- FIREBASE V8 COMPATIBILITY ---
+// This file is written for Firebase v8 SDK (the version you are likely using).
+// If you are using v9 (modular), the syntax would be different.
+
 // Global state variables
 let isSignedIn = false;
-let accessToken = null; // Token will now only live in memory
 let authChecked = false;
 let isSyncing = false; // Guard to prevent concurrent syncs
 
 // Initialize Firebase services
 const auth = firebase.auth();
+const db = firebase.firestore(); // --- ADD THIS --- Initialize Firestore
 const googleProvider = new firebase.auth.GoogleAuthProvider();
+// We no longer need the drive scope, but it's harmless to keep.
 googleProvider.addScope('https://www.googleapis.com/auth/drive.appdata');
 
 /**
  * This is the main function that starts the authentication flow.
- * It is the single source of truth for handling sign-in state.
  */
 function initGoogleAuth() {
   auth.onAuthStateChanged(user => {
@@ -24,16 +28,19 @@ function initGoogleAuth() {
       console.log('[firebase] User is signed in:', user.displayName);
       updateAuthUI();
 
-      // --- MODIFIED: DO NOT AUTO-SYNC ON PAGE LOAD ---
-      // We no longer sync automatically on page load because we don't have an
-      // access token, and trying to get one would be blocked by the browser.
-      // The user must initiate the first sync by clicking the button.
-      console.log('[firebase] User is authenticated. Ready for manual sync.');
+      // --- NEW: SEAMLESS SYNC ---
+      // Now that we don't need a special token, we can sync on every
+      // page load if the user has sync enabled.
+      if (isCloudSyncEnabled()) {
+        console.log('[firebase] User is authenticated. Starting cloud sync.');
+        syncWithCloud();
+      } else {
+         console.log('[firebase] User is authenticated. Cloud sync is off.');
+      }
 
     } else {
       // --- User is signed out ---
       isSignedIn = false;
-      accessToken = null; // Clear the in-memory token
       console.log('[firebase] User is signed out.');
       updateAuthUI();
     }
@@ -41,27 +48,10 @@ function initGoogleAuth() {
 }
 
 /**
- * CORRECTED signIn function.
- * Its ONLY job is to trigger the popup and get the token.
+ * signIn function now uses redirect for a better mobile experience.
  */
 function signIn() {
-  auth.signInWithPopup(googleProvider)
-    .then((result) => {
-      // The onAuthStateChanged listener will handle the UI updates.
-      // We just need to store the token for our API calls.
-      const credential = result.credential;
-      accessToken = credential.accessToken;
-      console.log('[firebase] New access token obtained.');
-      // Immediately sync after a successful manual sign-in
-      if (isCloudSyncEnabled()) {
-        syncWithCloud();
-      }
-    }).catch((error) => {
-      console.error("[firebase] Sign-in error", error);
-      if (error.code === 'auth/popup-blocked') {
-        alert("Sign-in popup was blocked by the browser. Please allow popups for this site and try again.");
-      }
-    });
+  auth.signInWithRedirect(googleProvider);
 }
 
 function signOut() {
@@ -71,27 +61,11 @@ function signOut() {
   });
 }
 
-async function googleFetch(url, options = {}) {
-  if (!accessToken) {
-    console.warn('[cloud] Attempted to fetch without an access token.');
-    throw new Error('Token missing');
-  }
-
-  if (!options.headers) options.headers = {};
-  options.headers['Authorization'] = 'Bearer ' + accessToken;
-
-  let res = await fetch(url, options);
-
-  if (res.status === 401) {
-    console.warn('[cloud] Google API token is invalid (401). It needs to be refreshed.');
-    throw new Error('Token expired');
-  }
-  return res;
-}
+// --- REMOVED --- The googleFetch and ensureAccessToken functions are no longer needed.
 
 function isCloudSyncEnabled() {
   const val = localStorage.getItem('cloudSyncEnabled');
-  return val === null ? false : val === 'true';
+  return val === 'true'; // Default to false if not set
 }
 
 function setCloudSyncEnabled(enabled) {
@@ -102,6 +76,11 @@ function setCloudSyncEnabled(enabled) {
       btn.querySelector('span').textContent = `Cloud Sync: ${enabled ? 'On' : 'Off'}`;
   }
   console.log('[cloud] cloudSyncEnabled set to', enabled);
+
+  // If sync was just turned ON, perform an initial sync.
+  if (enabled && isSignedIn) {
+      syncWithCloud();
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -133,120 +112,104 @@ function updateAuthUI() {
   }
 }
 
-async function uploadAppData(data) {
-  console.log('[cloud] Uploading keys to cloud:', Object.keys(data));
-  data.lastModified = new Date().toISOString();
-  const fileContent = JSON.stringify(data);
-  const metadata = { name: 'focal-data.json', parents: ['appDataFolder'], mimeType: 'application/json' };
-  const listRes = await googleFetch('https://www.googleapis.com/drive/v3/files?q=name=%27focal-data.json%27+and+%27appDataFolder%27+in+parents&spaces=appDataFolder&fields=files(id,name)');
-  const list = await listRes.json();
-  const fileId = list.files && list.files[0] && list.files[0].id;
-  if (fileId) {
-    await googleFetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: fileContent });
-  } else {
-    const boundary = '-------314159265358979323846';
-    const delimiter = "\r\n--" + boundary + "\r\n";
-    const close_delim = "\r\n--" + boundary + "--";
-    const multipartRequestBody = delimiter + 'Content-Type: application/json\r\n\r\n' + JSON.stringify(metadata) + delimiter + 'Content-Type: application/json\r\n\r\n' + fileContent + close_delim;
-    await googleFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', { method: 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + boundary }, body: multipartRequestBody });
-  }
-}
+// --- REMOVED --- uploadAppData and downloadAppData are replaced by syncWithCloud.
 
-async function downloadAppData() {
-  const listRes = await googleFetch('https://www.googleapis.com/drive/v3/files?q=name=%27focal-data.json%27+and+%27appDataFolder%27+in+parents&spaces=appDataFolder&fields=files(id,name)');
-  const list = await listRes.json();
-  const file = list.files && list.files[0];
-  if (!file) return null;
-  const resp = await googleFetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`);
-  return await resp.json();
-}
-
-async function syncWithCloud(isRetry = false) {
+/**
+ * The new, all-in-one sync function using Firestore.
+ */
+async function syncWithCloud() {
   if (isSyncing) {
     console.log('[cloud] Sync already in progress. Skipping.');
     return;
   }
+
+  const user = auth.currentUser;
+  if (!user) {
+    console.log('[cloud] Cannot sync, user is not signed in.');
+    return;
+  }
+
   isSyncing = true;
+  console.log('[cloud] Starting sync with Firestore...');
 
   try {
-    // Gather local data
     const localData = {};
+    const localDataKeys = [];
     for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key.startsWith('page-') || key.match(/^\d{4}-W\d{1,2}-(monday|tuesday|wednesday|thursday|friday|saturday|sunday|weekend)$/)) {
-        localData[key] = localStorage.getItem(key);
-      }
-    }
-    const pinnedPages = typeof getStorage === 'function' ? getStorage('pinned-pages') : localStorage.getItem('pinned-pages');
-    if (pinnedPages !== null) localData['pinned-pages'] = pinnedPages;
-    const unpinnedPages = typeof getStorage === 'function' ? getStorage('unpinned-pages') : localStorage.getItem('unpinned-pages');
-    if (unpinnedPages !== null) localData['unpinned-pages'] = unpinnedPages;
-    const localLastModified = localStorage.getItem('lastModified');
-    if (localLastModified) localData.lastModified = localLastModified;
-
-    let cloudData = await downloadAppData();
-    const localModified = localLastModified ? new Date(localLastModified) : null;
-    const cloudModified = cloudData && cloudData.lastModified ? new Date(cloudData.lastModified) : null;
-
-    let needsUIRefresh = false;
-
-    if (cloudData && cloudModified && (!localModified || cloudModified >= localModified)) {
-     const cloudKeys = new Set(Object.keys(cloudData));
-      for (let i = localStorage.length - 1; i >= 0; i--) {
         const key = localStorage.key(i);
-        if ((key.startsWith('page-') || key.match(/^\d{4}-W\d{1,2}-(monday|tuesday|wednesday|thursday|friday|saturday|sunday|weekend)$/)) && !cloudKeys.has(key)) {
-          localStorage.removeItem(key);
+        if (key.startsWith('page-') || key.match(/^\d{4}-W\d{1,2}-(monday|tuesday|wednesday|thursday|friday|saturday|sunday|weekend)$/)) {
+            localData[key] = localStorage.getItem(key);
+            localDataKeys.push(key);
         }
+    }
+    const pinned = localStorage.getItem('pinned-pages');
+    if (pinned) localData['pinned-pages'] = pinned;
+    const unpinned = localStorage.getItem('unpinned-pages');
+    if (unpinned) localData['unpinned-pages'] = unpinned;
+
+
+    // Path to the user's private data collection
+    const collectionRef = db.collection('users').doc(user.uid).collection('appData');
+
+    // 1. Download cloud data
+    const querySnapshot = await collectionRef.get();
+    const cloudData = {};
+    querySnapshot.forEach(doc => {
+      cloudData[doc.id] = doc.data().content;
+    });
+    console.log(`[cloud] Downloaded ${Object.keys(cloudData).length} items from cloud.`);
+
+    // 2. Merge data (local data wins over cloud data)
+    const mergedData = { ...cloudData, ...localData };
+
+    // 3. Update local storage if cloud had newer items
+    let needsUIRefresh = false;
+    for (const key in mergedData) {
+      if (localData[key] !== mergedData[key]) {
+        localStorage.setItem(key, mergedData[key]);
+        needsUIRefresh = true;
       }
-      for (const key in cloudData) {
-        if (key === 'lastModified') continue;
-        localStorage.setItem(key, cloudData[key]);
-      }
-      localStorage.setItem('lastModified', cloudData.lastModified);
-      needsUIRefresh = true;
-      for (const key in localData) { delete localData[key]; }
-      for (const key in cloudData) {
-        if (key !== 'lastModified') localData[key] = cloudData[key];
-      }
-      localData.lastModified = cloudData.lastModified;
     }
 
-    if (!cloudData || (localModified && (!cloudModified || localModified > cloudModified))) {
-      console.log('Uploading to cloud...');
-      const now = new Date().toISOString();
-      localData.lastModified = now;
-      localStorage.setItem('lastModified', now);
-      await uploadAppData(localData);
-    } else if (!needsUIRefresh) {
-      console.log('Data is already up to date!');
+    // 4. Batch upload the merged data back to Firestore for consistency.
+    // This is very efficient and uses only 1 write operation for any number of changes.
+    const batch = db.batch();
+    const mergedKeys = Object.keys(mergedData);
+
+    // Add or update documents
+    mergedKeys.forEach(key => {
+        const docRef = collectionRef.doc(key);
+        batch.set(docRef, { content: mergedData[key] });
+    });
+
+    // Find and delete any cloud documents that are no longer in the merged data
+    const cloudKeys = Object.keys(cloudData);
+    const keysToDelete = cloudKeys.filter(key => !mergedKeys.includes(key));
+    keysToDelete.forEach(key => {
+        batch.delete(collectionRef.doc(key));
+    });
+
+    if (mergedKeys.length > 0 || keysToDelete.length > 0) {
+      await batch.commit();
+      console.log(`[cloud] Uploaded/synced ${mergedKeys.length} items and deleted ${keysToDelete.length} items.`);
+    } else {
+      console.log('[cloud] No data to sync.');
     }
 
     if (needsUIRefresh) {
-      console.log("Refreshing UI with new data from the cloud.");
+      console.log("[cloud] UI needs refresh due to new data from cloud.");
       if (typeof renderApp === 'function') {
         renderApp();
       } else {
         window.location.reload();
       }
-    }
-  } catch (error) {
-    // This retry logic is now perfect because it will only be triggered by a user action
-    // (clicking a sync button), which allows the popup to appear.
-    if ((error.message === 'Token expired' || error.message === 'Token missing') && !isRetry) {
-      console.log('[cloud] Token is invalid. Attempting to refresh by re-authenticating...');
-      try {
-        const result = await auth.signInWithPopup(googleProvider);
-        const credential = result.credential;
-        accessToken = credential.accessToken;
-        console.log('[cloud] Token refreshed successfully. Retrying sync...');
-        return syncWithCloud(true);
-      } catch (reauthError) {
-        console.error('[cloud] Failed to re-authenticate to refresh token. Signing out.', reauthError);
-        signOut();
-      }
     } else {
-      console.error("Cloud sync failed:", error.message);
+        console.log('[cloud] Local data is already up to date.');
     }
+
+  } catch (error) {
+    console.error("Cloud sync failed:", error);
+    // You could add UI feedback here, like a toast notification
   } finally {
     isSyncing = false; // Release the guard
   }
