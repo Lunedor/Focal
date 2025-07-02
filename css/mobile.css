@@ -184,4 +184,8 @@
     gap: 0px;
     padding: 4px 2px;
   }
+  .library-page-item .page-actions {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
