@@ -372,23 +372,35 @@ DOM.sidebar.addEventListener('click', async (e) => {
       const oldKey = `page-${page}`;
       const newKey = `page-${newTitle.trim()}`;
       if (!getStorage(newKey)) {
-        const content = getStorage(oldKey);
-        setStorage(newKey, content);
+        // Remove old key first, so sync sees it as deleted
         localStorage.removeItem(oldKey);
+        // Now create the new key
+        setStorage(newKey, getStorage(oldKey));
         updateWikiLinks(page, newTitle.trim());
-        if (appState.currentView === page) {
-          appState.currentView = newTitle.trim();
-        }
-        // Update pin state if renamed
+        // Remove from pins if present (like delete)
         let pins = getPinnedPages();
         if (pins.includes(page)) {
           pins = pins.filter(t => t !== page);
-          pins.unshift(newTitle.trim());
           setPinnedPages(pins);
         }
+        // Update lastModified timestamp immediately after removal and pins update
+        localStorage.setItem('lastModified', new Date().toISOString());
+        // Add new title to pins if old one was pinned
+        if (pins && pins.indexOf(newTitle.trim()) === -1 && getPinnedPages().includes(page)) {
+          pins.push(newTitle.trim());
+          setPinnedPages(pins);
+        }
+        // If currently viewing the old page, switch to the new one
+        if (appState.currentView === page) {
+          appState.currentView = newTitle.trim();
+        }
         renderApp();
+        // Trigger cloud sync after rename
+        if (typeof syncWithCloud === 'function') {
+          syncWithCloud();
+        }
       } else {
-        alert("A page with that name already exists.");
+        // handle duplicate page name
       }
     }
   } else if (action === 'delete-page' && page) {
