@@ -139,7 +139,7 @@ async function syncWithCloud() {
       localStorage.setItem('lastModified', cloudData.lastModified); // Sync timestamp
 
       console.log('[cloud] Local data replaced. Reloading UI.');
-      window.location.reload();
+      renderApp();
 
     } else if (!cloudTimestamp && localTimestamp) {
       // --- Case B: Cloud is empty, but local has a timestamp. REPLACE cloud with local. ---
