@@ -1,4 +1,3 @@
-// --- THEME UTILITIES (for early theme init, non-dropdown logic) ---
 function getPreferredTheme() {
   const storedTheme = localStorage.getItem('theme');
   if (storedTheme) return storedTheme;
