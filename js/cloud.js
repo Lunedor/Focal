@@ -68,10 +68,11 @@ if (localStorage.getItem('cloudSyncEnabled') === null) {
 
 // Any data-modifying function should call this to mark local as newer
 window.markLocalDataAsModified = function() {
-  localStorage.setItem('lastModified', new Date().toISOString());
-  if (isCloudSyncEnabled()) {
-    // Optionally trigger a sync, or just let the next manual/load sync handle it
-    autoCloudSync();
+  if (typeof window.isCloudSyncEnabled === 'function' && window.isCloudSyncEnabled()) {
+    localStorage.setItem('lastModified', new Date().toISOString());
+    if (typeof window.autoCloudSync === 'function') {
+      window.autoCloudSync();
+    }
   }
 }
 
