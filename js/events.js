@@ -1,312 +1,513 @@
-function getPreferredTheme() {
-  const storedTheme = localStorage.getItem('theme');
-  if (storedTheme) return storedTheme;
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-}
+// --- START OF FILE events.js (Corrected) ---
 
-function setTheme(mode) {
-  document.body.classList.remove('light-mode', 'dark-mode', 'solarized-mode', 'dracula-mode');
-  if (["light", "dark", "solarized", "dracula"].includes(mode)) {
-    document.body.classList.add(`${mode}-mode`);
-    localStorage.setItem('theme', mode);
+// --- MOBILE SIDEBAR TOGGLE ---
+document.addEventListener('DOMContentLoaded', () => {
+  const hamburger = document.getElementById('hamburger-menu');
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  const settingsModalOverlay = document.getElementById('settings-modal-overlay');
+  function openSidebar() {
+    document.body.classList.add('sidebar-open');
+    if (window.feather) feather.replace();
   }
-}
-// --- UTILITIES ---
-// --- DATE UTILITIES ---
-/**
- * Parses a date string from various supported formats.
- * @param {string} dateStr The date string to parse.
- * @returns {Date|null} A Date object if parsing is successful, otherwise null.
- */
-function parseDateString(dateStr) {
-  if (!dateStr || !window.dateFns) return null;
-  // Try ISO parsing first as it's the most common and unambiguous
-  try {
-    const isoDate = window.dateFns.parseISO(dateStr);
-    if (window.dateFns.isValid(isoDate)) {
-      return isoDate;
+  function closeSidebar() {
+    document.body.classList.remove('sidebar-open');
+    // Hide settings modal if open
+    if (settingsModalOverlay) settingsModalOverlay.classList.add('hidden');
+  }
+  if (hamburger) {
+    hamburger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openSidebar();
+    });
+  }
+  if (overlay) {
+    overlay.addEventListener('click', closeSidebar);
+  }
+  // Also close sidebar if clicking outside sidebar (on mobile)
+  document.addEventListener('click', (e) => {
+    if (
+      document.body.classList.contains('sidebar-open') &&
+      window.innerWidth <= 768 &&
+      sidebar &&
+      !sidebar.contains(e.target) &&
+      !hamburger.contains(e.target)
+    ) {
+      closeSidebar();
     }
-  } catch(e) {}
-  const formats = [
-    'dd.MM.yyyy', // For 31.12.2025
-    'dd/MM/yyyy', // For 31/12/2025
-    'dd-MM-yyyy', // For 31-12-2025
-  ];
-  for (const format of formats) {
-    try {
-      const date = window.dateFns.parse(dateStr, format, new Date());
-      if (window.dateFns.isValid(date)) {
-        return date;
-      }
-    } catch (e) {
-      // Ignore parsing errors and try the next format
-    }
-  }
-  return null; // Return null if no format matched
-}
-
-/**
- * Normalizes a date string from various formats to 'yyyy-MM-dd'.
- * @param {string} dateStr The date string to normalize.
- * @returns {string|null} The normalized date string or null if invalid.
- */
-function normalizeDateStringToYyyyMmDd(dateStr) {
-  const date = parseDateString(dateStr);
-  if (date) {
-    return window.dateFns.format(date, 'yyyy-MM-dd');
-  }
-  return null;
-}
-
-// A more robust regex to find all your supported formats
-const DATE_REGEX_PATTERN = '(\\d{4}-\\d{2}-\\d{2}|\\d{2}[./-]\\d{2}[./-]\\d{4})';
-// Expose date utilities globally for use in other scripts (after all functions and code are defined)
-window.DATE_REGEX_PATTERN = DATE_REGEX_PATTERN;
-window.parseDateString = parseDateString;
-window.normalizeDateStringToYyyyMmDd = normalizeDateStringToYyyyMmDd;
-const getWeekKey = (date) => `${dateFns.getISOWeekYear(date)}-W${dateFns.getISOWeek(date)}`;
-const getStorage = (key) => localStorage.getItem(key) || '';
-// This function is probably in your main app.js or a utils.js file
-
-function setStorage(key, value) {
-  localStorage.setItem(key, value);
-  // This is the crucial line that tells our sync logic that local data is now the newest.
-  localStorage.setItem('lastModified', new Date().toISOString());
-  
-  // Also trigger a sync if the user has it enabled.
-  if (typeof window.autoCloudSync === 'function') {
-    window.autoCloudSync();
-  }
-}
-
-// Utility for deleting a key and updating lastModified, then triggering sync
-function deleteStorage(key) {
-  localStorage.removeItem(key);
-  localStorage.setItem('lastModified', new Date().toISOString());
-  if (typeof window.autoCloudSync === 'function') {
-    window.autoCloudSync();
-  }
-}
-
-// Expose globally for use in other scripts
-window.deleteStorage = deleteStorage;
-
-// Modal utilities
-const showModal = (title, placeholder = '', defaultValue = '') => {
-  return new Promise((resolve) => {
-    DOM.modalTitle.textContent = title;
-    DOM.modalInput.placeholder = placeholder;
-    DOM.modalInput.value = defaultValue;
-    DOM.modalOverlay.classList.add('active');
-    if (DOM.modalInput.style.display !== 'none') {
-      DOM.modalInput.focus();
-      DOM.modalInput.select();
-    }
-    const handleConfirm = () => {
-      const value = DOM.modalInput.value.trim();
-      hideModal();
-      resolve(value || null);
-    };
-    const handleCancel = () => {
-      hideModal();
-      resolve(null);
-    };
-    const handleKeydown = (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        handleConfirm();
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        handleCancel();
-      }
-    };
-    DOM.modalConfirm.onclick = null;
-    DOM.modalCancel.onclick = null;
-    DOM.modalClose.onclick = null;
-    DOM.modalInput.onkeydown = null;
-    DOM.modalConfirm.onclick = handleConfirm;
-    DOM.modalCancel.onclick = handleCancel;
-    DOM.modalClose.onclick = handleCancel;
-    DOM.modalInput.onkeydown = handleKeydown;
   });
-};
-
-const hideModal = () => {
-  DOM.modalOverlay.classList.remove('active');
-  DOM.modalInput.value = '';
-};
-
-const showConfirm = (message) => {
-  return new Promise((resolve) => {
-    DOM.modalTitle.textContent = 'Confirm Action';
-    DOM.modalInput.style.display = 'none';
-    let messageEl = DOM.modalOverlay.querySelector('.modal-message');
-    if (!messageEl) {
-      messageEl = document.createElement('div');
-      messageEl.className = 'modal-message';
-      DOM.modalInput.parentNode.insertBefore(messageEl, DOM.modalInput);
-    }
-    messageEl.innerHTML = message;
-    messageEl.style.display = 'block';
-    DOM.modalConfirm.textContent = 'Delete';
-    DOM.modalCancel.textContent = 'Cancel';
-    DOM.modalOverlay.classList.add('active');
-    DOM.modalCancel.focus();
-    const handleConfirm = () => {
-      hideConfirmModal();
-      resolve(true);
-    };
-    const handleCancel = () => {
-      hideConfirmModal();
-      resolve(false);
-    };
-    const handleKeydown = (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        handleConfirm();
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        handleCancel();
-      }
-    };
-    DOM.modalConfirm.onclick = null;
-    DOM.modalCancel.onclick = null;
-    DOM.modalClose.onclick = null;
-    document.onkeydown = null;
-    DOM.modalConfirm.onclick = handleConfirm;
-    DOM.modalCancel.onclick = handleCancel;
-    DOM.modalClose.onclick = handleCancel;
-    document.onkeydown = handleKeydown;
+  // Optional: close sidebar on ESC key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeSidebar();
   });
-};
-
-const hideConfirmModal = () => {
-  DOM.modalOverlay.classList.remove('active');
-  DOM.modalInput.style.display = 'block';
-  DOM.modalConfirm.textContent = 'OK';
-  DOM.modalCancel.textContent = 'Cancel';
-  const messageEl = DOM.modalOverlay.querySelector('.modal-message');
-  if (messageEl) {
-    messageEl.style.display = 'none';
+  // Optional: close sidebar if a nav link is clicked (on mobile)
+  if (sidebar) {
+    sidebar.addEventListener('click', (e) => {
+      if (window.innerWidth <= 768 && e.target.closest('a,button')) {
+        closeSidebar();
+      }
+    });
   }
-  document.onkeydown = null;
-};
+});
+// --- EVENT HANDLERS ---
+// Library search
+DOM.librarySearch.addEventListener('input', renderSidebar);
 
-// --- PINNED PAGES UTILITIES ---
-const getPinnedPages = () => {
-  try {
-    return JSON.parse(getStorage('pinned-pages') || '[]');
-  } catch {
-    return [];
-  }
-};
+// Helper function to insert markdown syntax into a textarea
+function insertMarkdown(textarea, { prefix, suffix = '' }) {
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const originalValue = textarea.value;
+    const selectedText = originalValue.substring(start, end);
 
-function setPinnedPages(arr) {
-  setStorage('pinned-pages', JSON.stringify(arr));
+    if (prefix === '- [ ] ') {
+        const lineStart = originalValue.lastIndexOf('\n', start - 1) + 1;
+        let lineEnd = originalValue.indexOf('\n', end);
+        if (lineEnd === -1) lineEnd = originalValue.length;
+        const lines = originalValue.substring(lineStart, lineEnd).split('\n');
+        const toggledLines = lines.map(line => {
+            if (/^[-*]\s*\[.\]\s/.test(line)) {
+                return line.replace(/^[-*]\s*\[.\]\s/, '');
+            } else {
+                return prefix + line;
+            }
+        });
+        const newText = toggledLines.join('\n');
+        textarea.value =
+            originalValue.substring(0, lineStart) +
+            newText +
+            originalValue.substring(lineEnd);
+        textarea.focus();
+        textarea.selectionStart = lineStart;
+        textarea.selectionEnd = lineStart + newText.length;
+        return;
+    }
+
+    if ((prefix === '**' && suffix === '**') || (prefix === '*' && suffix === '*')) {
+        if (!selectedText) {
+            const newText = prefix + suffix;
+            textarea.value = originalValue.substring(0, start) + newText + originalValue.substring(end);
+            textarea.focus();
+            textarea.selectionStart = textarea.selectionEnd = start + prefix.length;
+            return;
+        }
+        const isBold = prefix === '**';
+        const isItalic = prefix === '*';
+        const lines = selectedText.split('\n');
+        let allWrapped;
+        if (isBold) {
+            allWrapped = lines.every(line => /^\*\*.*\*\*$/.test(line));
+        } else if (isItalic) {
+            allWrapped = lines.every(line => /^\*.*\*$/.test(line));
+        }
+        let newText;
+        if (allWrapped) {
+            newText = lines.map(line => {
+                if (isBold) {
+                    return line.replace(/^\*\*(.*)\*\*$/, '$1');
+                }
+                if (isItalic) {
+                    return line.replace(/^\*(.*)\*$/, '$1');
+                }
+                return line;
+            }).join('\n');
+        } else {
+            newText = lines.map(line => {
+                if (!line) return line;
+                if (isBold && /^\*\*.*\*\*$/.test(line)) return line;
+                if (isItalic && /^\*.*\*$/.test(line)) return line;
+                return prefix + line + suffix;
+            }).join('\n');
+        }
+        textarea.value = originalValue.substring(0, start) + newText + originalValue.substring(end);
+        textarea.focus();
+        textarea.selectionStart = start;
+        textarea.selectionEnd = start + newText.length;
+        return;
+    }
+
+    const newText = prefix + selectedText + suffix;
+    textarea.value = originalValue.substring(0, start) + newText + originalValue.substring(end);
+    textarea.focus();
+    if (selectedText) {
+        textarea.selectionStart = start + prefix.length;
+        textarea.selectionEnd = start + prefix.length + selectedText.length;
+    } else {
+        textarea.selectionStart = textarea.selectionEnd = start + prefix.length;
+    }
 }
 
-const isPagePinned = (title) => getPinnedPages().includes(title);
 
-const togglePinPage = (title) => {
-  let pins = getPinnedPages();
-  if (pins.includes(title)) {
-    pins = pins.filter(t => t !== title);
-  } else {
-    pins.unshift(title);
-  }
-  setPinnedPages(pins);
-};
-
-
-
-/**
- * Exports all application data from localStorage to a JSON file.
- * Only exports keys that are relevant to the application (e.g., 'page-', 'pinnedPages', 'theme').
- */
-function exportAllData() {
-  const appData = {};
-  const relevantKeys = ['pinnedPages', 'theme', 'currentView', 'currentDate']; // Add other global state keys if needed
-
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    // Export all 'page-' keys and other explicitly relevant keys
-    if (key.startsWith('page-') || relevantKeys.includes(key)) {
-      try {
-        appData[key] = localStorage.getItem(key);
-      } catch (e) {
-        console.error(`Error reading localStorage key "${key}":`, e);
+// --- Centralized Edit Mode Manager ---
+const EditModeManager = {
+  currentEditWrapper: null,
+  enter(wrapper, key, content, options = {}) {
+    if (this.currentEditWrapper && this.currentEditWrapper !== wrapper) {
+      this.exit(this.currentEditWrapper);
+    }
+    this.currentEditWrapper = wrapper;
+    const toolbar = document.createElement('div');
+    toolbar.className = 'markdown-toolbar';
+    let buttons = options.buttons || [
+      { icon: 'check-square', action: 'task', title: 'Add Checkbox', md: { prefix: '- [ ] ' } },
+      { icon: 'bold', action: 'bold', title: 'Bold', md: { prefix: '**', suffix: '**' } },
+      { icon: 'italic', action: 'italic', title: 'Italic', md: { prefix: '*', suffix: '*' } },
+      { icon: 'link', action: 'link', title: 'Wiki Link', md: { prefix: '[[', suffix: ']]' } },
+      { icon: 'minus', action: 'hr', title: 'Horizontal Rule', md: { prefix: '\n---\n' } },
+      { icon: 'hash', action: 'h1', title: 'Heading 1', md: { prefix: '# ' } },
+    ];
+    if (key && key.startsWith('page-')) {
+      buttons = [
+        { icon: 'target', action: 'goal', title: 'Insert GOAL:', md: { prefix: 'GOAL: ' } },
+        { icon: 'list', action: 'tasks', title: 'Insert TASKS:', md: { prefix: 'TASKS:\n' } },
+        { icon: 'bar-chart-2', action: 'progress', title: 'Insert PROGRESS: []', md: { prefix: 'PROGRESS: []' } },
+        { separator: true },
+        { icon: 'calendar', action: 'scheduled', title: 'Insert (SCHEDULED: )', md: { prefix: '(SCHEDULED: )' } },
+        { icon: 'repeat', action: 'repeat', title: 'Insert (REPEAT: )', md: { prefix: '(REPEAT: )' } },
+        { separator: true },
+        ...buttons
+      ];
+    }
+    toolbar.innerHTML = buttons.map(btn => {
+      if (btn.separator) {
+        return '<span class="toolbar-separator" style="display:inline-block;width:1px;height:22px;background:var(--color-border,#eee);margin:0 6px;vertical-align:middle;"></span>';
       }
+      return `<button class="toolbar-btn" data-action="${btn.action}" title="${btn.title}">
+         <i data-feather="${btn.icon}"></i>
+       </button>`;
+    }).join('');
+    toolbar.querySelectorAll('button').forEach(btn => btn.tabIndex = -1);
+    const textarea = document.createElement('textarea');
+    textarea.value = content;
+    textarea.spellcheck = false;
+    wrapper.innerHTML = '';
+    wrapper.appendChild(toolbar);
+    wrapper.appendChild(textarea);
+    if (window.feather) feather.replace();
+    textarea.focus();
+    textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
+    appState.activeEditorKey = key;
+    toolbar.addEventListener('click', (evt) => {
+      const button = evt.target.closest('button');
+      if (!button) return;
+      evt.preventDefault();
+      evt.stopPropagation();
+      const action = button.dataset.action;
+      const buttonConfig = buttons.find(b => b.action === action);
+      if (buttonConfig) {
+        insertMarkdown(textarea, buttonConfig.md);
+      }
+    });
+    textarea.addEventListener('keydown', e => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "s") e.preventDefault();
+    });
+    setTimeout(() => {
+      document.addEventListener('mousedown', handleOutsideClick, true);
+    }, 0);
+    function handleOutsideClick(ev) {
+      if (wrapper.contains(ev.target)) return;
+      const toolbar = wrapper.querySelector('.markdown-toolbar');
+      if (toolbar && toolbar.contains(ev.target)) return;
+      EditModeManager.exit(wrapper);
+    }
+    wrapper._exitEditMode = () => {
+      setStorage(key, textarea.value);
+      appState.activeEditorKey = null;
+      document.removeEventListener('mousedown', handleOutsideClick, true);
+      if (typeof renderLibraryPage === 'function' && key.startsWith('page-')) {
+        renderLibraryPage(key.substring(5));
+      } else if (key.match(/^\d{4}-W\d{1,2}-/)) {
+        updatePlannerDay(key);
+      } else {
+        wrapper.innerHTML = parseMarkdown(textarea.value);
+      }
+      EditModeManager.currentEditWrapper = null;
+    };
+  },
+  exit(wrapper) {
+    if (wrapper && wrapper._exitEditMode) {
+      wrapper._exitEditMode();
+      delete wrapper._exitEditMode;
     }
   }
+};
 
-  const dataStr = JSON.stringify(appData, null, 2); // Pretty print JSON
-  const blob = new Blob([dataStr], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
 
-  const a = document.createElement('a');
-  a.href = url;
-  const date = dateFns.format(new Date(), 'yyyy-MM-dd');
-  a.download = `focal-journal-backup-${date}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+// Centralized click handler for all editable content
+DOM.contentArea.addEventListener('click', (e) => {
+  if (e.target.type === 'checkbox') return;
+  if (e.target.closest('a, [data-planner-date]')) return;
+  const wrapper = e.target.closest('.content-wrapper');
+  if (!wrapper || wrapper.querySelector('textarea')) return;
+  const key = wrapper.dataset.key;
+  if (!key) return;
+  const content = getStorage(key);
+  EditModeManager.enter(wrapper, key, content);
+});
 
-  alert('Your Focal Journal data has been exported!');
-}
-
-/**
- * Imports data from a JSON file into localStorage.
- * Prompts the user for confirmation before overwriting existing data.
- */
-async function importAllData() {
-  const confirmed = await showConfirm('Importing data will overwrite your current journal entries and settings. Are you sure you want to proceed?');
-  if (!confirmed) {
-    return;
-  }
-
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = 'application/json';
-  input.style.display = 'none'; // Hide the input element
-
-  input.addEventListener('change', (event) => {
-    const file = event.target.files[0];
-    if (!file) {
+// Handle interactive checkbox clicks globally
+document.addEventListener('click', e => {
+  if (e.target.type === 'checkbox') {
+    const dataKey = e.target.getAttribute('data-key');
+    const dataLineIndex = e.target.getAttribute('data-line-index');
+    if (dataKey && dataLineIndex !== null) {
+      const scheduledDate = e.target.getAttribute('data-scheduled-date');
+      const scheduledText = e.target.closest('li,div')?.innerText?.split(' (from ')[0]?.replace(/^[-*]\s*\[[x ]\]\s*/, '').trim();
+      const fullText = getStorage(dataKey);
+      const lines = fullText.split('\n');
+      function findScheduledLineIndex(lines, text, normalizedDate) {
+        for (let idx = 0; idx < lines.length; idx++) {
+          const line = lines[idx];
+          if (!line.includes(text)) continue;
+          const dateMatch = line.match(new RegExp(window.DATE_REGEX_PATTERN));
+          const lineNormDate = dateMatch ? window.normalizeDateStringToYyyyMmDd(dateMatch[0]) : null;
+          if (lineNormDate === normalizedDate) return idx;
+        }
+        return -1;
+      }
+      const idx = findScheduledLineIndex(lines, scheduledText, scheduledDate);
+      if (idx === -1) {
+        return;
+      }
+      lines[idx] = lines[idx].includes('[ ]')
+        ? lines[idx].replace('[ ]', '[x]')
+        : lines[idx].replace(/\[x\]/i, '[ ]');
+      setStorage(dataKey, lines.join('\n'));
+      // --- FIX: TRIGGER SYNC AFTER CHECKING BOX ---
+      if (typeof syncWithCloud === 'function') syncWithCloud();
+      if (typeof renderLibraryPage === 'function' && dataKey.startsWith('page-')) {
+        renderLibraryPage(dataKey.substring(5));
+      } else {
+        updatePlannerDay(key);
+        if (appState.currentView === dataKey.replace(/^page-/, '')) {
+          renderApp();
+        }
+      }
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const importedData = JSON.parse(e.target.result);
-
-        // Clear existing app-specific data before importing
-        const keysToRemove = [];
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key.startsWith('page-') || ['pinnedPages', 'theme', 'currentView', 'currentDate'].includes(key)) {
-            keysToRemove.push(key);
-          }
+    const wrapper = e.target.closest('.content-wrapper');
+    let key = wrapper?.dataset.key;
+    if (!key && e.target.dataset.key) key = e.target.dataset.key;
+    if (!key) return;
+    const allCheckboxes = Array.from(wrapper.querySelectorAll('input[type="checkbox"]'));
+    const clickedIndex = allCheckboxes.indexOf(e.target);
+    if (clickedIndex === -1) return;
+    const fullText = getStorage(key);
+    const lines = fullText.split('\n');
+    let taskItemCounter = -1;
+    const newLines = lines.map(line => {
+      if (line.trim().match(/^[-*]\s*\[[x ]\]/i)) {
+        taskItemCounter++;
+        if (taskItemCounter === clickedIndex) {
+          const newLine = line.includes('[ ]') ? line.replace('[ ]', '[x]') : line.replace(/\[x\]/i, '[ ]');
+          return newLine;
         }
-        keysToRemove.forEach(key => deleteStorage(key));
-
-        // Populate localStorage with imported data
-        for (const key in importedData) {
-          localStorage.setItem(key, importedData[key]);
-        }
-        alert('Data imported successfully! The application will now refresh.');
-        location.reload(); // Reload the page to apply new data and re-render UI
-      } catch (error) {
-        alert('Error importing data: Invalid JSON file or corrupted data. Please ensure you are importing a valid Focal Journal backup file.');
-        console.error('Error parsing imported JSON:', error);
       }
-    };
-    reader.readAsText(file);
-  });
-  input.click(); // Programmatically click the hidden input to open file dialog
-}
+      return line;
+    });
+    const newText = newLines.join('\n');
+    setStorage(key, newText);
+    // --- FIX: TRIGGER SYNC AFTER CHECKING BOX ---
+    if (typeof syncWithCloud === 'function') syncWithCloud();
+    if (typeof renderLibraryPage === 'function' && key.startsWith('page-')) {
+      renderLibraryPage(key.substring(5));
+    } else {
+      wrapper.innerHTML = parseMarkdown(newText);
+      updatePlannerDay(key);
+    }
+  }
+});
 
-// Expose functions globally for access from other scripts
-window.exportAllData = exportAllData;
-window.importAllData = importAllData;
+
+// Sidebar and page navigation
+DOM.sidebar.addEventListener('click', async (e) => {
+  const target = e.target.closest('a,button');
+  if (!target) return;
+  e.preventDefault();
+  const view = target.dataset.view;
+  const action = target.dataset.action;
+  const page = target.dataset.page;
+  if (view) {
+    appState.currentView = view;
+    renderView();
+  } else if (action === 'pin-page' && page) {
+    togglePinPage(page);
+    renderSidebar();
+  } else if (action === 'new-page') {
+    const title = await showModal('Create New Page', 'Enter page title...');
+    if (title && title.trim()) {
+      const key = `page-${title.trim()}`;
+      if (!getStorage(key)) {
+         setStorage(key, `\n`);
+      }
+      appState.currentView = title.trim();
+      renderApp();
+    }
+  } else if (action === 'rename-page' && page) {
+    const newTitle = await showModal(`Rename "${page}"`, 'Enter new page title...', page);
+    if (newTitle && newTitle.trim() && newTitle.trim() !== page) {
+      const oldKey = `page-${page}`;
+      const newKey = `page-${newTitle.trim()}`;
+      if (!getStorage(newKey)) {
+        // --- FIX: CORRECT RENAME LOGIC ---
+        // 1. Get content BEFORE deleting the old key.
+        const content = getStorage(oldKey);
+        // 2. Create the new page with the content.
+        setStorage(newKey, content);
+        // 3. Now remove the old page.
+        localStorage.removeItem(oldKey);
+        
+        updateWikiLinks(page, newTitle.trim());
+        
+        let pins = getPinnedPages();
+        const wasPinned = pins.includes(page);
+        if (wasPinned) {
+          pins = pins.filter(t => t !== page);
+          pins.push(newTitle.trim());
+          setPinnedPages(pins);
+        }
+        
+        if (appState.currentView === page) {
+          appState.currentView = newTitle.trim();
+        }
+        renderApp();
+        if (typeof syncWithCloud === 'function') {
+          syncWithCloud();
+        }
+      } else {
+        alert("A page with that name already exists.");
+      }
+    }
+  } else if (action === 'delete-page' && page) {
+    const confirmed = await showConfirm(`Delete page <strong>"${page}"</strong>? This cannot be undone.`);
+    if (confirmed) {
+      const key = `page-${page}`;
+      deleteStorage(key);
+      let pins = getPinnedPages();
+      if (pins.includes(page)) {
+        pins = pins.filter(t => t !== page);
+        setPinnedPages(pins);
+      }
+      if (appState.currentView === page) {
+        appState.currentView = 'weekly';
+      }
+      renderApp();
+      // --- FIX: TRIGGER SYNC AFTER DELETION ---
+      if (typeof syncWithCloud === 'function') {
+        syncWithCloud();
+      }
+    }
+  }
+});
+
+// ... (rest of the file is unchanged and correct)
+document.addEventListener('click', (e) => {
+  const actionTarget = e.target.closest('[data-action]');
+  if (actionTarget) {
+    e.preventDefault();
+    const action = actionTarget.dataset.action;
+    if (action === 'prev-week') appState.currentDate = dateFns.subWeeks(appState.currentDate, 1);
+    if (action === 'next-week') appState.currentDate = dateFns.addWeeks(appState.currentDate, 1);
+    if (action === 'today') appState.currentDate = new Date();
+    renderWeeklyPlanner(true);
+  }
+  const plannerLinkTarget = e.target.closest('[data-planner-key]');
+  if (plannerLinkTarget) {
+    e.preventDefault();
+    const plannerKey = plannerLinkTarget.dataset.plannerKey;
+    const match = plannerKey.match(/(\d{4})-W(\d{1,2})-([a-z]+)/i);
+    if (match && window.dateFns) {
+      const [_, year, week, day] = match;
+      const weekNum = parseInt(week, 10);
+      const yearNum = parseInt(year, 10);
+      const dayNames = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+      const dayIndex = dayNames.indexOf(day.toLowerCase());
+      if (dayIndex !== -1) {
+        let start = window.dateFns.startOfISOWeek(window.dateFns.setISOWeek(new Date(yearNum, 0, 4), weekNum));
+        let date = window.dateFns.addDays(start, dayIndex);
+        appState.currentDate = date;
+        appState.currentView = 'weekly';
+        renderApp();
+        setTimeout(() => renderWeeklyPlanner(true), 0);
+        return;
+      }
+    }
+  }
+
+  const scheduledLink = e.target.closest('.scheduled-link[data-planner-date]');
+  if (scheduledLink) {
+    e.preventDefault();
+    const dateStr = scheduledLink.dataset.plannerDate;
+    if (window.dateFns && dateStr) {
+      const date = window.dateFns.parseISO(dateStr);
+      if (!isNaN(date)) {
+        appState.currentDate = date;
+        appState.currentView = 'weekly';
+        renderApp();
+        setTimeout(() => renderWeeklyPlanner(true), 0);
+      }
+    }
+    return;
+  }
+  const pageLinkTarget = e.target.closest('[data-page-link]');
+  if (pageLinkTarget) {
+    e.preventDefault();
+    const pageTitle = pageLinkTarget.dataset.pageLink;
+    const key = `page-${pageTitle}`;
+    if (!getStorage(key)) {
+      setStorage(key, `# ${pageTitle}\n\n`);
+    }
+    appState.currentView = pageTitle;
+    renderApp();
+  }
+});
+
+document.addEventListener('click', (e) => {
+  const navTarget = e.target.closest('.calendar-nav a');
+  if (navTarget) {
+    e.preventDefault();
+    const action = navTarget.dataset.action;
+    if (action === 'prev-month') goToPreviousMonth();
+    if (action === 'next-month') goToNextMonth();
+    if (action === 'today-month') goToCurrentMonth();
+  }
+});
+
+document.addEventListener('keydown', async (e) => {
+  if (e.target.matches('input, textarea') || DOM.modalOverlay.classList.contains('active')) {
+    return;
+  }
+
+  const isAlt = e.altKey && !e.ctrlKey && !e.metaKey;
+
+  if (isAlt) {
+    switch (e.key.toLowerCase()) {
+      case 'n':
+        e.preventDefault();
+        const title = await showModal('Create New Page', 'Enter page title...');
+        if (title && title.trim()) {
+          const key = `page-${title.trim()}`;
+          if (!getStorage(key)) {
+             setStorage(key, `\n`);
+          }
+          appState.currentView = title.trim();
+          renderApp();
+        }
+        break;
+      case 't':
+        e.preventDefault();
+        if (appState.currentView !== 'weekly') {
+          appState.currentView = 'weekly';
+          renderApp();
+        }
+        break;
+      case 's':
+        e.preventDefault();
+        if (DOM.librarySearch) {
+          DOM.librarySearch.focus();
+        }
+        break;
+    }
+  }
+});
