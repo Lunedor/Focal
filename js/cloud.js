@@ -141,9 +141,33 @@ async function syncWithCloud() {
       console.log('[cloud] Local data replaced. Reloading UI.');
       window.location.reload();
 
-    } else if (!cloudTimestamp || (localTimestamp && localTimestamp > cloudTimestamp)) {
-      // --- Case B: Local is newer (or cloud is empty). REPLACE cloud with local. ---
-      console.log('[cloud] Local is newer or cloud is empty. Replacing all cloud data.');
+    } else if (!cloudTimestamp && localTimestamp) {
+      // --- Case B: Cloud is empty, but local has a timestamp. REPLACE cloud with local. ---
+      console.log('[cloud] Cloud is empty, local has timestamp. Replacing all cloud data.');
+
+      // Gather all relevant local data
+      const localDataToUpload = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith('page-') || key.startsWith('pinned-') || key.startsWith('unpinned-') || key.match(/^\d{4}-W\d{1,2}/)) {
+          localDataToUpload[key] = localStorage.getItem(key);
+        }
+      }
+
+      // Always update the timestamp before uploading
+      const now = new Date().toISOString();
+      localStorage.setItem('lastModified', now);
+
+      // Overwrite the entire cloud doc
+      await userDocRef.set({
+        lastModified: now,
+        appData: localDataToUpload
+      });
+      console.log('[cloud] Cloud data replaced.');
+
+    } else if (localTimestamp && cloudTimestamp && localTimestamp > cloudTimestamp) {
+      // --- Case C: Local is newer. REPLACE cloud with local. ---
+      console.log('[cloud] Local is newer. Replacing all cloud data.');
 
       // Gather all relevant local data
       const localDataToUpload = {};
@@ -166,7 +190,7 @@ async function syncWithCloud() {
       console.log('[cloud] Cloud data replaced.');
 
     } else {
-      // --- Case C: Timestamps match. Data is in sync. ---
+      // --- Case D: Timestamps match or neither is newer. Data is in sync. ---
       console.log('[cloud] Data is already in sync.');
     }
 
