@@ -378,7 +378,7 @@ function isCurrentPlannerDayCentered() {
     const noteCenter = noteLeft + noteWidth / 2;
     const gridCenter = visibleLeft + gridWidth / 2;
     const delta = noteCenter - gridCenter;
-    const tolerance = 40; // Increased tolerance to avoid unnecessary scrolls
+    const tolerance = noteCenter; // Increased tolerance to avoid unnecessary scrolls
     return noteStart >= visibleLeft && noteEnd <= visibleRight && Math.abs(delta) < tolerance;
   }
   return false;
