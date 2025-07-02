@@ -55,6 +55,11 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') {
     return;
   }
+  // Only cache http(s) requests
+  const url = new URL(event.request.url);
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    return;
+  }
   // Use a "Network falling back to Cache" strategy.
   event.respondWith(
     fetch(event.request)
