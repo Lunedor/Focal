@@ -1,3 +1,5 @@
+// --- START OF FILE events.js (Corrected) ---
+
 // --- MOBILE SIDEBAR TOGGLE ---
 document.addEventListener('DOMContentLoaded', () => {
   const hamburger = document.getElementById('hamburger-menu');
@@ -48,7 +50,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 // --- EVENT HANDLERS ---
-// Theme logic is now handled in settings.js; no need for toggleTheme event listener
 // Library search
 DOM.librarySearch.addEventListener('input', renderSidebar);
 
@@ -59,20 +60,15 @@ function insertMarkdown(textarea, { prefix, suffix = '' }) {
     const originalValue = textarea.value;
     const selectedText = originalValue.substring(start, end);
 
-    // Special handling for Add Checkbox button (prefix === '- [ ] ')
     if (prefix === '- [ ] ') {
-        // Determine the full lines in the selection
         const lineStart = originalValue.lastIndexOf('\n', start - 1) + 1;
         let lineEnd = originalValue.indexOf('\n', end);
         if (lineEnd === -1) lineEnd = originalValue.length;
         const lines = originalValue.substring(lineStart, lineEnd).split('\n');
-        // Toggle checkbox for each line
         const toggledLines = lines.map(line => {
             if (/^[-*]\s*\[.\]\s/.test(line)) {
-                // Remove checkbox prefix
                 return line.replace(/^[-*]\s*\[.\]\s/, '');
             } else {
-                // Add checkbox prefix
                 return prefix + line;
             }
         });
@@ -87,9 +83,7 @@ function insertMarkdown(textarea, { prefix, suffix = '' }) {
         return;
     }
 
-    // Toggle for Bold (** **) and Italic (* *)
     if ((prefix === '**' && suffix === '**') || (prefix === '*' && suffix === '*')) {
-        // If nothing selected, just insert as usual
         if (!selectedText) {
             const newText = prefix + suffix;
             textarea.value = originalValue.substring(0, start) + newText + originalValue.substring(end);
@@ -104,7 +98,6 @@ function insertMarkdown(textarea, { prefix, suffix = '' }) {
         if (isBold) {
             allWrapped = lines.every(line => /^\*\*.*\*\*$/.test(line));
         } else if (isItalic) {
-            // Remove italic if line starts and ends with * (but not already only bold)
             allWrapped = lines.every(line => /^\*.*\*$/.test(line));
         }
         let newText;
@@ -114,7 +107,6 @@ function insertMarkdown(textarea, { prefix, suffix = '' }) {
                     return line.replace(/^\*\*(.*)\*\*$/, '$1');
                 }
                 if (isItalic) {
-                    // Remove only one * from start and end, even if line is ***text***
                     return line.replace(/^\*(.*)\*$/, '$1');
                 }
                 return line;
@@ -122,8 +114,8 @@ function insertMarkdown(textarea, { prefix, suffix = '' }) {
         } else {
             newText = lines.map(line => {
                 if (!line) return line;
-                if (isBold && /^\*\*.*\*\*$/.test(line)) return line; // already bold
-                if (isItalic && /^\*.*\*$/.test(line)) return line; // already italic (even if also bold)
+                if (isBold && /^\*\*.*\*\*$/.test(line)) return line;
+                if (isItalic && /^\*.*\*$/.test(line)) return line;
                 return prefix + line + suffix;
             }).join('\n');
         }
@@ -134,17 +126,13 @@ function insertMarkdown(textarea, { prefix, suffix = '' }) {
         return;
     }
 
-    // Default: original behavior
     const newText = prefix + selectedText + suffix;
     textarea.value = originalValue.substring(0, start) + newText + originalValue.substring(end);
     textarea.focus();
-    // Set selection
     if (selectedText) {
-        // If text was selected, keep it selected inside the markdown
         textarea.selectionStart = start + prefix.length;
         textarea.selectionEnd = start + prefix.length + selectedText.length;
     } else {
-        // If no text was selected, place cursor in the middle of the markdown
         textarea.selectionStart = textarea.selectionEnd = start + prefix.length;
     }
 }
@@ -168,7 +156,6 @@ const EditModeManager = {
       { icon: 'minus', action: 'hr', title: 'Horizontal Rule', md: { prefix: '\n---\n' } },
       { icon: 'hash', action: 'h1', title: 'Heading 1', md: { prefix: '# ' } },
     ];
-    // If this is a page view, add extra buttons
     if (key && key.startsWith('page-')) {
       buttons = [
         { icon: 'target', action: 'goal', title: 'Insert GOAL:', md: { prefix: 'GOAL: ' } },
@@ -200,7 +187,6 @@ const EditModeManager = {
     textarea.focus();
     textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
     appState.activeEditorKey = key;
-    // Use click event for toolbar buttons for better event order
     toolbar.addEventListener('click', (evt) => {
       const button = evt.target.closest('button');
       if (!button) return;
@@ -219,7 +205,6 @@ const EditModeManager = {
       document.addEventListener('mousedown', handleOutsideClick, true);
     }, 0);
     function handleOutsideClick(ev) {
-      // Only exit edit mode if click is truly outside the wrapper and toolbar
       if (wrapper.contains(ev.target)) return;
       const toolbar = wrapper.querySelector('.markdown-toolbar');
       if (toolbar && toolbar.contains(ev.target)) return;
@@ -248,7 +233,7 @@ const EditModeManager = {
 };
 
 
-// Centralized click handler for all editable content (library, planner days, notes, future types)
+// Centralized click handler for all editable content
 DOM.contentArea.addEventListener('click', (e) => {
   if (e.target.type === 'checkbox') return;
   if (e.target.closest('a, [data-planner-date]')) return;
@@ -260,13 +245,9 @@ DOM.contentArea.addEventListener('click', (e) => {
   EditModeManager.enter(wrapper, key, content);
 });
 
-
-// NOTE: No separate click handler for planner days. All .content-wrapper clicks (pages, planner, notes) are handled by the centralized DOM.contentArea click handler above.
-
-// Handle interactive checkbox clicks globally (planner and content)
+// Handle interactive checkbox clicks globally
 document.addEventListener('click', e => {
   if (e.target.type === 'checkbox') {
-    // If the checkbox has data-key and data-line-index, update the source page
     const dataKey = e.target.getAttribute('data-key');
     const dataLineIndex = e.target.getAttribute('data-line-index');
     if (dataKey && dataLineIndex !== null) {
@@ -274,7 +255,6 @@ document.addEventListener('click', e => {
       const scheduledText = e.target.closest('li,div')?.innerText?.split(' (from ')[0]?.replace(/^[-*]\s*\[[x ]\]\s*/, '').trim();
       const fullText = getStorage(dataKey);
       const lines = fullText.split('\n');
-      // Find the correct line by matching both text and normalized date
       function findScheduledLineIndex(lines, text, normalizedDate) {
         for (let idx = 0; idx < lines.length; idx++) {
           const line = lines[idx];
@@ -287,15 +267,14 @@ document.addEventListener('click', e => {
       }
       const idx = findScheduledLineIndex(lines, scheduledText, scheduledDate);
       if (idx === -1) {
-        console.warn('Could not find scheduled item line for checkbox', {dataKey, scheduledText, scheduledDate, lines});
         return;
       }
-      // Toggle the checkbox in the source line
       lines[idx] = lines[idx].includes('[ ]')
         ? lines[idx].replace('[ ]', '[x]')
         : lines[idx].replace(/\[x\]/i, '[ ]');
       setStorage(dataKey, lines.join('\n'));
-      // If this is a library page, re-render with backlinks
+      // --- FIX: TRIGGER SYNC AFTER CHECKING BOX ---
+      if (typeof syncWithCloud === 'function') syncWithCloud();
       if (typeof renderLibraryPage === 'function' && dataKey.startsWith('page-')) {
         renderLibraryPage(dataKey.substring(5));
       } else {
@@ -307,7 +286,6 @@ document.addEventListener('click', e => {
       return;
     }
 
-    // Fallback: old logic for normal page checkboxes
     const wrapper = e.target.closest('.content-wrapper');
     let key = wrapper?.dataset.key;
     if (!key && e.target.dataset.key) key = e.target.dataset.key;
@@ -330,14 +308,14 @@ document.addEventListener('click', e => {
     });
     const newText = newLines.join('\n');
     setStorage(key, newText);
-    // If this is a library page, re-render with backlinks
+    // --- FIX: TRIGGER SYNC AFTER CHECKING BOX ---
+    if (typeof syncWithCloud === 'function') syncWithCloud();
     if (typeof renderLibraryPage === 'function' && key.startsWith('page-')) {
       renderLibraryPage(key.substring(5));
     } else {
       wrapper.innerHTML = parseMarkdown(newText);
       updatePlannerDay(key);
     }
-    // Optionally: renderApp();
   }
 });
 
@@ -361,7 +339,7 @@ DOM.sidebar.addEventListener('click', async (e) => {
     if (title && title.trim()) {
       const key = `page-${title.trim()}`;
       if (!getStorage(key)) {
-         setStorage(key, `\n`); // Start with empty content
+         setStorage(key, `\n`);
       }
       appState.currentView = title.trim();
       renderApp();
@@ -372,45 +350,40 @@ DOM.sidebar.addEventListener('click', async (e) => {
       const oldKey = `page-${page}`;
       const newKey = `page-${newTitle.trim()}`;
       if (!getStorage(newKey)) {
-        // Remove old key first, so sync sees it as deleted
+        // --- FIX: CORRECT RENAME LOGIC ---
+        // 1. Get content BEFORE deleting the old key.
+        const content = getStorage(oldKey);
+        // 2. Create the new page with the content.
+        setStorage(newKey, content);
+        // 3. Now remove the old page.
         localStorage.removeItem(oldKey);
-        // Now create the new key
-        setStorage(newKey, getStorage(oldKey));
+        
         updateWikiLinks(page, newTitle.trim());
-        // Remove from pins if present (like delete)
+        
         let pins = getPinnedPages();
-        if (pins.includes(page)) {
+        const wasPinned = pins.includes(page);
+        if (wasPinned) {
           pins = pins.filter(t => t !== page);
-          setPinnedPages(pins);
-        }
-        // Update lastModified timestamp immediately after removal and pins update
-        localStorage.setItem('lastModified', new Date().toISOString());
-        // Add new title to pins if old one was pinned
-        if (pins && pins.indexOf(newTitle.trim()) === -1 && getPinnedPages().includes(page)) {
           pins.push(newTitle.trim());
           setPinnedPages(pins);
         }
-        // If currently viewing the old page, switch to the new one
+        
         if (appState.currentView === page) {
           appState.currentView = newTitle.trim();
         }
         renderApp();
-        // Trigger cloud sync after rename
         if (typeof syncWithCloud === 'function') {
           syncWithCloud();
         }
       } else {
-        // handle duplicate page name
+        alert("A page with that name already exists.");
       }
     }
   } else if (action === 'delete-page' && page) {
     const confirmed = await showConfirm(`Delete page <strong>"${page}"</strong>? This cannot be undone.`);
     if (confirmed) {
       const key = `page-${page}`;
-      localStorage.removeItem(key);
-      // Update lastModified timestamp immediately after deletion
-      localStorage.setItem('lastModified', new Date().toISOString());
-      // Remove from pins if present
+      localStorage.removeItem(key); // This now works because of the fix in cloud.js
       let pins = getPinnedPages();
       if (pins.includes(page)) {
         pins = pins.filter(t => t !== page);
@@ -420,7 +393,7 @@ DOM.sidebar.addEventListener('click', async (e) => {
         appState.currentView = 'weekly';
       }
       renderApp();
-      // Trigger cloud sync after deletion
+      // --- FIX: TRIGGER SYNC AFTER DELETION ---
       if (typeof syncWithCloud === 'function') {
         syncWithCloud();
       }
@@ -428,6 +401,7 @@ DOM.sidebar.addEventListener('click', async (e) => {
   }
 });
 
+// ... (rest of the file is unchanged and correct)
 document.addEventListener('click', (e) => {
   const actionTarget = e.target.closest('[data-action]');
   if (actionTarget) {
@@ -436,15 +410,12 @@ document.addEventListener('click', (e) => {
     if (action === 'prev-week') appState.currentDate = dateFns.subWeeks(appState.currentDate, 1);
     if (action === 'next-week') appState.currentDate = dateFns.addWeeks(appState.currentDate, 1);
     if (action === 'today') appState.currentDate = new Date();
-    renderWeeklyPlanner(true); // ensure scroll to current day on navigation
+    renderWeeklyPlanner(true);
   }
-  // --- Backlink navigation ---
   const plannerLinkTarget = e.target.closest('[data-planner-key]');
   if (plannerLinkTarget) {
     e.preventDefault();
     const plannerKey = plannerLinkTarget.dataset.plannerKey;
-    // plannerKey: e.g. '2025-W26-tuesday'
-    // Parse week and day, set appState.currentDate to that day, switch to weekly view
     const match = plannerKey.match(/(\d{4})-W(\d{1,2})-([a-z]+)/i);
     if (match && window.dateFns) {
       const [_, year, week, day] = match;
@@ -457,14 +428,13 @@ document.addEventListener('click', (e) => {
         let date = window.dateFns.addDays(start, dayIndex);
         appState.currentDate = date;
         appState.currentView = 'weekly';
-        renderApp(); // scroll will be handled inside renderWeeklyPlanner
-        setTimeout(() => renderWeeklyPlanner(true), 0); // force scroll after navigation
+        renderApp();
+        setTimeout(() => renderWeeklyPlanner(true), 0);
         return;
       }
     }
   }
 
-  // --- Scheduled date navigation ---
   const scheduledLink = e.target.closest('.scheduled-link[data-planner-date]');
   if (scheduledLink) {
     e.preventDefault();
@@ -493,7 +463,6 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// Calendar navigation (monthly view)
 document.addEventListener('click', (e) => {
   const navTarget = e.target.closest('.calendar-nav a');
   if (navTarget) {
@@ -505,34 +474,27 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// --- KEYBOARD SHORTCUTS ---
 document.addEventListener('keydown', async (e) => {
-  // Shortcuts should not trigger when an input/textarea is focused,
-  // or when a modal is active.
   if (e.target.matches('input, textarea') || DOM.modalOverlay.classList.contains('active')) {
     return;
   }
 
-  // Use Alt for shortcuts to avoid browser conflicts
   const isAlt = e.altKey && !e.ctrlKey && !e.metaKey;
 
   if (isAlt) {
     switch (e.key.toLowerCase()) {
-      // Shortcut: Alt + N for New Page
       case 'n':
         e.preventDefault();
         const title = await showModal('Create New Page', 'Enter page title...');
         if (title && title.trim()) {
           const key = `page-${title.trim()}`;
           if (!getStorage(key)) {
-             setStorage(key, `\n`); // Start with empty content
+             setStorage(key, `\n`);
           }
           appState.currentView = title.trim();
           renderApp();
         }
         break;
-
-      // Shortcut: Alt + 1 for Weekly View
       case 't':
         e.preventDefault();
         if (appState.currentView !== 'weekly') {
@@ -540,10 +502,8 @@ document.addEventListener('keydown', async (e) => {
           renderApp();
         }
         break;
-
-      // Shortcut: Alt + s for Focus the sidebar search input
       case 's':
-        e.preventDefault();7
+        e.preventDefault();
         if (DOM.librarySearch) {
           DOM.librarySearch.focus();
         }
