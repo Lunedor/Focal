@@ -214,7 +214,6 @@ textarea:focus {
 /* Scheduled date links in page content */
 .scheduled-link {
   color: var(--color-link, #007aff);
-  text-decoration: underline;
   cursor: pointer;
   transition: color 0.15s;
 }
