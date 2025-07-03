@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Focal Journal</title>
+  <link rel="icon" type="image/x-icon" href="favicon.png">
+  <link rel="apple-touch-icon" href="favicon.png">
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#000000">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  
+  <!-- Libraries: date-fns for date logic, marked for Markdown -->
+  <script src="https://cdn.jsdelivr.net/npm/date-fns@4.1.0/cdn.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <link rel="stylesheet" href="css/style.css">
+  <!-- Feather Icons for minimalist icons -->
+  <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+</head>
+<body>
+
+  <!-- Hamburger menu button for mobile -->
+  <button id="hamburger-menu" class="hamburger-menu" aria-label="Open menu">
+    <i data-feather="menu"></i>
+  </button>
+  <script>
+    // Register service worker for PWA support
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('service-worker.js').then(function(registration) {
+          console.log('ServiceWorker registration successful with scope: ', registration.scope);
+        }, function(err) {
+          console.log('ServiceWorker registration failed: ', err);
+        });
+      });
+    }
+  </script>
+  <!-- Settings Modal Overlay -->
+    <div id="settings-modal-overlay" class="settings-modal-overlay hidden">
+      <div class="settings-modal">
+        <div class="settings-modal-header">
+          <h3>Settings</h3>
+          <button class="settings-modal-close" aria-label="Close">×</button>
+        </div>
+        <div class="settings-modal-body">
+          <div class="theme-select-group">
+            <button id="theme-toggle" class="theme-dropdown-btn" aria-haspopup="listbox" aria-expanded="false" type="button">
+              <i data-feather="sun"></i>
+              <span id="current-theme-label">Light</span>
+              <svg class="dropdown-arrow" width="16" height="16" viewBox="0 0 20 20"><path d="M5 8l5 5 5-5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+            </button>
+            <ul id="theme-options" class="theme-dropdown-list hidden" role="listbox" tabindex="-1" title="Theme options">
+              <li data-theme="light" role="option" aria-selected="true">Light</li>
+              <li data-theme="dark" role="option">Dark</li>
+              <li data-theme="solarized" role="option">Solarized</li>
+              <li data-theme="dracula" role="option">Dracula</li>
+              <li data-theme="nord" role="option">Nord</li>
+              <li data-theme="gruvbox" role="option">Gruvbox</li>
+              <li data-theme="monokai" role="option">Monokai</li>
+              <li data-theme="highcontrast" role="option">High Contrast</li>
+              <li data-theme="sepia" role="option">Sepia</li>
+              <li data-theme="amoled" role="option">Amoled</li>
+              <li data-theme="onedark" role="option">OneDark</li>
+              <li data-theme="paper" role="option">Paper</li>
+            </ul>
+          </div>
+          <!-- This button will dynamically change between "Sign In" and "Sign Out" -->
+          <button id="account-auth-btn"><i data-feather="user"></i><span>Sign In</span></button> 
+          <button class="sync-cloud-btn" id="sync-cloud-btn">
+            <i data-feather="cloud"></i>
+            <span>Cloud Sync: Off</span>
+          </button>
+          <!-- Features -->
+          <button id="notifications-btn">
+            <i data-feather="bell"></i>
+            <span>Enable Notifications</span>
+          </button>
+          <button id="import-data-btn"><i data-feather="upload"></i><span>Import Data</span></button>
+          <button id="export-data-btn"><i data-feather="download"></i><span>Export Data</span></button>
+          <button id="about-app-btn"><i data-feather="info"></i><span>About Focal</span></button>
+
+</div> <!-- close settings-modal-body -->
+      </div>
+    </div>
+  </div>
+
+<!-- About Focal Modal (must be outside settings modal for proper overlay) -->
+<div id="about-focal-modal" class="modal-overlay hidden" tabindex="-1">
+  <div class="modal about-focal-modal" role="dialog" aria-modal="true" aria-labelledby="about-focal-title">
+    <button id="about-focal-modal-close" class="modal-close" aria-label="Close">&times;</button>
+    <div class="about-focal-content">
+      <img src="faviconabout.png" alt="Focal Logo" class="about-focal-logo">
+      <p class="about-focal-desc">
+        Focal is a digital bullet journal app designed to help you organize your tasks, notes, and goals with clarity and focus. Inspired by the bullet journal method, Focal brings structure and flexibility to your digital planning.
+      </p>
+      <div class="about-focal-meta">
+        <strong>Version:</strong> 1.0 Beta<br>
+        <strong>Author:</strong> Lunedor
+      </div>
+      <div class="about-focal-links">
+        <a href="https://github.com/Lunedor" target="_blank" rel="noopener">
+          <i data-feather="github"></i> GitHub: Lunedor
+        </a>
+      </div>
+      <div class="about-focal-copyright">
+        &copy; 2025 Lunedor. All rights reserved.
+      </div>
+    </div>
+  </div>
+</div>
+        </div>
+      </div>
+    </div>
+  <div id="sidebar-overlay"></div>
+  <aside id="sidebar">
+    <nav>
+      <h2>Planner</h2>
+      <ul id="planner-nav-list">
+        <li><a href="#" data-view="weekly" class="active">Weekly Plan</a></li>
+        <li><a href="#" data-view="monthly">Monthly View</a></li>
+      </ul>
+      <h2>Library</h2>
+      <div class="search-container">
+        <input type="search" id="library-search" placeholder="Search pages...">
+      </div>
+      <ul id="library-nav-list">
+        <!-- JS will populate this -->
+      </ul>
+    </nav>
+    <div id="sidebar-bottom">
+    <div id="new-page-btn">
+      <a href="#" data-action="new-page">＋ New Page</a>
+    </div>
+    <div id="settings-menu-container">
+      <button class="settings-menu-toggle" aria-label="Settings"><i data-feather="settings"></i></button>
+    </div>
+    </div>
+  </aside>
+
+  <main id="content-area">
+
+    <!-- Weekly Planner View -->
+    <div id="weekly-planner-view" class="view">
+      <header class="planner-header">
+        <h1 id="planner-title"></h1>
+        <nav class="planner-nav">
+          <a href="#" data-action="prev-week">‹ Prev</a>
+          <a href="#" data-action="today">Today</a>
+          <a href="#" data-action="next-week">Next ›</a>
+        </nav>
+      </header>
+      <div id="plan-grid-container" class="plan-grid">
+        <!-- JS will populate this -->
+      </div>
+    </div>
+
+    <!-- Monthly Calendar View -->
+    <div id="monthly-calendar-view" class="view hidden">
+      <header class="calendar-header">
+        <div id="calendar-title-container">
+          <h1 id="calendar-title"></h1>
+          <select id="month-select" title="Select Month"></select>
+          <select id="year-select" title="Select Year"></select>
+        </div>
+        <nav class="calendar-nav">
+          <a href="#" data-action="prev-month">‹ Prev Month</a>
+          <a href="#" data-action="today-month">Today</a>
+          <a href="#" data-action="next-month">Next Month ›</a>
+        </nav>
+      </header>
+      <div id="calendar-grid-container" class="calendar-grid">
+        <!-- JS will populate this -->
+      </div>
+    </div>
+
+    <!-- Library Page View -->
+    <div id="library-page-view" class="view">
+      <header class="page-header">
+        <h1 id="page-title"></h1>
+      </header>
+      <div id="page-content-wrapper" class="content-wrapper">
+        <!-- JS will populate this -->
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Modal for page creation/renaming -->
+  <div id="modal-overlay" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-title">Create New Page</h3>
+        <button id="modal-close" class="modal-close">×</button>
+      </div>
+      <div class="modal-body">
+        <input type="text" id="modal-input" placeholder="Enter page title...">
+      </div>
+      <div class="modal-footer">
+        <button id="modal-cancel" class="modal-btn secondary">Cancel</button>
+        <button id="modal-confirm" class="modal-btn primary">Create</button>
+      </div>
+    </div>
+  </div>
+  <!-- Firebase v8 CDN (namespaced) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script> <!-- ADD THIS LINE -->
+  <script>
+    // Your web app's Firebase configuration
+    var firebaseConfig = {
+      apiKey: "AIzaSyAW8rAegPAaeNltFOSBOii8GISykx3S7eU",
+      authDomain: "focal-journal-app.firebaseapp.com",
+      projectId: "focal-journal-app",
+      storageBucket: "focal-journal-app.firebasestorage.app",
+      messagingSenderId: "454247718929",
+      appId: "1:454247718929:web:513ba2cbe7dc1f9e0fd1b0"
+    };
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+  </script>
+  <script src="js/state.js"></script>
+  <script src="js/dom.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/notifications.js"></script>
+  <script src="js/markdown.js"></script>
+  <script src="js/planner.js"></script>
+  <script src="js/library.js"></script>
+  <script src="js/calendar.js"></script>
+  <script src="js/init.js"></script>
+  <script src="js/events.js"></script>
+  <script src="js/settings.js"></script>
+  <script src="js/cloud.js"></script>
+  <script>if(window.feather) feather.replace();</script>
+</body>
+</html>
