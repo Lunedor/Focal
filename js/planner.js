@@ -163,42 +163,69 @@ function updatePlannerDay(key) {
 }
 
 // --- Snap to center after manual scroll on mobile ---
+// --- Carousel-style snap and state update logic ---
+function getCenteredPlannerNote(grid) {
+  // Returns the .planner-note element closest to the center of the grid
+  const gridWidth = grid.clientWidth;
+  const gridCenter = grid.scrollLeft + gridWidth / 2;
+  let minDist = Infinity;
+  let closest = null;
+  grid.querySelectorAll('.planner-note').forEach(note => {
+    const noteCenter = note.offsetLeft + note.offsetWidth / 2;
+    const dist = Math.abs(gridCenter - noteCenter);
+    if (dist < minDist) {
+      minDist = dist;
+      closest = note;
+    }
+  });
+  return closest;
+}
+
 function enablePlannerSnapToCenter() {
   const grid = document.getElementById('plan-grid-container');
   if (!grid) return;
   let scrollTimeout;
+  let lastCenteredKey = null;
 
   grid.addEventListener('scroll', () => {
-    // If the scroll was triggered by our code (e.g., swipe), don't activate snap.
     if (isProgrammaticScroll) return;
-
     if (scrollTimeout) clearTimeout(scrollTimeout);
     scrollTimeout = setTimeout(() => {
-      // Find the .planner-note closest to the center
-      const gridWidth = grid.clientWidth;
-      const gridCenter = grid.scrollLeft + gridWidth / 2;
-
-      let minDist = Infinity;
-      let closest = null;
-      grid.querySelectorAll('.planner-note').forEach(note => {
-        const noteCenter = note.offsetLeft + note.offsetWidth / 2;
-        const dist = Math.abs(gridCenter - noteCenter);
-        if (dist < minDist) {
-          minDist = dist;
-          closest = note;
-        }
-      });
-
-      if (closest) {
-        // Snap the closest note to center
-        const noteCenter = closest.offsetLeft + closest.offsetWidth / 2;
+      // Snap to the closest note
+      const centered = getCenteredPlannerNote(grid);
+      if (centered) {
+        const noteCenter = centered.offsetLeft + centered.offsetWidth / 2;
+        const gridWidth = grid.clientWidth;
         const targetScrollLeft = noteCenter - gridWidth / 2 - 15;
-
-        isProgrammaticScroll = true; // Set flag to prevent this scroll from re-triggering
+        isProgrammaticScroll = true;
         grid.scrollTo({ left: targetScrollLeft, behavior: 'smooth' });
-        setTimeout(() => { isProgrammaticScroll = false; }, 700); // Reset flag after animation (longer)
+        setTimeout(() => {
+          isProgrammaticScroll = false;
+          // After snap, update appState.currentDate if the centered note changed
+          const newKey = centered.dataset.key;
+          if (newKey && newKey !== lastCenteredKey) {
+            lastCenteredKey = newKey;
+            // Parse date from key
+            const parts = newKey.split('-');
+            const weekKey = parts.slice(0, -1).join('-');
+            const boxId = parts[parts.length - 1];
+            const weekStart = window.dateFns.startOfISOWeek(appState.currentDate);
+            const boxIdx = PLANNER_BOXES.findIndex(b => b.id === boxId);
+            if (boxIdx !== -1) {
+              const newDate = window.dateFns.addDays(weekStart, boxIdx);
+              // If week changed, re-render
+              if (getWeekKey(newDate) !== getWeekKey(appState.currentDate)) {
+                appState.currentDate = newDate;
+                renderWeeklyPlanner(true);
+              } else {
+                appState.currentDate = newDate;
+                setTimeout(updatePlannerTodayButtonState, 200);
+              }
+            }
+          }
+        }, 700); // Wait for smooth scroll to finish
       }
-    }, 150); // A bit longer delay after scroll stops
+    }, 120); // Debounce for scroll end
   });
 }
 // Helper to escape special regex characters in a string
@@ -444,16 +471,24 @@ function scrollToCurrentPlannerDay(smooth = true) {
  * Navigates to the next day in the planner. If it crosses a week boundary,
  * it re-renders the planner. Otherwise, it just scrolls.
  */
-function goToNextDay() {
-  if (window.innerWidth > 768) return; // This is a mobile-only feature
-  const oldWeekKey = getWeekKey(appState.currentDate);
-  appState.currentDate = dateFns.addDays(appState.currentDate, 1);
-  const newWeekKey = getWeekKey(appState.currentDate);
 
-  if (oldWeekKey !== newWeekKey) {
-    renderWeeklyPlanner(true);
-  } else {
-    scrollToCurrentPlannerDay();
+function goToNextDay() {
+  if (window.innerWidth > 768) return;
+  const grid = document.getElementById('plan-grid-container');
+  if (!grid) return;
+  const centered = getCenteredPlannerNote(grid);
+  if (!centered) return;
+  const notes = Array.from(grid.querySelectorAll('.planner-note'));
+  const idx = notes.indexOf(centered);
+  if (idx === -1 || idx === notes.length - 1) return;
+  const next = notes[idx + 1];
+  if (next) {
+    const noteCenter = next.offsetLeft + next.offsetWidth / 2;
+    const gridWidth = grid.clientWidth;
+    const targetScrollLeft = noteCenter - gridWidth / 2 - 15;
+    isProgrammaticScroll = true;
+    grid.scrollTo({ left: targetScrollLeft, behavior: 'smooth' });
+    setTimeout(() => { isProgrammaticScroll = false; }, 700);
   }
 }
 
@@ -461,16 +496,24 @@ function goToNextDay() {
  * Navigates to the previous day in the planner. If it crosses a week boundary,
  * it re-renders the planner. Otherwise, it just scrolls.
  */
-function goToPreviousDay() {
-  if (window.innerWidth > 768) return; // This is a mobile-only feature
-  const oldWeekKey = getWeekKey(appState.currentDate);
-  appState.currentDate = dateFns.subDays(appState.currentDate, 1);
-  const newWeekKey = getWeekKey(appState.currentDate);
 
-  if (oldWeekKey !== newWeekKey) {
-    renderWeeklyPlanner(true);
-  } else {
-    scrollToCurrentPlannerDay();
+function goToPreviousDay() {
+  if (window.innerWidth > 768) return;
+  const grid = document.getElementById('plan-grid-container');
+  if (!grid) return;
+  const centered = getCenteredPlannerNote(grid);
+  if (!centered) return;
+  const notes = Array.from(grid.querySelectorAll('.planner-note'));
+  const idx = notes.indexOf(centered);
+  if (idx <= 0) return;
+  const prev = notes[idx - 1];
+  if (prev) {
+    const noteCenter = prev.offsetLeft + prev.offsetWidth / 2;
+    const gridWidth = grid.clientWidth;
+    const targetScrollLeft = noteCenter - gridWidth / 2 - 15;
+    isProgrammaticScroll = true;
+    grid.scrollTo({ left: targetScrollLeft, behavior: 'smooth' });
+    setTimeout(() => { isProgrammaticScroll = false; }, 700);
   }
 }
 
@@ -666,7 +709,7 @@ function renderWeeklyPlanner(scrollToToday = false) {
   if (scrollToToday) {
     setTimeout(scrollToCurrentPlannerDay, 200); // Ensure DOM is ready
   }
-  // Enable snap-to-center after manual scroll (only needs to be attached once)
+  // Enable carousel snap-to-center after manual scroll (only needs to be attached once)
   if (window.innerWidth <= 768 && !window.plannerSnapInitialized) {
     enablePlannerSnapToCenter();
     window.plannerSnapInitialized = true;
