@@ -213,10 +213,14 @@ function escapeRegExp(string) {
  * @returns {Map<string, Array<{text: string, source: string}>>} A map where keys are 'YYYY-MM-DD' strings
  * and values are arrays of scheduled items with their source page.
  */
+
 function getAllScheduledItems() {
     const scheduledItems = new Map();
     // SCHEDULED
-    const scheduleRegex = new RegExp(`^(?:[-*]\\s*\\[[x ]\\]\\s*)?(.*)\\(SCHEDULED: \\s*${window.DATE_REGEX_PATTERN}\\)`, 'i');
+    // Allow for optional time after the date (e.g. 2025-07-03 03:22)
+    const scheduleRegex = new RegExp(`^(?:[-*]\\s*\\[[x ]\\]\\s*)?(.*)\\(SCHEDULED: \\s*${window.DATE_REGEX_PATTERN}(?: \\d{1,2}:\\d{2})?\\)`, 'i');
+    // NOTIFY
+    const notifyRegex = new RegExp(`^(?:[-*]\\s*\\[[x ]\\]\\s*)?(.*)\\(NOTIFY: \\s*${window.DATE_REGEX_PATTERN}(?: \\d{1,2}:\\d{2})?\\)`, 'i');
     // REPEAT (recurring, new flexible syntax)
     const repeatRegex = /\(REPEAT: ([^)]+)\)/i;
 
@@ -226,7 +230,6 @@ function getAllScheduledItems() {
             const content = localStorage.getItem(key);
             const pageTitle = key.substring(5);
             const lines = content.split('\n');
-
             lines.forEach(line => {
                 // SCHEDULED
                 const match = line.match(scheduleRegex);
@@ -242,7 +245,26 @@ function getAllScheduledItems() {
                         pageKey: key,
                         displayName: pageTitle,
                         recurring: false,
-                        originalDate: dateStr
+                        originalDate: dateStr,
+                        notify: false
+                    });
+                }
+                // NOTIFY
+                const notifyMatch = line.match(notifyRegex);
+                if (notifyMatch) {
+                    const itemText = notifyMatch[1].trim();
+                    const dateStr = notifyMatch[2];
+                    if (!itemText) return;
+                    let normalizedDate = window.normalizeDateStringToYyyyMmDd(dateStr);
+                    if (!normalizedDate) return;
+                    if (!scheduledItems.has(normalizedDate)) scheduledItems.set(normalizedDate, []);
+                    scheduledItems.get(normalizedDate).push({
+                        text: itemText,
+                        pageKey: key,
+                        displayName: pageTitle,
+                        recurring: false,
+                        originalDate: dateStr,
+                        notify: true
                     });
                 }
                 // REPEAT (recurring, new flexible syntax)
@@ -261,7 +283,7 @@ function getAllScheduledItems() {
                         if (everyMatch) {
                             weekday = everyMatch[1].toLowerCase();
                         }
-                      }
+                    }
                     if (weekday) {
                         if (!startDate) {
                             const scheduledMatches = [...line.matchAll(/\(SCHEDULED: ([^)]+)\)/g)];
@@ -290,7 +312,8 @@ function getAllScheduledItems() {
                                 displayName: pageTitle,
                                 recurring: true,
                                 recurringKey: weekday,
-                                originalDate: startDate
+                                originalDate: startDate,
+                                notify: false
                             });
                         }
                     } else {
@@ -311,7 +334,8 @@ function getAllScheduledItems() {
                                     displayName: pageTitle,
                                     recurring: true,
                                     recurringKey: monthDay,
-                                    originalDate: norm
+                                    originalDate: norm,
+                                    notify: false
                                 });
                             }
                         } else {
@@ -331,7 +355,8 @@ function getAllScheduledItems() {
                                         displayName: pageTitle,
                                         recurring: true,
                                         recurringKey: monthDay,
-                                        originalDate: monthDay
+                                        originalDate: monthDay,
+                                        notify: false
                                     });
                                 }
                             }
@@ -516,9 +541,16 @@ function renderWeeklyPlanner(scrollToToday = false) {
                 const lineNormDate = dateMatch ? window.normalizeDateStringToYyyyMmDd(dateMatch[0]) : null;
                 if (lineNormDate === dayDateStr) { foundIndex = idx; break; }
               }
-              if (foundIndex === -1) return '';
+              if (foundIndex === -1) {
+                return '';
+              }
               const checked = /\[x\]/i.test(lines[foundIndex]);
-              return `- [${checked ? 'x' : ' '}] ${item.text} (from [[${item.displayName}]]){key=${pageKey} line-index=${foundIndex} scheduled-date=${dayDateStr}}`;
+              if (item.notify) {
+                // Render NOTIFY items with a bell icon and Notify label, no checkbox
+                return `\uD83D\uDD14 <b>Notify:</b> ${item.text} (from [[${item.displayName}]])`;
+              } else {
+                return `- [${checked ? 'x' : ' '}] ${item.text} (from [[${item.displayName}]]){key=${pageKey} line-index=${foundIndex} scheduled-date=${dayDateStr}}`;
+              }
             })
             .filter(Boolean)
             .join('\n');
