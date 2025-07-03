@@ -175,10 +175,12 @@ function init() {
     const tomorrow = dateFns.addDays(today, 1);
     const dayAfterTomorrow = dateFns.addDays(today, 2);
 
-    // Format dates for (SCHEDULED: ...) tags
+    // Format dates for (SCHEDULED: ...) and (NOTIFY: ...) tags
     const todayDateStr = dateFns.format(today, 'yyyy-MM-dd');
     const tomorrowDateStr = dateFns.format(tomorrow, 'dd.MM.yyyy'); // Use different format
     const dayAfterTomorrowDateStr = dateFns.format(dayAfterTomorrow, 'yyyy-MM-dd');
+    const notificationTime = dateFns.addMinutes(today, 1); // Set for 1 minute in the future
+    const notificationTimeStr = dateFns.format(notificationTime, 'yyyy-MM-dd HH:mm');
 
     // 2. Create a planner entry for today (show checkboxes, bold, italic, scheduled, repeat, wiki-links)
     setStorage(todayKey, `
@@ -226,6 +228,7 @@ This page demonstrates all features of Focal.
 - [ ] *Italic task*
 - [ ] Task with a [[Wiki Link]]
 - [ ] Task with (SCHEDULED: ${todayDateStr})
+- [ ] Task with a notification (NOTIFY: ${notificationTimeStr})
 
 Events with (REPEAT: every friday from ${todayDateStr} to ${dayAfterTomorrowDateStr})
 Events like anniversary (REPEAT: ${dateFns.format(today, 'dd-MM')})
