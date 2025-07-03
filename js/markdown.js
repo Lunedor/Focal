@@ -348,7 +348,7 @@ function analyzeGoalProgress(text, goalLabel) {
   const nextGoalIndex = lines.findIndex((line, index) => index > goalLineIndex && line.trim().startsWith('GOAL:'));
   const relevantLines = lines.slice(goalLineIndex + 1, nextGoalIndex !== -1 ? nextGoalIndex : undefined);
   const contentForThisGoal = relevantLines.join('\n');
-  // This logic correctly identifies the target number even if it's the same as a number in the date.
+  // --- Fix: Do not extract target number from date in goal label ---
   const dateRegex = new RegExp(window.DATE_REGEX_PATTERN, 'g');
   let dateMatch = dateRegex.exec(goalLabel); // Find the first date match with its index
 
@@ -380,8 +380,8 @@ function analyzeGoalProgress(text, goalLabel) {
   let numberMatches = [...goalLabel.matchAll(/(\d+)/g)];
   let targetNumber = null;
   if (numberMatches.length > 0) {
+    // If there is a date, skip numbers that are part of the date string
     for (const numMatch of numberMatches) {
-      // Check if this number is part of the date string we found by comparing its index
       if (dateInfo && (numMatch.index >= dateInfo.index && numMatch.index < (dateInfo.index + dateInfo.length))) {
         continue; // It's part of the date, so skip it
       }
@@ -391,58 +391,58 @@ function analyzeGoalProgress(text, goalLabel) {
     }
   }
   // --- PROGRESS line integration ---
-    // Look for a PROGRESS: ... line in relevantLines
-    let progressLine = null;
-    let progressPercent = null;
-    let progressValue = null;
-    let progressCompleted = false;
-    for (const line of relevantLines) {
-        const percentMatch = line.match(/^PROGRESS:\s*(?:.*)?\[(\d{1,3})%\]/i);
-        const valueMatch = line.match(/^PROGRESS:\s*(?:.*)?\[(\d{1,5})\]/i);
-        const completedMatch = line.match(/^PROGRESS:\s*COMPLETED(?:\s*|\s*\[.*\])/i);
-        if (percentMatch) {
-            progressPercent = parseInt(percentMatch[1], 10);
-            progressLine = 'percent';
-            break;
-        } else if (valueMatch) {
-            progressValue = parseInt(valueMatch[1], 10);
-            progressLine = 'value';
-            break;
-        } else if (completedMatch) {
-            progressCompleted = true;
-            progressLine = 'completed';
-            break;
-        }
+  // Look for a PROGRESS: ... line in relevantLines
+  let progressLine = null;
+  let progressPercent = null;
+  let progressValue = null;
+  let progressCompleted = false;
+  for (const line of relevantLines) {
+    const percentMatch = line.match(/^PROGRESS:\s*(?:.*)?\[(\d{1,3})%\]/i);
+    const valueMatch = line.match(/^PROGRESS:\s*(?:.*)?\[(\d{1,5})\]/i);
+    const completedMatch = line.match(/^PROGRESS:\s*COMPLETED(?:\s*|\s*\[.*\])/i);
+    if (percentMatch) {
+      progressPercent = parseInt(percentMatch[1], 10);
+      progressLine = 'percent';
+      break;
+    } else if (valueMatch) {
+      progressValue = parseInt(valueMatch[1], 10);
+      progressLine = 'value';
+      break;
+    } else if (completedMatch) {
+      progressCompleted = true;
+      progressLine = 'completed';
+      break;
     }
-    // --- Manual Progress Handling ---
-    if (progressLine) {
-        // Case 1: Manual progress WITH a target number
-        if (targetNumber) {
-            if (progressLine === 'percent') {
-                const current = Math.round(targetNumber * progressPercent / 100);
-                analysis = { type: 'manual', current, target: targetNumber, percentage: progressPercent, status: progressPercent >= 100 ? 'completed' : (deadlineStatus ? deadlineStatus.status : 'in-progress'), details: `${current}/${targetNumber} completed` + (deadlineStatus ? ` (${deadlineStatus.details})` : '') };
-                if (progressPercent >= 100) analysis.status = 'completed';
-                return analysis;
-            } else if (progressLine === 'value') {
-                const percent = Math.round((progressValue / targetNumber) * 100);
-                analysis = { type: 'manual', current: progressValue, target: targetNumber, percentage: percent, status: percent >= 100 ? 'completed' : (deadlineStatus ? deadlineStatus.status : 'in-progress'), details: `${progressValue}/${targetNumber} completed` + (deadlineStatus ? ` (${deadlineStatus.details})` : '') };
-                if (percent >= 100) analysis.status = 'completed';
-                return analysis;
-            } else if (progressLine === 'completed') {
-                analysis = { type: 'manual', current: targetNumber, target: targetNumber, percentage: 100, status: 'completed', details: `${targetNumber}/${targetNumber} completed` + (deadlineStatus ? ` (${deadlineStatus.details})` : '') };
-                return analysis;
-            }
-        } else { // Case 2: Manual progress WITHOUT a target number
-            if (progressLine === 'percent') {
-                analysis = { type: 'manual', current: progressPercent, target: 100, percentage: progressPercent, status: progressPercent >= 100 ? 'completed' : (deadlineStatus ? deadlineStatus.status : 'in-progress'), details: 'Manual progress' + (deadlineStatus ? ` (${deadlineStatus.details})` : '') };
-                if (progressPercent >= 100) analysis.status = 'completed';
-                return analysis;
-            } else if (progressLine === 'completed') {
-                analysis = { type: 'manual', current: 1, target: 1, percentage: 100, status: 'completed', details: 'Goal completed' + (deadlineStatus ? ` (${deadlineStatus.details})` : '') };
-                return analysis;
-            }
-        }
+  }
+  // --- Manual Progress Handling ---
+  if (progressLine) {
+    // Case 1: Manual progress WITH a target number
+    if (targetNumber) {
+      if (progressLine === 'percent') {
+        const current = Math.round(targetNumber * progressPercent / 100);
+        analysis = { type: 'manual', current, target: targetNumber, percentage: progressPercent, status: progressPercent >= 100 ? 'completed' : (deadlineStatus ? deadlineStatus.status : 'in-progress'), details: `${current}/${targetNumber} completed` + (deadlineStatus ? ` (${deadlineStatus.details})` : '') };
+        if (progressPercent >= 100) analysis.status = 'completed';
+        return analysis;
+      } else if (progressLine === 'value') {
+        const percent = Math.round((progressValue / targetNumber) * 100);
+        analysis = { type: 'manual', current: progressValue, target: targetNumber, percentage: percent, status: percent >= 100 ? 'completed' : (deadlineStatus ? deadlineStatus.status : 'in-progress'), details: `${progressValue}/${targetNumber} completed` + (deadlineStatus ? ` (${deadlineStatus.details})` : '') };
+        if (percent >= 100) analysis.status = 'completed';
+        return analysis;
+      } else if (progressLine === 'completed') {
+        analysis = { type: 'manual', current: targetNumber, target: targetNumber, percentage: 100, status: 'completed', details: `${targetNumber}/${targetNumber} completed` + (deadlineStatus ? ` (${deadlineStatus.details})` : '') };
+        return analysis;
+      }
+    } else { // Case 2: Manual progress WITHOUT a target number
+      if (progressLine === 'percent') {
+        analysis = { type: 'manual', current: progressPercent, target: 100, percentage: progressPercent, status: progressPercent >= 100 ? 'completed' : (deadlineStatus ? deadlineStatus.status : 'in-progress'), details: 'Manual progress' + (deadlineStatus ? ` (${deadlineStatus.details})` : '') };
+        if (progressPercent >= 100) analysis.status = 'completed';
+        return analysis;
+      } else if (progressLine === 'completed') {
+        analysis = { type: 'manual', current: 1, target: 1, percentage: 100, status: 'completed', details: 'Goal completed' + (deadlineStatus ? ` (${deadlineStatus.details})` : '') };
+        return analysis;
+      }
     }
+  }
     // --- Automatic Progress Handling (if no manual progress line was handled) ---
   const checkboxMatches = contentForThisGoal.match(/^[-*]\s*\[([xX ])\]/gm);
   if (checkboxMatches && checkboxMatches.length > 0) {
