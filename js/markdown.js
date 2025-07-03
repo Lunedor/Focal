@@ -216,9 +216,15 @@ const parseMarkdown = (text) => {
   });
   // Make (SCHEDULED: ...) clickable using centralized logic
   const scheduledRegex = new RegExp(`\\(SCHEDULED: \\s*${window.DATE_REGEX_PATTERN}\\)`, 'gi');
-  html = html.replace(scheduledRegex, (match, dateStr) => {
+  html = html.replace(/\((SCHEDULED|NOTIFY): ([^)]+)\)/gi, (match, type, content) => {
+    const dateStr = content.trim().split(' ')[0];
     const normalizedDate = window.normalizeDateStringToYyyyMmDd(dateStr);
-    return `<span class="scheduled-link" data-planner-date="${normalizedDate || dateStr}">${match}</span>`;
+    let displayMatch = match;
+    if (type === 'NOTIFY') {
+      // Add a bell icon for visual distinction
+      displayMatch = `(🔔 NOTIFY: ${content})`;
+    }
+    return `<span class="scheduled-link" data-planner-date="${normalizedDate || dateStr}">${displayMatch}</span>`;
   });
 
   // Make (REPEAT: ...) clickable and normalized for recurring events, including new syntax
