@@ -135,7 +135,7 @@ function updateWikiLinks(oldTitle, newTitle) {
     if (key.startsWith('page-') || key.match(/^\d{4}-W\d{1,2}-/)) {
       const content = localStorage.getItem(key);
       const newContent = content.replace(searchRegex, newLink);
-      localStorage.setItem(key, newContent);
+      setStorage(key, newContent);
     }
   }
 }
