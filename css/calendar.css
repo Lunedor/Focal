@@ -1,4 +1,8 @@
 /* Monthly Calendar View Styles */
+#monthly-calendar-view {
+    max-width: 700px;
+}
+
 .calendar-header {
   display: flex;
   justify-content: space-between;
