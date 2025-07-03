@@ -28,12 +28,33 @@ function parseDateString(dateStr) {
       return isoDate;
     }
   } catch(e) {}
-  const formats = [
+
+  // Try date+time formats first
+  const dateTimeFormats = [
+    'dd.MM.yyyy HH:mm', // 03.07.2025 16:20
+    'dd/MM/yyyy HH:mm', // 03/07/2025 16:22
+    'dd-MM-yyyy HH:mm', // 03-07-2025 16:21
+    'yyyy-MM-dd HH:mm', // 2025-07-03 16:15
+  ];
+  for (const format of dateTimeFormats) {
+    try {
+      const date = window.dateFns.parse(dateStr, format, new Date());
+      if (window.dateFns.isValid(date)) {
+        return date;
+      }
+    } catch (e) {
+      // Ignore parsing errors and try the next format
+    }
+  }
+
+  // Try date-only formats
+  const dateOnlyFormats = [
     'dd.MM.yyyy', // For 31.12.2025
     'dd/MM/yyyy', // For 31/12/2025
     'dd-MM-yyyy', // For 31-12-2025
+    'yyyy-MM-dd', // For 2025-07-03
   ];
-  for (const format of formats) {
+  for (const format of dateOnlyFormats) {
     try {
       const date = window.dateFns.parse(dateStr, format, new Date());
       if (window.dateFns.isValid(date)) {

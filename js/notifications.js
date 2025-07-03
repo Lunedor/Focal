@@ -136,9 +136,12 @@ const NotificationManager = {
                     matches.forEach(match => {
                         if (match && match[1] && match[1].includes(':')) { // Only consider tags that have a time (e.g., "09:00")
                             const dateTimeString = match[1].trim();
-                            const parsedDate = dateFns.parse(dateTimeString, 'yyyy-MM-dd HH:mm', new Date());
+                            // Use centralized parseDateString for all supported formats
+                            const parsedDate = (typeof window.parseDateString === 'function')
+                                ? window.parseDateString(dateTimeString)
+                                : null;
 
-                            if (dateFns.isValid(parsedDate)) {
+                            if (parsedDate && dateFns.isValid(parsedDate)) {
                                 const text = line.replace(match[0], '').replace(/^[-*]\s*\[[x ]\]\s*/, '').trim();
                                 // Make tag unique: use timestamp and a short hash of the text
                                 let textHash = btoa(unescape(encodeURIComponent(text))).replace(/[^a-zA-Z0-9]/g, '').slice(0,8);

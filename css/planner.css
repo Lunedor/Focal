@@ -29,7 +29,6 @@
   border-radius: 6px;
   border: 1px solid var(--color-border, #e0e0e0);
   padding: 0.5em 1em;
-  pointer-events: none;
 }
 /* --- Scheduled Items Section (Planner) --- */
 .scheduled-items-section {

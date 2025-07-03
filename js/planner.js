@@ -34,18 +34,26 @@ function attachPlannerCheckboxHandler(contentWrapper, key, content) {
       // Otherwise, scheduled item: update planner day content as before
       let checkboxText = e.target.parentNode ? e.target.parentNode.textContent.trim() : '';
       checkboxText = checkboxText.replace(/^\[.\]\s*/, '').replace(/^\s*-\s*/, '').trim();
+      // Try to extract the scheduled date/time tag from the label (if present)
+      let schedTagMatch = checkboxText.match(/\(SCHEDULED:[^)]+\)/i);
+      let schedTag = schedTagMatch ? schedTagMatch[0] : null;
+      // Remove the tag from the text for matching
+      let cleanCheckboxText = checkboxText.replace(/\(SCHEDULED:[^)]+\)/i, '').trim();
       let lines = content.split('\n');
       let changed = false;
       for (let i = 0; i < lines.length; i++) {
         let match = lines[i].match(/^([-*])\s*\[( |x)\]\s*(.*)$/i);
-        // Only update if the line is a real markdown task (starts with - [ ] or - [x])
         if (match) {
+          // Extract text and scheduled tag from the line
           let lineText = match[3].replace(/\s*(\(REPEAT:[^)]+\))?\s*(\(SCHEDULED:[^)]+\))?\s*$/, '').trim();
-          if (lineText === checkboxText) {
+          let lineSchedTag = (lines[i].match(/\(SCHEDULED:[^)]+\)/) || [''])[0];
+          // Match both text and scheduled tag (if present)
+          let textMatch = lineText === cleanCheckboxText;
+          let schedMatch = (!schedTag || (lineSchedTag && lineSchedTag === schedTag));
+          if (textMatch && schedMatch) {
             let repeatTag = (lines[i].match(/\(REPEAT:[^)]+\)/) || [''])[0];
-            let schedTag = (lines[i].match(/\(SCHEDULED:[^)]+\)/) || [''])[0];
             lines[i] = `${match[1]} [${e.target.checked ? 'x' : ' '}] ${lineText}`
-              + (schedTag ? ' ' + schedTag : '')
+              + (lineSchedTag ? ' ' + lineSchedTag : '')
               + (repeatTag ? ' ' + repeatTag : '');
             changed = true;
             break;

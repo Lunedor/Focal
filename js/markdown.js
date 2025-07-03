@@ -345,8 +345,21 @@ function analyzeGoalProgress(text, goalLabel) {
     }
   }
   if (goalLineIndex === -1) return null;
-  const nextGoalIndex = lines.findIndex((line, index) => index > goalLineIndex && line.trim().startsWith('GOAL:'));
-  const relevantLines = lines.slice(goalLineIndex + 1, nextGoalIndex !== -1 ? nextGoalIndex : undefined);
+  // Find the next GOAL, TASKS, heading, or horizontal rule after this GOAL
+  let endIdx = lines.length;
+  for (let i = goalLineIndex + 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (
+      line.startsWith('GOAL:') ||
+      line.startsWith('TASKS:') ||
+      /^#{1,6}\s/.test(line) || // Markdown heading
+      /^---+$/.test(line) // Horizontal rule
+    ) {
+      endIdx = i;
+      break;
+    }
+  }
+  const relevantLines = lines.slice(goalLineIndex + 1, endIdx);
   const contentForThisGoal = relevantLines.join('\n');
   // --- Fix: Do not extract target number from date in goal label ---
   const dateRegex = new RegExp(window.DATE_REGEX_PATTERN, 'g');
@@ -444,16 +457,26 @@ function analyzeGoalProgress(text, goalLabel) {
     }
   }
     // --- Automatic Progress Handling (if no manual progress line was handled) ---
-  const checkboxMatches = contentForThisGoal.match(/^[-*]\s*\[([xX ])\]/gm);
-  if (checkboxMatches && checkboxMatches.length > 0) {
-    const completed = checkboxMatches.filter(cb => cb.match(/\[[xX]\]/i)).length;
-    let target = checkboxMatches.length;
+  // Only count checkboxes that are NOT scheduled or notify items
+  const goalLines = contentForThisGoal.split('\n');
+  const checklistLines = goalLines.filter(line => {
+    // Must be a markdown checkbox
+    if (!/^[-*]\s*\[([xX ])\]/.test(line)) return false;
+    // Exclude if line contains (SCHEDULED: ...) or (NOTIFY: ...)
+    if (/\(SCHEDULED:[^)]+\)/i.test(line) || /\(NOTIFY:[^)]+\)/i.test(line)) return false;
+    // Exclude if line is part of a TASKS: block (handled separately)
+    return true;
+  });
+  if (checklistLines.length > 0) {
+    // Only count lines with [x] or [X] as completed, not [ ]
+    const completed = checklistLines.filter(line => /\[[xX]\]/.test(line) && !/\[ \]/.test(line)).length;
+    let target = checklistLines.length;
     if (targetNumber && targetNumber > target) target = targetNumber;
     analysis = {
       type: 'checklist',
       current: completed,
       target: target,
-      percentage: Math.round((completed / target) * 100),
+      percentage: target > 0 ? Math.round((completed / target) * 100) : 0,
       status: completed >= target ? 'completed' : 'in-progress',
       details: `${completed}/${target} items completed` + (deadlineStatus ? ` (${deadlineStatus.details})` : '')
     };
