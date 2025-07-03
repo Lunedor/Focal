@@ -92,3 +92,33 @@ self.addEventListener('activate', event => {
     ))
   );
 });
+
+// Handle notification clicks
+self.addEventListener('notificationclick', event => {
+  event.notification.close(); // Close the notification
+
+  const data = event.notification.data || {};
+  let targetUrl = self.location.origin + '/';
+
+  if (data.type === 'planner' && data.plannerKey) {
+    targetUrl += `?view=weekly&plannerKey=${encodeURIComponent(data.plannerKey)}`;
+  } else if (data.type === 'page' && data.pageTitle) {
+    targetUrl += `?view=${encodeURIComponent(data.pageTitle)}`;
+  }
+
+  event.waitUntil(clients.matchAll({ type: 'window' }).then(clientsArr => {
+    // Try to focus and navigate an existing tab, otherwise open a new one as fallback
+    let focused = false;
+    for (const client of clientsArr) {
+      if ('focus' in client) {
+        client.navigate(targetUrl);
+        client.focus();
+        focused = true;
+        break;
+      }
+    }
+    if (!focused) {
+      return clients.openWindow(targetUrl);
+    }
+  }));
+});
