@@ -362,7 +362,6 @@ document.addEventListener('click', e => {
   }
 });
 
-
 // Sidebar and page navigation
 DOM.sidebar.addEventListener('click', async (e) => {
   const target = e.target.closest('a,button');
@@ -444,9 +443,41 @@ DOM.sidebar.addEventListener('click', async (e) => {
   }
 });
 
-// ... (rest of the file is unchanged and correct)
 // --- Centralized Click Handler for Navigation and Links ---
 document.addEventListener('click', async (e) => {
+   // Scheduled date links (from (SCHEDULED: ...) or (NOTIFY: ...))
+  let scheduledLink = e.target.closest('.scheduled-link') || e.target.closest('[data-planner-date]');
+  if (scheduledLink) {
+    e.preventDefault();
+    let dateStr = scheduledLink.dataset.plannerDate;
+    if (!dateStr && scheduledLink.getAttribute('data-planner-date')) {
+      dateStr = scheduledLink.getAttribute('data-planner-date');
+    }
+    if (dateStr) {
+      const dateObj = window.parseDateString(dateStr);
+      if (dateObj && !isNaN(dateObj)) {
+        appState.currentView = 'weekly';
+        appState.currentDate = dateObj;
+        renderApp();
+      }
+    }
+    return;
+  }
+
+  // Wiki-links (from [[Page]])
+  let pageLink = e.target.closest('[data-page-link]');
+  if (pageLink) {
+    e.preventDefault();
+    let pageTitle = pageLink.dataset.pageLink;
+    if (!pageTitle && pageLink.getAttribute('data-page-link')) {
+      pageTitle = pageLink.getAttribute('data-page-link');
+    }
+    if (pageTitle) {
+      appState.currentView = pageTitle;
+      renderApp();
+    }
+    return;
+  }
   // Calendar Navigation (Monthly)
   const navTarget = e.target.closest('.calendar-nav a');
   if (navTarget) {
@@ -480,7 +511,7 @@ document.addEventListener('click', async (e) => {
     e.preventDefault();
     const plannerKey = plannerLinkTarget.dataset.plannerKey;
     const match = plannerKey.match(/(\d{4})-W(\d{1,2})-([a-z]+)/i);
-    
+
   if (e.target.matches('input, textarea') || DOM.modalOverlay.classList.contains('active')) {
     return;
   }
