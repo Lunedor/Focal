@@ -98,7 +98,11 @@ self.addEventListener('notificationclick', event => {
   event.notification.close(); // Close the notification
 
   const data = event.notification.data || {};
-  let targetUrl = self.location.origin + '/';
+  // Use self.registration.scope for correct base path
+  let baseUrl = self.registration.scope;
+  if (!baseUrl.endsWith('/')) baseUrl += '/';
+
+  let targetUrl = baseUrl;
 
   if (data.type === 'planner' && data.plannerKey) {
     targetUrl += `?view=weekly&plannerKey=${encodeURIComponent(data.plannerKey)}`;
