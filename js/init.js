@@ -10,6 +10,25 @@ function getUnpinnedPagesOrder() {
 function setUnpinnedPagesOrder(arr) {
   setStorage('unpinned-pages', JSON.stringify(arr));
 }
+
+// --- DEEP LINK HANDLER ---
+function handleDeepLink() {
+  const params = new URLSearchParams(window.location.search);
+  const view = params.get('view');
+  const plannerKey = params.get('plannerKey');
+  if (view === 'weekly' && plannerKey) {
+    appState.currentView = 'weekly';
+    appState.currentDate = window.parsePlannerKeyToDate(plannerKey) || new Date();
+  } else if (view && !plannerKey) {
+    // Assume view is a page title
+    appState.currentView = view;
+  } else {
+    // Fallback: default view (weekly planner)
+    appState.currentView = 'weekly';
+    appState.currentDate = new Date();
+  }
+}
+
 // --- INITIALIZATION & APP ENTRY ---
 function renderApp() {
   renderSidebar();
@@ -141,6 +160,7 @@ function updateSidebarActiveState() {
 
 function init() {
   setTheme(getPreferredTheme());
+  handleDeepLink();
   if (!localStorage.getItem('focal-journal-visited')) {
     // --- SETUP SAMPLE DATA FOR FIRST-TIME USERS (SHOWCASE ALL FEATURES) ---
 
@@ -284,6 +304,11 @@ All tasks for this are tracked on the [[Feature Showcase]] page.
 
     // 6. Set the visited flag
     localStorage.setItem('focal-journal-visited', 'true');
+  }
+  
+  // Initialize Notification Manager
+  if (window.NotificationManager) {
+    window.NotificationManager.init();
   }
   renderApp();
   addMonthYearDropdownListeners();
