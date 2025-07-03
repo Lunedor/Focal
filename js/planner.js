@@ -191,7 +191,7 @@ function enablePlannerSnapToCenter() {
     if (isProgrammaticScroll) return;
     if (scrollTimeout) clearTimeout(scrollTimeout);
     scrollTimeout = setTimeout(() => {
-      // Snap to the closest note
+      // Snap to the closest note only (no week change logic)
       const centered = getCenteredPlannerNote(grid);
       if (centered) {
         const noteCenter = centered.offsetLeft + centered.offsetWidth / 2;
@@ -213,19 +213,13 @@ function enablePlannerSnapToCenter() {
             const boxIdx = PLANNER_BOXES.findIndex(b => b.id === boxId);
             if (boxIdx !== -1) {
               const newDate = window.dateFns.addDays(weekStart, boxIdx);
-              // If week changed, re-render
-              if (getWeekKey(newDate) !== getWeekKey(appState.currentDate)) {
-                appState.currentDate = newDate;
-                renderWeeklyPlanner(true);
-              } else {
-                appState.currentDate = newDate;
-                setTimeout(updatePlannerTodayButtonState, 200);
-              }
+              appState.currentDate = newDate;
+              setTimeout(updatePlannerTodayButtonState, 200);
             }
           }
-        }, 700); // Wait for smooth scroll to finish
+        }, 700);
       }
-    }, 120); // Debounce for scroll end
+    }, 120);
   });
 }
 // Helper to escape special regex characters in a string
@@ -522,7 +516,10 @@ function goToPreviousDay() {
  */
 function goToPreviousWeek() {
   appState.currentDate = dateFns.subWeeks(appState.currentDate, 1);
-  renderWeeklyPlanner(true);
+  renderWeeklyPlanner(false);
+  setTimeout(() => {
+    scrollToMonday();
+  }, 200);
 }
 
 /**
@@ -530,7 +527,24 @@ function goToPreviousWeek() {
  */
 function goToNextWeek() {
   appState.currentDate = dateFns.addWeeks(appState.currentDate, 1);
-  renderWeeklyPlanner(true);
+  renderWeeklyPlanner(false);
+  setTimeout(() => {
+    scrollToMonday();
+  }, 200);
+}
+
+// Helper to scroll to Monday after week change
+function scrollToMonday() {
+  const grid = document.getElementById('plan-grid-container');
+  if (!grid) return;
+  const notes = Array.from(grid.querySelectorAll('.planner-note'));
+  if (notes.length === 0) return;
+  const first = notes[0];
+  const noteCenter = first.offsetLeft + first.offsetWidth / 2;
+  const targetScrollLeft = noteCenter - grid.clientWidth / 2 - 15;
+  isProgrammaticScroll = true;
+  grid.scrollTo({ left: targetScrollLeft, behavior: 'smooth' });
+  setTimeout(() => { isProgrammaticScroll = false; }, 700);
 }
 
 function renderWeeklyPlanner(scrollToToday = false) {
