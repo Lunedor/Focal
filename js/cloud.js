@@ -76,13 +76,6 @@ window.markLocalDataAsModified = function() {
   }
 }
 
-// Modify your setStorage function to use this new central modifier
-function setStorage(key, value) {
-    localStorage.setItem(key, value);
-    window.markLocalDataAsModified();
-}
-
-
 window.autoCloudSync = function() {
   if (isSignedIn && isCloudSyncEnabled()) {
     syncWithCloud();
