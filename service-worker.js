@@ -160,19 +160,22 @@ self.addEventListener('push', event => {
   // Check if the push event has data
   if (event.data) {
     try {
-      // Try to parse the data as JSON (for REAL notifications from your server)
-      const data = event.data.json();
-      title = data.title || 'Focal Journal Reminder';
+      // Gelen push verisi, içinde 'data' objesi olan bir JSON'dur.
+      const payload = event.data.json();
+
+      // 'data' objesinin içindeki 'notification' string'ini parse ediyoruz.
+      const notificationData = JSON.parse(payload.data.notification);
+
+      title = notificationData.title || 'Focal Journal Reminder';
       options = {
-        body: data.body,
+        body: notificationData.body,
         icon: 'favicon192.png',
         badge: 'favicon.png',
-        tag: data.tag,
-        data: data.data, // This is for notification clicks
+        tag: notificationData.tag,
+        data: notificationData.data, // Bu, bildirime tıklandığında kullanılacak veridir.
       };
     } catch (e) {
-      // If it fails, it's probably the plain text test push.
-      console.log('Push data is not JSON, treating as text.');
+      console.error('Push verisi ayrıştırılamadı, düz metin olarak işleniyor.', e);
       options.body = event.data.text();
     }
   }
