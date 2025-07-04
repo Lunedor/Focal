@@ -51,14 +51,11 @@ const NotificationManager = {
     /**
      * The main worker function. It finds all reminders and creates them in Firestore.
     **/
-    scanAndSchedule() {
-        if (this.permission !== 'granted') {
-            return;
-        }
+    async scanAndSchedule() {
+        if (this.permission !== 'granted') return;
 
         const reminders = this.findAllRemindersWithTime();
         const user = firebase.auth().currentUser;
-
         if (!user) {
             console.warn('[Notifications] Cannot schedule. User not signed in.');
             return;
@@ -66,20 +63,29 @@ const NotificationManager = {
 
         const now = new Date();
         const futureReminders = reminders.filter(reminder => reminder.date.getTime() > now.getTime());
+        const localIds = new Set(futureReminders.map(r => r.id));
 
-        console.log(`[Notifications] Found ${reminders.length} reminders in total.`);
-        console.log(`[Notifications] ${futureReminders.length} reminders are in the future and will be sent to the cloud.`);
+        // Fetch all reminders for this user from Firestore
+        const snapshot = await firebase.firestore()
+            .collection('reminders')
+            .where('userId', '==', user.uid)
+            .get();
 
-        if (futureReminders.length === 0) {
-            console.log('[Notifications] No future reminders to send to Firestore.');
-            return;
-        }
+        // Find cloud reminders not present locally (to delete)
+        const toDelete = [];
+        snapshot.forEach(doc => {
+            if (!localIds.has(doc.id)) {
+                toDelete.push(doc.ref);
+            }
+        });
 
+        // Batch delete outdated reminders
         const batch = firebase.firestore().batch();
+        toDelete.forEach(ref => batch.delete(ref));
 
+        // Add/update all local future reminders
         futureReminders.forEach(reminder => {
             const reminderDocRef = firebase.firestore().collection('reminders').doc(reminder.id);
-
             batch.set(reminderDocRef, {
                 userId: user.uid,
                 reminderTime: firebase.firestore.Timestamp.fromDate(reminder.date),
@@ -99,9 +105,8 @@ const NotificationManager = {
             console.log(`[Notifications] Queuing reminder for Firestore: "${reminder.text}"`);
         });
 
-        batch.commit()
-            .then(() => console.log(`[Notifications] Batch of ${futureReminders.length} reminders successfully sent to Firestore.`))
-            .catch(err => console.error('Error sending reminders to Firestore:', err));
+        await batch.commit();
+        console.log(`[Notifications] Synced ${futureReminders.length} reminders, deleted ${toDelete.length} outdated reminders from Firestore.`);
     },
 
     /**
