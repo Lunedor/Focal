@@ -25,14 +25,14 @@
   ],
   "screenshots": [
     {
-      "src": "/screenshot-mobile.jpg",
+      "src": "screenshot-mobile.jpg",
       "sizes": "538x1165",
       "type": "image/jpg",
       "form_factor": "narrow",
       "label": "Weekly Planner View on Mobile"
     },
     {
-      "src": "/screenshot-desktop.jpg",
+      "src": "screenshot-desktop.jpg",
       "sizes": "1673x849",
       "type": "image/jpg",
       "form_factor": "wide",
