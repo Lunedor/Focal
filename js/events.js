@@ -92,6 +92,21 @@ function addSwipeListeners(element, onSwipeLeft, onSwipeRight) {
         if (touchendX > touchstartX) onSwipeRight();  // Swiped right
     }, { passive: true });
 }
+
+// --- SYNC DEBOUNCE UTILITY ---
+function debounce(fn, delay) {
+  let timer = null;
+  return function(...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(this, args), delay);
+  };
+}
+
+// Debounced version of syncWithCloud
+const debouncedSyncWithCloud = debounce(() => {
+  if (typeof syncWithCloud === 'function') syncWithCloud();
+}, 1500); // 1.5 seconds debounce
+
 // --- EVENT HANDLERS ---
 // Library search
 DOM.librarySearch.addEventListener('input', renderSidebar);
@@ -283,7 +298,13 @@ const EditModeManager = {
       EditModeManager.exit(wrapper);
     }
     wrapper._exitEditMode = () => {
-      setStorage(key, textarea.value);
+      const prevValue = getStorage(key);
+      const newValue = textarea.value;
+      // Only save and sync if content changed
+      if (prevValue !== newValue) {
+        setStorage(key, newValue);
+        if (typeof debouncedSyncWithCloud === 'function') debouncedSyncWithCloud();
+      }
       appState.activeEditorKey = null;
       document.removeEventListener('mousedown', handleOutsideClick, true);
       if (typeof renderLibraryPage === 'function' && key.startsWith('page-')) {
@@ -291,7 +312,7 @@ const EditModeManager = {
       } else if (key.match(/^\d{4}-W\d{1,2}-/)) {
         updatePlannerDay(key);
       } else {
-        wrapper.innerHTML = parseMarkdown(textarea.value);
+        wrapper.innerHTML = parseMarkdown(newValue);
       }
       EditModeManager.currentEditWrapper = null;
     };
@@ -346,7 +367,7 @@ document.addEventListener('click', e => {
         : lines[idx].replace(/\[x\]/i, '[ ]');
       setStorage(dataKey, lines.join('\n'));
       // --- FIX: TRIGGER SYNC AFTER CHECKING BOX ---
-      if (typeof syncWithCloud === 'function') syncWithCloud();
+      if (typeof debouncedSyncWithCloud === 'function') debouncedSyncWithCloud();
       if (typeof renderLibraryPage === 'function' && dataKey.startsWith('page-')) {
         renderLibraryPage(dataKey.substring(5));
       } else {
@@ -381,7 +402,7 @@ document.addEventListener('click', e => {
     const newText = newLines.join('\n');
     setStorage(key, newText);
     // --- FIX: TRIGGER SYNC AFTER CHECKING BOX ---
-    if (typeof syncWithCloud === 'function') syncWithCloud();
+    if (typeof debouncedSyncWithCloud === 'function') debouncedSyncWithCloud();
     if (typeof renderLibraryPage === 'function' && key.startsWith('page-')) {
       renderLibraryPage(key.substring(5));
     } else {
@@ -443,8 +464,8 @@ DOM.sidebar.addEventListener('click', async (e) => {
           appState.currentView = newTitle.trim();
         }
         renderApp();
-        if (typeof syncWithCloud === 'function') {
-          syncWithCloud();
+        if (typeof debouncedSyncWithCloud === 'function') {
+          debouncedSyncWithCloud();
         }
       } else {
         alert("A page with that name already exists.");
@@ -465,8 +486,8 @@ DOM.sidebar.addEventListener('click', async (e) => {
       }
       renderApp();
       // --- FIX: TRIGGER SYNC AFTER DELETION ---
-      if (typeof syncWithCloud === 'function') {
-        syncWithCloud();
+      if (typeof debouncedSyncWithCloud === 'function') {
+        debouncedSyncWithCloud();
       }
     }
   }
