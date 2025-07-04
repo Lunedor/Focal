@@ -691,12 +691,6 @@ function debounce(fn, delay) {
   };
 }
 
-window.autoCloudSync = function () {
-    if (cloudSyncEnabled && isSignedIn) {
-      debouncedSyncWithCloud();
-   }
-};
-
 // Expose functions globally for access from other scripts
 window.exportAllData = exportAllData;
 window.importAllData = importAllData;
