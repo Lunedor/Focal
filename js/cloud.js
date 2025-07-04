@@ -194,7 +194,7 @@ async function syncWithCloud() {
 
 window.autoCloudSync = function () {
     if (cloudSyncEnabled && isSignedIn) {
-      debouncedSyncWithCloud();
+      syncWithCloud();
    }
 };
 
