@@ -682,6 +682,15 @@ async function importAllData() {
   input.click(); // Programmatically click the hidden input to open file dialog
 }
 
+// --- Debounce Utility ---
+function debounce(fn, delay) {
+  let timer = null;
+  return function(...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(this, args), delay);
+  };
+}
+
 // Expose functions globally for access from other scripts
 window.exportAllData = exportAllData;
 window.importAllData = importAllData;
