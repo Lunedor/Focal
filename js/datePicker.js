@@ -59,7 +59,7 @@ function createCustomDropdown({options, value, onChange, id, width = 60, maxHeig
     item.style.cursor = 'pointer';
     item.style.fontSize = '0.95em';
     if (opt.value === value) {
-      item.style.background = 'var(--color-accent, #e6f0ff)';
+      item.style.background = 'var(--color-background, #e6f0ff)';
     }
     item.addEventListener('mousedown', (e) => {
       e.preventDefault();
