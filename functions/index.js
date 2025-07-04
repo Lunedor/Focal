@@ -91,23 +91,21 @@ exports.sendReminderPush = onRequest(async (req, res) => {
 
 
     if (tokens.length > 0) {
-      const notificationPayload = reminder.notification;
-      const dataForWorker = {};
-      if (notificationPayload.data) {
-        for (const key in notificationPayload.data) {
-            const value = notificationPayload.data[key];
-            dataForWorker[key] = value !== null && value !== undefined ? String(value) : '';
-        }
-      }
+      const notificationPayload = reminder.notification; // Bu obje zaten tüm bilgiyi içeriyor.
+
+      // Anahtar değişiklik: Mesajı "sadece veri" (data-only) formatına çeviriyoruz.
+      // 'notification' anahtarını kaldırarak FCM'nin otomatik bildirim göstermesini engelliyoruz.
       const message = {
-        notification: {
-          title: notificationPayload.title,
-          body: notificationPayload.body,
+        data: {
+          // Tüm bildirim objesini JSON string olarak 'data' içine gömüyoruz.
+          // Service worker bu string'i alıp parse edecek.
+          notification: JSON.stringify(notificationPayload),
         },
-        data: dataForWorker,
         tokens: tokens,
         webpush: {
           notification: {
+            // Etiketi (tag) burada belirlemek, bildirimlerin doğru şekilde
+            // gruplanmasını/değiştirilmesini garanti eder.
             tag: String(notificationPayload.tag),
           },
         },
