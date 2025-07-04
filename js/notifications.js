@@ -116,7 +116,7 @@ const NotificationManager = {
     findAllRemindersWithTime() {
         const reminders = [];
         // This regex finds (SCHEDULED:...) or (NOTIFY:...) and captures the content inside.
-        const reminderRegex = /(?:\(SCHEDULED:|\(NOTIFY:)\s*([^)]+)\)/gi;
+        const reminderRegex = /\((SCHEDULED|NOTIFY):\s*([^)]+)\)/gi;
 
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
@@ -125,48 +125,66 @@ const NotificationManager = {
                 const lines = content.split('\n');
 
                 lines.forEach((line, index) => {
-                    // Use matchAll to find all reminders in the line
-                    const matches = [...line.matchAll(reminderRegex)];
+                    // Find all (SCHEDULED: ...) and (NOTIFY: ...) tags in the line
+                    let scheduledDateTime = null;
+                    let scheduledRaw = null;
+                    let notifyRaw = null;
+                    let notifyType = null;
+                    let matches = [...line.matchAll(reminderRegex)];
                     matches.forEach(match => {
-                        if (match && match[1] && match[1].includes(':')) { // Only consider tags that have a time (e.g., "09:00")
-                            const dateTimeString = match[1].trim();
-                            // Use centralized parseDateString for all supported formats
-                            const parsedDate = (typeof window.parseDateString === 'function')
-                                ? window.parseDateString(dateTimeString)
-                                : null;
-
-                            if (parsedDate && dateFns.isValid(parsedDate)) {
-                                const text = line.replace(match[0], '').replace(/^[-*]\s*\[[x ]\]\s*/, '').trim();
-                                // Make tag unique: use timestamp and a short hash of the text
-                                let textHash = btoa(unescape(encodeURIComponent(text))).replace(/[^a-zA-Z0-9]/g, '').slice(0,8);
-
-                                // Determine context for notification
-                                let type = null, pageKey = null, pageTitle = null, plannerKey = null, dayName = null;
-                                if (key.startsWith('page-')) {
-                                    type = 'page';
-                                    pageKey = key;
-                                    pageTitle = key.substring(5);
-                                } else if (key.match(/^\d{4}-W\d{1,2}-/)) {
-                                    type = 'planner';
-                                    plannerKey = key;
-                                    // Try to extract day name from key (e.g., 2025-W27-monday)
-                                    const parts = key.split('-');
-                                    dayName = parts[2] || null;
-                                }
-
-                                reminders.push({
-                                    id: `${parsedDate.getTime()}-${textHash}`,
-                                    text,
-                                    date: parsedDate,
-                                    type,
-                                    pageKey,
-                                    pageTitle,
-                                    plannerKey,
-                                    dayName
-                                });
+                        if (match[1] === 'SCHEDULED') {
+                            scheduledRaw = match[2].trim();
+                            if (typeof window.parseDateString === 'function') {
+                                scheduledDateTime = window.parseDateString(scheduledRaw);
                             }
+                        } else if (match[1] === 'NOTIFY') {
+                            notifyRaw = match[2].trim();
+                            notifyType = 'NOTIFY';
                         }
                     });
+
+                    // If NOTIFY exists, process notification
+                    if (notifyRaw && notifyRaw.includes(':')) {
+                        let notifyDate = null;
+                        // If NOTIFY is only a time (e.g., 09:00), combine with SCHEDULED date
+                        if (/^\d{1,2}:\d{2}$/.test(notifyRaw) && scheduledDateTime && dateFns.isValid(scheduledDateTime)) {
+                            // Combine scheduled date with NOTIFY time
+                            const [h, m] = notifyRaw.split(':').map(Number);
+                            notifyDate = new Date(scheduledDateTime);
+                            notifyDate.setHours(h, m, 0, 0);
+                        } else if (typeof window.parseDateString === 'function') {
+                            notifyDate = window.parseDateString(notifyRaw);
+                        }
+
+                        if (notifyDate && dateFns.isValid(notifyDate)) {
+                            const text = line.replace(/\((SCHEDULED|NOTIFY):[^)]+\)/gi, '').replace(/^[-*]\s*\[[x ]\]\s*/, '').trim();
+                            let textHash = btoa(unescape(encodeURIComponent(text))).replace(/[^a-zA-Z0-9]/g, '').slice(0,8);
+
+                            let type = null, pageKey = null, pageTitle = null, plannerKey = null, dayName = null;
+                            if (key.startsWith('page-')) {
+                                type = 'page';
+                                pageKey = key;
+                                pageTitle = key.substring(5);
+                            } else if (key.match(/^\d{4}-W\d{1,2}-/)) {
+                                type = 'planner';
+                                plannerKey = key;
+                                const parts = key.split('-');
+                                dayName = parts[2] || null;
+                            }
+
+                            reminders.push({
+                                id: `${notifyDate.getTime()}-${textHash}`,
+                                text,
+                                date: notifyDate,
+                                type,
+                                pageKey,
+                                pageTitle,
+                                plannerKey,
+                                dayName
+                            });
+                        }
+                    }
+                    // If only SCHEDULED exists and you want to keep for visual/planning (not notification), skip adding to reminders
                 });
             }
         }
