@@ -267,8 +267,7 @@ textarea:focus {
 /* --- Markdown Editor Toolbar --- */
 .markdown-toolbar {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  justify-content: start;
   gap: 4px;
   padding: 4px 8px;
   background-color: var(--color-sidebar-bg);
@@ -278,6 +277,14 @@ textarea:focus {
   position: sticky;
   top: 0;
   z-index: 2;
+  width: -webkit-fill-available;
+}
+
+.toolbar-row {
+  justify-content: space-between;
+  display: flex;
+  flex-direction: row;
+  width: auto;
 }
 
 .toolbar-btn {
