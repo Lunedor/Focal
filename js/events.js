@@ -191,6 +191,7 @@ const EditModeManager = {
     this.currentEditWrapper = wrapper;
     const toolbar = document.createElement('div');
     toolbar.className = 'markdown-toolbar';
+
     let buttons = options.buttons || [
       { icon: 'check-square', action: 'task', title: 'Add Checkbox', md: { prefix: '- [ ] ' } },
       { icon: 'bold', action: 'bold', title: 'Bold', md: { prefix: '**', suffix: '**' } },
@@ -214,14 +215,26 @@ const EditModeManager = {
         ...buttons
       ];
     }
-    toolbar.innerHTML = buttons.map(btn => {
-      if (btn.separator) {
-        return '<span class="toolbar-separator" style="display:inline-block;width:1px;height:22px;background:var(--color-border,#eee);margin:0 6px;vertical-align:middle;"></span>';
-      }
-      return `<button class="toolbar-btn" data-action="${btn.action}" title="${btn.title}">
-         <i data-feather="${btn.icon}"></i>
-       </button>`;
-    }).join('');
+
+    // Split buttons into two rows (customize the split as you like)
+    const row1 = buttons.slice(0, 10); // first 10 buttons (or however you want to split)
+    const row2 = buttons.slice(10);
+
+    function renderRow(row) {
+      return `<div class="toolbar-row">` +
+        row.map(btn => {
+          if (btn.separator) {
+            return '<span class="toolbar-separator" style="display:inline-block;width:1px;height:22px;background:var(--color-border,#eee);margin:0 6px;vertical-align:middle;"></span>';
+          }
+          return `<button class="toolbar-btn" data-action="${btn.action}" title="${btn.title}">
+            <i data-feather="${btn.icon}"></i>
+          </button>`;
+        }).join('') +
+        `</div>`;
+    }
+
+    toolbar.innerHTML = renderRow(row1) + renderRow(row2);
+
     toolbar.querySelectorAll('button').forEach(btn => btn.tabIndex = -1);
     const textarea = document.createElement('textarea');
     textarea.value = content;
