@@ -10,11 +10,11 @@ service cloud.firestore {
       allow create: if request.auth != null;
     }
 
-    // Users can ONLY CREATE reminders where the userId matches their own ID.
-    // They cannot read, update, or delete them. Only your Cloud Functions (server) can do that.
+    // Users can create, read, update, or delete reminders where the userId matches their own ID.
     match /reminders/{reminderId} {
+      allow read, write, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      // For create, use request.resource.data.userId
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-      allow read, update, delete: if false; // Deny all other client access
     }
   }
 }
