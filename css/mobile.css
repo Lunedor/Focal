@@ -181,8 +181,9 @@
     margin-bottom: 0.5rem;
   }
   .markdown-toolbar {
-    gap: 0px;
-    padding: 4px 2px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 0fr 1fr 1fr 1fr 0fr 1fr 0fr;
+    justify-content: center;
   }
   .library-page-item .page-actions {
     opacity: 1;
