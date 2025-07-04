@@ -315,8 +315,11 @@ All tasks for this are tracked on the [[Feature Showcase]] page.
   }
   // --- Ensure push token is registered on app load if notifications are granted and user is signed in ---
   if (window.firebase && window.subscribeUserToPush && window.firebase.auth) {
+    console.log('[init] Checking auth state and notification permission...');
     window.firebase.auth().onAuthStateChanged(function(user) {
+      console.log('[init] Auth state changed:', user);
       if (user && Notification.permission === 'granted') {
+        console.log('[init] User is signed in and notification permission is granted.');
         window.subscribeUserToPush();
       }
     });
