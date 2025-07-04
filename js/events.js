@@ -93,15 +93,6 @@ function addSwipeListeners(element, onSwipeLeft, onSwipeRight) {
     }, { passive: true });
 }
 
-// --- SYNC DEBOUNCE UTILITY ---
-function debounce(fn, delay) {
-  let timer = null;
-  return function(...args) {
-    clearTimeout(timer);
-    timer = setTimeout(() => fn.apply(this, args), delay);
-  };
-}
-
 // Debounced version of syncWithCloud
 const debouncedSyncWithCloud = debounce(() => {
   if (typeof syncWithCloud === 'function') syncWithCloud();
