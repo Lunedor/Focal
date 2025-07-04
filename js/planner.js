@@ -103,15 +103,22 @@ function updatePlannerDay(key) {
             const pageContent = getStorage(pageKey);
             const lines = pageContent.split('\n');
             let foundIndex = -1;
+            let hasNotify = false;
             for (let idx = 0; idx < lines.length; idx++) {
               if (!lines[idx].includes(item.text)) continue;
               const dateMatch = lines[idx].match(new RegExp(window.DATE_REGEX_PATTERN));
               const lineNormDate = dateMatch ? window.normalizeDateStringToYyyyMmDd(dateMatch[0]) : null;
-              if (lineNormDate === dayDateStr) { foundIndex = idx; break; }
+              if (lineNormDate === dayDateStr) {
+                foundIndex = idx;
+                // Check if this line also has a NOTIFY tag
+                hasNotify = /\(NOTIFY:[^)]+\)/i.test(lines[idx]);
+                break;
+              }
             }
             if (foundIndex === -1) return '';
             const checked = /\[x\]/i.test(lines[foundIndex]);
-            return `- [${checked ? 'x' : ' '}] ${item.text} (from [[${item.displayName}]]){key=${pageKey} line-index=${foundIndex} scheduled-date=${dayDateStr}}`;
+            const notifyIcon = hasNotify ? ' <span title="Notification set" class="notify-icon" style="vertical-align:middle;">🔔</span>' : '';
+            return `- [${checked ? 'x' : ' '}] ${item.text}${notifyIcon} (from [[${item.displayName}]]){key=${pageKey} line-index=${foundIndex} scheduled-date=${dayDateStr}}`;
           })
           .filter(Boolean)
           .join('\n');
@@ -600,21 +607,29 @@ function renderWeeklyPlanner(scrollToToday = false) {
               const pageContent = getStorage(pageKey);
               const lines = pageContent.split('\n');
               let foundIndex = -1;
+              let hasNotify = false;
               for (let idx = 0; idx < lines.length; idx++) {
                 if (!lines[idx].includes(item.text)) continue;
                 const dateMatch = lines[idx].match(new RegExp(window.DATE_REGEX_PATTERN));
                 const lineNormDate = dateMatch ? window.normalizeDateStringToYyyyMmDd(dateMatch[0]) : null;
-                if (lineNormDate === dayDateStr) { foundIndex = idx; break; }
+                if (lineNormDate === dayDateStr) {
+                  foundIndex = idx;
+                  // Check if this line also has a NOTIFY tag
+                  hasNotify = /\(NOTIFY:[^)]+\)/i.test(lines[idx]);
+                  break;
+                }
               }
               if (foundIndex === -1) {
                 return '';
               }
               const checked = /\[x\]/i.test(lines[foundIndex]);
+              const notifyIcon = hasNotify ? ' <span title="Notification set" class="notify-icon" style="vertical-align:middle;">\uD83D\uDD14</span>' : '';
               if (item.notify) {
                 // Render NOTIFY items with a bell icon and Notify label, no checkbox
                 return `\uD83D\uDD14 <b>Notify:</b> ${item.text} (from [[${item.displayName}]])`;
               } else {
-                return `- [${checked ? 'x' : ' '}] ${item.text} (from [[${item.displayName}]]){key=${pageKey} line-index=${foundIndex} scheduled-date=${dayDateStr}}`;
+                // Add bell icon to scheduled items that also have a NOTIFY tag, after the text and before (from ...)
+                return `- [${checked ? 'x' : ' '}] ${item.text} (from [[${item.displayName}]])${notifyIcon}{key=${pageKey} line-index=${foundIndex} scheduled-date=${dayDateStr}}`;
               }
             })
             .filter(Boolean)
