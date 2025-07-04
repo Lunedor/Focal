@@ -192,12 +192,6 @@ async function syncWithCloud() {
   }
 }
 
-window.autoCloudSync = function () {
-    if (cloudSyncEnabled && isSignedIn) {
-      syncWithCloud();
-   }
-};
-
 /**
  * Subscribes the user to push notifications and saves the token to Firestore.
  */
