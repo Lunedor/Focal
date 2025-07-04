@@ -52,13 +52,16 @@ document.addEventListener('DOMContentLoaded', function () {
     updateNotificationBtnLabel();
 
     notificationBtn.addEventListener('click', async function () {
+      
       if (Notification.permission === 'granted') {
         alert('To disable notifications, block them in your browser settings.');
       } else {
+
         if (window.NotificationManager) {
           await window.NotificationManager.requestPermission();
         }
         updateNotificationBtnLabel();
+        subscribeUserToPush();
       }
     });
 

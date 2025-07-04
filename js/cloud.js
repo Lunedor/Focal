@@ -38,8 +38,28 @@ function signIn() {
     });
 }
 
+async function removeCurrentTokenFromFirestore() {
+  try {
+    const registration = await navigator.serviceWorker.getRegistration();
+    if (!registration) return;
+    const messaging = firebase.messaging();
+    const token = await messaging.getToken();
+    const user = firebase.auth().currentUser;
+    if (!user || !token) return;
+    const userDocRef = firebase.firestore().collection('users').doc(user.uid);
+    await userDocRef.update({
+      tokens: firebase.firestore.FieldValue.arrayRemove(token)
+    });
+    console.log('Removed FCM token from Firestore on sign-out or permission revoke.');
+  } catch (e) {
+    console.warn('Could not remove FCM token from Firestore:', e);
+  }
+}
+
 function signOut() {
-  auth.signOut().then(() => setCloudSyncEnabled(false));
+  removeCurrentTokenFromFirestore().finally(() => {
+    auth.signOut().then(() => setCloudSyncEnabled(false));
+  });
 }
 
 function isCloudSyncEnabled() {
@@ -89,8 +109,8 @@ function updateAuthUI() {
 }
 
 /**
- * Main sync function with "Last Write Wins" logic.
- */
+ * Main sync function. The new, robust syncWithCloud function
+**/
 async function syncWithCloud() {
   if (isSyncing) return console.log('[cloud] Sync already in progress.');
   const user = auth.currentUser;
@@ -100,22 +120,23 @@ async function syncWithCloud() {
   console.log('[cloud] Starting sync...');
 
   try {
-    // --- Step 1: Get Cloud Data ---
     const userDocRef = db.collection('users').doc(user.uid);
     const cloudDoc = await userDocRef.get();
     const cloudData = cloudDoc.exists ? cloudDoc.data() : null;
     const cloudTimestamp = cloudData?.lastModified ? new Date(cloudData.lastModified) : null;
+    
+    // --- NEW LOGIC: PRESERVE TOKENS ---
+    // Read the existing tokens from the cloud document *before* we do anything else.
+    const existingTokens = cloudData?.tokens || []; 
 
-    // --- Step 2: Get Local Data ---
     const localTimestampStr = localStorage.getItem('lastModified');
     const localTimestamp = localTimestampStr ? new Date(localTimestampStr) : null;
 
-    // --- Step 3: Compare and Act ---
     if (cloudTimestamp && (!localTimestamp || cloudTimestamp > localTimestamp)) {
       // --- Case A: Cloud is newer. Download and REPLACE local. ---
       console.log('[cloud] Cloud is newer. Replacing all local data.');
-
-      // Remove all relevant local keys
+      // This part remains the same, as it's a download operation.
+      // ... (your existing code for Case A) ...
       const keysToRemove = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -125,18 +146,18 @@ async function syncWithCloud() {
       }
       keysToRemove.forEach(key => deleteStorage(key));
 
-      // Write ALL cloud data to local storage
-      for (const key in cloudData.appData) {
-        localStorage.setItem(key, cloudData.appData[key]);
+      if (cloudData.appData) {
+        for (const key in cloudData.appData) {
+            localStorage.setItem(key, cloudData.appData[key]);
+        }
       }
-      localStorage.setItem('lastModified', cloudData.lastModified); // Sync timestamp
-
+      localStorage.setItem('lastModified', cloudData.lastModified);
       console.log('[cloud] Local data replaced. Reloading UI.');
       renderApp();
 
-    } else if (!cloudTimestamp && localTimestamp) {
-      // --- Case B: Cloud is empty, but local has a timestamp. REPLACE cloud with local. ---
-      console.log('[cloud] Cloud is empty, local has timestamp. Replacing all cloud data.');
+    } else if (localTimestamp && (!cloudTimestamp || localTimestamp > cloudTimestamp)) {
+      // --- Case B & C Combined: Local is newer or Cloud is empty. UPLOAD local. ---
+      console.log('[cloud] Local is newer. Replacing cloud data.');
 
       // Gather all relevant local data
       const localDataToUpload = {};
@@ -147,51 +168,113 @@ async function syncWithCloud() {
         }
       }
 
-      // Always update the timestamp before uploading
       const now = new Date().toISOString();
       localStorage.setItem('lastModified', now);
 
-      // Overwrite the entire cloud doc
-      await userDocRef.set({
+      // --- NEW LOGIC: CONSTRUCT THE PAYLOAD ---
+      // Create the final object that will be uploaded.
+      const dataToSet = {
         lastModified: now,
-        appData: localDataToUpload
-      });
-      console.log('[cloud] Cloud data replaced.');
+        appData: localDataToUpload,
+        // Include the tokens we read at the beginning!
+        tokens: existingTokens 
+      };
 
-    } else if (localTimestamp && cloudTimestamp && localTimestamp > cloudTimestamp) {
-      // --- Case C: Local is newer. REPLACE cloud with local. ---
-      console.log('[cloud] Local is newer. Replacing all cloud data.');
-
-      // Gather all relevant local data
-      const localDataToUpload = {};
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key.startsWith('page-') || key.startsWith('pinned-') || key.startsWith('unpinned-') || key.match(/^\d{4}-W\d{1,2}/)) {
-          localDataToUpload[key] = localStorage.getItem(key);
-        }
-      }
-
-      // Always update the timestamp before uploading
-      const now = new Date().toISOString();
-      localStorage.setItem('lastModified', now);
-
-      // Overwrite the entire cloud doc
-      await userDocRef.set({
-        lastModified: now,
-        appData: localDataToUpload
-      });
-      console.log('[cloud] Cloud data replaced.');
+      // Now, use .set() to overwrite the entire document with our new, complete object.
+      // This correctly handles page deletions while preserving the tokens.
+      await userDocRef.set(dataToSet);
+      console.log('[cloud] Cloud data replaced, tokens preserved.');
 
     } else {
       // --- Case D: Timestamps match or neither is newer. Data is in sync. ---
       console.log('[cloud] Data is already in sync.');
     }
 
-  } catch (error) {
+  } catch (error)
+  {
     console.error("Cloud sync failed:", error);
   } finally {
     isSyncing = false;
   }
+}
+
+/**
+ * Subscribes the user to push notifications and saves the token to Firestore.
+ */
+// In js/cloud.js
+
+async function subscribeUserToPush() {
+    try {
+        // GET THE REGISTRATION OF YOUR EXISTING SERVICE WORKER
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (!registration) {
+            throw new Error('No service worker registered. Cannot subscribe to push.');
+        }
+
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+            throw new Error('Permission not granted for Notification');
+        }
+
+        const messaging = firebase.messaging();
+        const vapidKey = 'BFech37cV60w4RmTjXHfOU043rH8DzeLUw-MM6bjz-bbSKsa_pAQIio81W0wsJocwmjJh17PACywfG92X5OSJf8'; // Your VAPID Key
+
+        // PASS THE REGISTRATION AND VAPID KEY TO getToken()
+        const token = await messaging.getToken({ 
+            vapidKey: vapidKey, 
+            serviceWorkerRegistration: registration 
+        });
+
+        if (token) {
+            console.log('FCM Token:', token);
+            saveTokenToFirestore(token);
+        } else {
+            console.log('No registration token available. Request permission to generate one.');
+        }
+
+        // Listen for token refresh and update Firestore
+        messaging.onTokenRefresh(async () => {
+            try {
+                const refreshedToken = await messaging.getToken({
+                    vapidKey: vapidKey,
+                    serviceWorkerRegistration: registration
+                });
+                console.log('FCM token refreshed:', refreshedToken);
+                saveTokenToFirestore(refreshedToken);
+            } catch (err) {
+                console.error('Unable to retrieve refreshed token ', err);
+            }
+        });
+    } catch (error) {
+        console.error('Unable to subscribe to push', error);
+    }
+}
+
+/**
+ * Saves the FCM token to the current user's document in Firestore.
+ */
+function saveTokenToFirestore(token) {
+    const user = firebase.auth().currentUser;
+    if (!user) {
+        console.error("Cannot save token, user is not signed in.");
+        return;
+    }
+
+    const userDocRef = firebase.firestore().collection('users').doc(user.uid);
+
+    // This command will update the 'tokens' array.
+    // If the document doesn't exist, it won't be created (we need to handle that).
+    // If the 'tokens' field doesn't exist, it will be created.
+    // FieldValue.arrayUnion() smartly adds the token only if it's not already there.
+    userDocRef.set({
+        tokens: firebase.firestore.FieldValue.arrayUnion(token)
+    }, { merge: true }) // IMPORTANT: { merge: true } prevents overwriting other user data.
+    .then(() => {
+        console.log("Successfully saved token to Firestore!");
+    })
+    .catch((error) => {
+        console.error("Error saving token to Firestore: ", error);
+    });
 }
 
 // Make functions available globally and call init

@@ -313,6 +313,14 @@ All tasks for this are tracked on the [[Feature Showcase]] page.
   if (window.NotificationManager) {
     window.NotificationManager.init();
   }
+  // --- Ensure push token is registered on app load if notifications are granted and user is signed in ---
+  if (window.firebase && window.subscribeUserToPush && window.firebase.auth) {
+    window.firebase.auth().onAuthStateChanged(function(user) {
+      if (user && Notification.permission === 'granted') {
+        window.subscribeUserToPush();
+      }
+    });
+  }
   renderApp();
   addMonthYearDropdownListeners();
 }

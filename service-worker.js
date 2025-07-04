@@ -1,3 +1,21 @@
+importScripts('https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js');
+importScripts('https://www.gstatic.com/firebasejs/8.10.0/firebase-messaging.js');
+
+// Initialize the Firebase app in the service worker by passing in the
+// messagingSenderId.
+firebase.initializeApp({
+  apiKey: "AIzaSyAW8rAegPAaeNltFOSBOii8GISykx3S7eU",
+  authDomain: "focal-journal-app.firebaseapp.com",
+  projectId: "focal-journal-app",
+  storageBucket: "focal-journal-app.firebasestorage.app",
+  messagingSenderId: "454247718929",
+  appId: "1:454247718929:web:513ba2cbe7dc1f9e0fd1b0"
+});
+
+// Retrieve an instance of Firebase Messaging so that it can handle background
+// messages.
+const messaging = firebase.messaging();
+
 const CACHE_NAME = 'focal-cache-v2';
 const URLS_TO_CACHE = [
   'index.html',
@@ -36,6 +54,7 @@ const URLS_TO_CACHE = [
   'https://cdn.jsdelivr.net/npm/marked/marked.min.js',
   'https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js'
 ];
+
 
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -125,4 +144,38 @@ self.addEventListener('notificationclick', event => {
       return clients.openWindow(targetUrl);
     }
   }));
+});
+
+// Add a listener for incoming push messages
+self.addEventListener('push', event => {
+  console.log('[Service Worker] Push Received.');
+
+  let title = 'Focal Journal';
+  let options = {
+    body: 'You have a new message.',
+    icon: 'favicon192.png',
+    badge: 'favicon.png'
+  };
+
+  // Check if the push event has data
+  if (event.data) {
+    try {
+      // Try to parse the data as JSON (for REAL notifications from your server)
+      const data = event.data.json();
+      title = data.title || 'Focal Journal Reminder';
+      options = {
+        body: data.body,
+        icon: 'favicon192.png',
+        badge: 'favicon.png',
+        tag: data.tag,
+        data: data.data, // This is for notification clicks
+      };
+    } catch (e) {
+      // If it fails, it's probably the plain text test push.
+      console.log('Push data is not JSON, treating as text.');
+      options.body = event.data.text();
+    }
+  }
+
+  event.waitUntil(self.registration.showNotification(title, options));
 });

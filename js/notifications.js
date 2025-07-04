@@ -49,70 +49,60 @@ const NotificationManager = {
     },
 
     /**
-     * The main worker function. It clears old notifications, finds all new ones, and schedules them.
-     */
+     * The main worker function. It finds all reminders and creates them in Firestore.
+    **/
     scanAndSchedule() {
         if (this.permission !== 'granted') {
             return;
         }
 
-        this.clearScheduled();
-        const reminders = this.findAllRemindersWithTime();
-        const now = new Date();
+        const reminders = this.findAllRemindersWithTime(); // Your existing function is fine
+        const user = firebase.auth().currentUser;
 
-        console.log(`[Notifications] Found ${reminders.length} reminders to schedule.`);
+        if (!user) {
+            console.warn('[Notifications] Cannot schedule. User not signed in.');
+            return;
+        }
+
+        console.log(`[Notifications] Found ${reminders.length} reminders to sync with the cloud.`);
+        
+        // Use a batch write for efficiency
+        const batch = firebase.firestore().batch();
+
         reminders.forEach(reminder => {
-            const delay = reminder.date.getTime() - now.getTime();
+            const reminderTime = reminder.date;
+            // Only schedule for the future
+            if (reminderTime.getTime() > new Date().getTime()) {
+                
+                // Create a document in a new 'reminders' collection
+                // The document ID should be unique to prevent duplicates if the user re-scans
+                const reminderDocRef = firebase.firestore().collection('reminders').doc(reminder.id);
 
-            // Only schedule notifications for the future
-            if (delay > 0) {
-                // Compose a better notification body with context
-                let contextText = '';
-                if (reminder.type === 'planner') {
-                    contextText = `Scheduled task for ${reminder.dayName}, ${reminder.date.toLocaleDateString()} in Weekly Planner.`;
-                } else if (reminder.type === 'page') {
-                    contextText = `Reminder from page: ${reminder.pageTitle}`;
-                } else {
-                    contextText = 'Focal Journal Reminder';
-                }
-                const notificationBody = `${reminder.text}\n${contextText}`;
-
-                console.log(`[Notifications] Scheduling notification: "${notificationBody}" at ${reminder.date.toString()} (in ${Math.round(delay/1000)}s)`);
-                const timeoutId = setTimeout(() => {
-                    console.log(`[Notifications] Triggering notification: "${notificationBody}" at ${new Date().toString()}`);
-                    // Use the service worker to show the notification for PWA offline support
-                    navigator.serviceWorker.getRegistration().then(reg => {
-                        if (!reg) {
-                            console.warn('[Notifications] No service worker registration found.');
-                            return;
+                batch.set(reminderDocRef, {
+                    userId: user.uid,
+                    reminderTime: firebase.firestore.Timestamp.fromDate(reminderTime),
+                    status: 'pending', // We can track the status
+                    notification: {
+                        title: 'Focal Journal Reminder',
+                        body: `${reminder.text}\nReminder from page: ${reminder.pageTitle || 'Weekly Planner'}`,
+                        tag: reminder.id,
+                        data: { // This is the data your service worker will receive
+                            type: reminder.type,
+                            pageKey: reminder.pageKey,
+                            pageTitle: reminder.pageTitle,
+                            plannerKey: reminder.plannerKey,
                         }
-                        reg.showNotification('Focal Journal Reminder', {
-                            body: notificationBody,
-                            icon: 'favicon192.png',
-                            tag: reminder.id, // A unique tag prevents duplicate notifications
-                            data: {
-                                type: reminder.type,
-                                pageKey: reminder.pageKey,
-                                pageTitle: reminder.pageTitle,
-                                plannerKey: reminder.plannerKey,
-                                dayName: reminder.dayName,
-                                date: reminder.date.toISOString(),
-                                text: reminder.text
-                            }
-                        });
-                    });
-                }, delay);
-                this.timeoutIds.push(timeoutId);
-            } else {
-                console.log(`[Notifications] Skipping past reminder: "${reminder.text}" at ${reminder.date.toString()}`);
+                    }
+                });
+                console.log(`[Notifications] Queuing reminder for Firestore: "${reminder.text}"`);
             }
         });
 
-        if (this.timeoutIds.length > 0) {
-            console.log(`[Notifications] Scheduled ${this.timeoutIds.length} new reminders.`);
-        } else {
-            console.log('[Notifications] No future reminders to schedule.');
-        }
+        // Commit the batch
+        batch.commit()
+            .then(() => console.log('[Notifications] Batch of reminders successfully sent to Firestore.'))
+            .catch(err => console.error('Error sending reminders to Firestore:', err));
+        
     },
 
     /**

@@ -1,0 +1,20 @@
+// Firestore Security Rules
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users can only read and write their own document in the 'users' collection.
+    // This is where their push tokens are stored.
+    match /users/{userId} {
+      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null;
+    }
+
+    // Users can ONLY CREATE reminders where the userId matches their own ID.
+    // They cannot read, update, or delete them. Only your Cloud Functions (server) can do that.
+    match /reminders/{reminderId} {
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow read, update, delete: if false; // Deny all other client access
+    }
+  }
+}
