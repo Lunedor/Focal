@@ -205,9 +205,11 @@ const EditModeManager = {
         { icon: 'list', action: 'tasks', title: 'Insert TASKS:', md: { prefix: 'TASKS:\n' } },
         { icon: 'bar-chart-2', action: 'progress', title: 'Insert PROGRESS: []', md: { prefix: 'PROGRESS: []' } },
         { separator: true },
-        { icon: 'calendar', action: 'scheduled', title: 'Insert (SCHEDULED: )', md: { prefix: '(SCHEDULED: )' } },
+        { icon: 'clock', action: 'scheduled', title: 'Insert (SCHEDULED: )', md: { prefix: '(SCHEDULED: )' } },
         { icon: 'repeat', action: 'repeat', title: 'Insert (REPEAT: )', md: { prefix: '(REPEAT: )' } },
         { icon: 'bell', action: 'notify', title: 'Insert (NOTIFY: )', md: { prefix: '(NOTIFY: )' } },
+        { separator: true },
+        { icon: 'calendar', action: 'custom-date', title: 'Insert Date/Time', md: null },
         { separator: true },
         ...buttons
       ];
@@ -238,7 +240,20 @@ const EditModeManager = {
       evt.stopPropagation();
       const action = button.dataset.action;
       const buttonConfig = buttons.find(b => b.action === action);
-      if (buttonConfig) {
+      if (action === 'custom-date') {
+        // Show custom date picker (withTime toggle)
+        window.showDateTimePicker({ withTime: false }).then(result => {
+          if (result && result.date) {
+            let insertText = result.date;
+            if (result.withTime && result.time) insertText += ' ' + result.time;
+            // Insert as yyyy-mm-dd [hh:mm] at cursor
+            insertMarkdown(textarea, { prefix: `${insertText}` });
+            textarea.focus();
+          }
+        });
+        return;
+      }
+      if (buttonConfig && buttonConfig.md) {
         insertMarkdown(textarea, buttonConfig.md);
       }
     });
