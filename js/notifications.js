@@ -56,7 +56,7 @@ const NotificationManager = {
             return;
         }
 
-        const reminders = this.findAllRemindersWithTime(); // Your existing function is fine
+        const reminders = this.findAllRemindersWithTime();
         const user = firebase.auth().currentUser;
 
         if (!user) {
@@ -64,45 +64,44 @@ const NotificationManager = {
             return;
         }
 
-        console.log(`[Notifications] Found ${reminders.length} reminders to sync with the cloud.`);
-        
-        // Use a batch write for efficiency
+        const now = new Date();
+        const futureReminders = reminders.filter(reminder => reminder.date.getTime() > now.getTime());
+
+        console.log(`[Notifications] Found ${reminders.length} reminders in total.`);
+        console.log(`[Notifications] ${futureReminders.length} reminders are in the future and will be sent to the cloud.`);
+
+        if (futureReminders.length === 0) {
+            console.log('[Notifications] No future reminders to send to Firestore.');
+            return;
+        }
+
         const batch = firebase.firestore().batch();
 
-        reminders.forEach(reminder => {
-            const reminderTime = reminder.date;
-            // Only schedule for the future
-            if (reminderTime.getTime() > new Date().getTime()) {
-                
-                // Create a document in a new 'reminders' collection
-                // The document ID should be unique to prevent duplicates if the user re-scans
-                const reminderDocRef = firebase.firestore().collection('reminders').doc(reminder.id);
+        futureReminders.forEach(reminder => {
+            const reminderDocRef = firebase.firestore().collection('reminders').doc(reminder.id);
 
-                batch.set(reminderDocRef, {
-                    userId: user.uid,
-                    reminderTime: firebase.firestore.Timestamp.fromDate(reminderTime),
-                    status: 'pending', // We can track the status
-                    notification: {
-                        title: 'Focal Journal Reminder',
-                        body: `${reminder.text}\nReminder from page: ${reminder.pageTitle || 'Weekly Planner'}`,
-                        tag: reminder.id,
-                        data: { // This is the data your service worker will receive
-                            type: reminder.type,
-                            pageKey: reminder.pageKey,
-                            pageTitle: reminder.pageTitle,
-                            plannerKey: reminder.plannerKey,
-                        }
+            batch.set(reminderDocRef, {
+                userId: user.uid,
+                reminderTime: firebase.firestore.Timestamp.fromDate(reminder.date),
+                status: 'pending',
+                notification: {
+                    title: 'Focal Journal Reminder',
+                    body: `${reminder.text}\nReminder from page: ${reminder.pageTitle || 'Weekly Planner'}`,
+                    tag: reminder.id,
+                    data: {
+                        type: reminder.type,
+                        pageKey: reminder.pageKey,
+                        pageTitle: reminder.pageTitle,
+                        plannerKey: reminder.plannerKey,
                     }
-                });
-                console.log(`[Notifications] Queuing reminder for Firestore: "${reminder.text}"`);
-            }
+                }
+            });
+            console.log(`[Notifications] Queuing reminder for Firestore: "${reminder.text}"`);
         });
 
-        // Commit the batch
         batch.commit()
-            .then(() => console.log('[Notifications] Batch of reminders successfully sent to Firestore.'))
+            .then(() => console.log(`[Notifications] Batch of ${futureReminders.length} reminders successfully sent to Firestore.`))
             .catch(err => console.error('Error sending reminders to Firestore:', err));
-        
     },
 
     /**
