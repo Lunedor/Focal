@@ -169,13 +169,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  // Example: Automatically sync on data change if enabled
-  window.autoCloudSync = function () {
-    if (cloudSyncEnabled && isSignedIn) {
-      syncWithCloud();
-    }
-  };
-
   updateSyncBtn();
 
   // On page load, set the global flag based on saved state
