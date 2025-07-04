@@ -204,9 +204,12 @@ async function syncWithCloud() {
 // In js/cloud.js
 
 async function subscribeUserToPush() {
+  console.log('[subscribeUserToPush] called');
     try {
         // GET THE REGISTRATION OF YOUR EXISTING SERVICE WORKER
         const registration = await navigator.serviceWorker.getRegistration();
+        console.log('[subscribeUserToPush] service worker registration:', registration);
+        
         if (!registration) {
             throw new Error('No service worker registered. Cannot subscribe to push.');
         }
