@@ -285,5 +285,6 @@ window.initGoogleAuth = initGoogleAuth;
 window.signIn = signIn;
 window.signOut = signOut;
 window.syncWithCloud = syncWithCloud;
+window.subscribeUserToPush = subscribeUserToPush;
 
 initGoogleAuth();
