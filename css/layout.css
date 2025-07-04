@@ -143,5 +143,5 @@
   }
   .month { grid-column: span 1; }
   #content-area { padding: 1rem; }
-  #library-page-view .content-wrapper{ padding: 0 !important;}
+  #library-page-view .content-wrapper{ padding: 1rem !important;}
 }
