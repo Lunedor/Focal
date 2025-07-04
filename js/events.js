@@ -294,7 +294,7 @@ const EditModeManager = {
       // Only save and sync if content changed
       if (prevValue !== newValue) {
         setStorage(key, newValue);
-        if (typeof debouncedSyncWithCloud === 'function') debouncedSyncWithCloud();
+        debouncedSyncWithCloud();
       }
       appState.activeEditorKey = null;
       document.removeEventListener('mousedown', handleOutsideClick, true);
@@ -358,7 +358,7 @@ document.addEventListener('click', e => {
         : lines[idx].replace(/\[x\]/i, '[ ]');
       setStorage(dataKey, lines.join('\n'));
       // --- FIX: TRIGGER SYNC AFTER CHECKING BOX ---
-      if (typeof debouncedSyncWithCloud === 'function') debouncedSyncWithCloud();
+      debouncedSyncWithCloud();
       if (typeof renderLibraryPage === 'function' && dataKey.startsWith('page-')) {
         renderLibraryPage(dataKey.substring(5));
       } else {
@@ -393,7 +393,7 @@ document.addEventListener('click', e => {
     const newText = newLines.join('\n');
     setStorage(key, newText);
     // --- FIX: TRIGGER SYNC AFTER CHECKING BOX ---
-    if (typeof debouncedSyncWithCloud === 'function') debouncedSyncWithCloud();
+    debouncedSyncWithCloud();
     if (typeof renderLibraryPage === 'function' && key.startsWith('page-')) {
       renderLibraryPage(key.substring(5));
     } else {
@@ -455,9 +455,7 @@ DOM.sidebar.addEventListener('click', async (e) => {
           appState.currentView = newTitle.trim();
         }
         renderApp();
-        if (typeof debouncedSyncWithCloud === 'function') {
-          debouncedSyncWithCloud();
-        }
+        debouncedSyncWithCloud();
       } else {
         alert("A page with that name already exists.");
       }
@@ -477,9 +475,7 @@ DOM.sidebar.addEventListener('click', async (e) => {
       }
       renderApp();
       // --- FIX: TRIGGER SYNC AFTER DELETION ---
-      if (typeof debouncedSyncWithCloud === 'function') {
-        debouncedSyncWithCloud();
-      }
+      debouncedSyncWithCloud();
     }
   }
 });
