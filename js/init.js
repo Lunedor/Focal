@@ -330,15 +330,6 @@ All tasks for this are tracked on the [[Feature Showcase]] page.
 
 init();
 
-// --- Debounce Utility ---
-function debounce(fn, delay) {
-  let timer = null;
-  return function(...args) {
-    clearTimeout(timer);
-    timer = setTimeout(() => fn.apply(this, args), delay);
-  };
-}
-
 // --- Debounced Sidebar Search Setup ---
 if (DOM.librarySearch) {
   DOM.librarySearch.removeEventListener('_debouncedInput', DOM._debouncedSidebarHandler || (()=>{}));
