@@ -169,6 +169,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
+  window.autoCloudSync = function () {
+      if (cloudSyncEnabled && isSignedIn) {
+        syncWithCloud();
+     }
+  };
+
   updateSyncBtn();
 
   // On page load, set the global flag based on saved state
