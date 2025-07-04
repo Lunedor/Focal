@@ -96,12 +96,6 @@ window.markLocalDataAsModified = function() {
   }
 }
 
-window.autoCloudSync = function() {
-  if (isSignedIn && isCloudSyncEnabled()) {
-    syncWithCloud();
-  }
-};
-
 function updateAuthUI() {
   const btn = document.getElementById('account-auth-btn');
   if (!btn) return;
