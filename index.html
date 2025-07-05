@@ -26,18 +26,6 @@
   <button id="hamburger-menu" class="hamburger-menu" aria-label="Open menu">
     <i data-feather="menu"></i>
   </button>
-  <script>
-    // Register service worker for PWA support
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        navigator.serviceWorker.register('service-worker.js').then(function(registration) {
-          console.log('ServiceWorker registration successful with scope: ', registration.scope);
-        }, function(err) {
-          console.log('ServiceWorker registration failed: ', err);
-        });
-      });
-    }
-  </script>
   <!-- Settings Modal Overlay -->
     <div id="settings-modal-overlay" class="settings-modal-overlay hidden">
       <div class="settings-modal">
@@ -209,32 +197,6 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script> <!-- ADD THIS LINE -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-messaging.js"></script>
-  <script>
-    // Your web app's Firebase configuration
-    var firebaseConfig = {
-      apiKey: "AIzaSyAW8rAegPAaeNltFOSBOii8GISykx3S7eU",
-      authDomain: "focal-journal-app.firebaseapp.com",
-      projectId: "focal-journal-app",
-      storageBucket: "focal-journal-app.firebasestorage.app",
-      messagingSenderId: "454247718929",
-      appId: "1:454247718929:web:513ba2cbe7dc1f9e0fd1b0"
-    };
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-  </script>
-  <script src="js/state.js"></script>
-  <script src="js/dom.js"></script>
-  <script src="js/utils.js"></script>
-  <script src="js/notifications.js"></script>
-  <script src="js/markdown.js"></script>
-  <script src="js/planner.js"></script>
-  <script src="js/library.js"></script>
-  <script src="js/calendar.js"></script>
-  <script src="js/cloud.js"></script>
-  <script src="js/datePicker.js"></script>
-  <script src="js/init.js"></script>
-  <script src="js/events.js"></script>
-  <script src="js/settings.js"></script>
-  <script>if(window.feather) feather.replace();</script>
+  <script src="js/scripts.js"></script>
 </body>
 </html>
