@@ -91,7 +91,7 @@ window.markLocalDataAsModified = function() {
   if (typeof window.isCloudSyncEnabled === 'function' && window.isCloudSyncEnabled()) {
     localStorage.setItem('lastModified', new Date().toISOString());
     if (typeof window.autoCloudSync === 'function') {
-      window.autoCloudSync();
+      debouncedSyncWithCloud();
     }
   }
 }

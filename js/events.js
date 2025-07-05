@@ -96,6 +96,7 @@ function addSwipeListeners(element, onSwipeLeft, onSwipeRight) {
 // Debounced version of syncWithCloud
 const debouncedSyncWithCloud = debounce(() => {
   if (typeof syncWithCloud === 'function') syncWithCloud();
+  console.log('Debounced syncing with cloud...');
 }, 3000); // 3 seconds debounce
 
 // --- EVENT HANDLERS ---

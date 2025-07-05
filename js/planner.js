@@ -9,60 +9,336 @@ function updatePlannerTodayButtonState() {
 // Attach checkbox event logic to a contentWrapper for a given key and content
 function attachPlannerCheckboxHandler(contentWrapper, key, content) {
   if (!contentWrapper) return;
-  contentWrapper.addEventListener('change', function(e) {
-    if (e.target && e.target.type === 'checkbox') {
-      // If this is a recurring event (has data-pagekey and data-lineidx), update the source page
-      const pageKey = e.target.getAttribute('data-pagekey');
-      const lineIdx = e.target.getAttribute('data-lineidx');
-      if (pageKey && lineIdx !== null) {
-        let pageContent = getStorage(pageKey);
-        let lines = pageContent.split('\n');
+  
+  // Use mousedown instead of click to ensure first interaction works
+  const allCheckboxes = contentWrapper.querySelectorAll('input[type="checkbox"]');
+  allCheckboxes.forEach(checkbox => {
+    // Remove any existing event listeners to avoid duplicates
+    checkbox.removeEventListener('click', checkboxClickHandler);
+    checkbox.removeEventListener('mousedown', checkboxMousedownHandler);
+    checkbox.removeEventListener('change', checkboxChangeHandler);
+    
+    // Add mousedown handler to prevent default behavior and capture scroll position
+    checkbox.addEventListener('mousedown', checkboxMousedownHandler);
+    
+    // Add click handler to manage the checkbox state
+    checkbox.addEventListener('click', checkboxClickHandler);
+    
+    // Add change handler as a backup
+    checkbox.addEventListener('change', checkboxChangeHandler);
+  });
+  
+  function checkboxMousedownHandler(e) {
+    // Store current scroll position in multiple ways to ensure it's preserved
+    const wrapper = this.closest('.content-wrapper');
+    if (wrapper) {
+      // Store in dataset for potential use by other handlers
+      wrapper.dataset.lastScrollTop = wrapper.scrollTop;
+      
+      // Also store in a closure variable that will be available to this handler's context
+      const savedScrollTop = wrapper.scrollTop;
+      
+      // Set a timeout to restore scroll position
+      setTimeout(() => {
+        if (wrapper.scrollTop !== savedScrollTop) {
+          wrapper.scrollTop = savedScrollTop;
+        }
+      }, 0);
+    }
+    
+    // Stop propagation but don't prevent default so the checkbox can still toggle
+    e.stopPropagation();
+  }
+  
+  function checkboxClickHandler(e) {
+    // Prevent default browser behavior and stop propagation
+    e.stopPropagation();
+    
+    // Store the current scroll position immediately
+    const wrapper = this.closest('.content-wrapper');
+    const scrollTop = wrapper ? wrapper.scrollTop : 0;
+    
+    // Store the new checkbox state
+    const newState = this.checked;
+    
+    // Get the checkbox's unique ID
+    const checkboxId = this.id;
+    
+    // Find the metadata span next to this checkbox
+    let metadataSpan = this.nextElementSibling;
+    while (metadataSpan && (!metadataSpan.classList || !metadataSpan.classList.contains('task-metadata'))) {
+      metadataSpan = metadataSpan.nextElementSibling;
+    }
+    
+    // If metadata found, update the source document
+    if (metadataSpan) {
+      // Capture the key to update planner view later
+      const pageKey = metadataSpan.getAttribute('data-key');
+      const scheduledDate = metadataSpan.getAttribute('data-scheduled-date');
+      
+      // Update the source document
+      updateSourceFromCheckbox(this, metadataSpan, newState);
+      
+      // If this is coming from a planner note, update that specific day too
+      if (wrapper && wrapper.dataset.key) {
+        const plannerKey = wrapper.dataset.key;
+        // Only update if not already handling through updateSourceFromCheckbox
+        if (!pageKey.startsWith('page-')) {
+          updatePlannerDay(plannerKey);
+        }
+      }
+    }
+    
+    // Restore scroll position immediately and after a brief delay (to ensure it works)
+    if (wrapper) {
+      wrapper.scrollTop = scrollTop;
+      setTimeout(() => {
+        wrapper.scrollTop = scrollTop;
+      }, 0);
+      
+      // And one more time after rendering would be complete
+      setTimeout(() => {
+        wrapper.scrollTop = scrollTop;
+      }, 50);
+    }
+  }
+  
+  function checkboxChangeHandler(e) {
+    // This is a backup handler in case the click event doesn't fire
+    const newState = this.checked;
+    
+    // Store the current scroll position
+    const wrapper = this.closest('.content-wrapper');
+    const scrollTop = wrapper ? wrapper.scrollTop : 0;
+    
+    // Find the closest metadata span
+    let metadataSpan = this.nextElementSibling;
+    while (metadataSpan && (!metadataSpan.classList || !metadataSpan.classList.contains('task-metadata'))) {
+      metadataSpan = metadataSpan.nextElementSibling;
+    }
+    
+    // If metadata found, update the source
+    if (metadataSpan) {
+      // Capture the key to update planner view later
+      const pageKey = metadataSpan.getAttribute('data-key');
+      
+      updateSourceFromCheckbox(this, metadataSpan, newState);
+      
+      // If this is coming from a planner note, update that specific day too
+      if (wrapper && wrapper.dataset.key) {
+        const plannerKey = wrapper.dataset.key;
+        // Only update if not already handling through updateSourceFromCheckbox
+        if (!pageKey.startsWith('page-')) {
+          updatePlannerDay(plannerKey);
+        }
+      }
+    }
+    
+    // Restore scroll position
+    if (wrapper) {
+      wrapper.scrollTop = scrollTop;
+      
+      // And again after a brief delay to ensure it works
+      setTimeout(() => {
+        wrapper.scrollTop = scrollTop;
+      }, 50);
+    }
+  }
+  
+  // Helper function to update source content from checkbox change
+  function updateSourceFromCheckbox(checkbox, metadataSpan, newState) {
+    const pageKey = metadataSpan.getAttribute('data-key');
+    const lineIdx = metadataSpan.getAttribute('data-line-index');
+    
+    if (pageKey && lineIdx) {
+      // Update the source document
+      let pageContent = getStorage(pageKey);
+      let lines = pageContent.split('\n');
+      
+      // Make sure the line exists and is a checkbox
+      if (lines[lineIdx]) {
         let match = lines[lineIdx].match(/^([-*])\s*\[( |x)\]\s*(.*)$/i);
-        // Only update if the line is a real markdown task (starts with - [ ] or - [x])
         if (match) {
           let lineText = match[3].replace(/\s*(\(REPEAT:[^)]+\))?\s*(\(SCHEDULED:[^)]+\))?\s*$/, '').trim();
           let repeatTag = (lines[lineIdx].match(/\(REPEAT:[^)]+\)/) || [''])[0];
           let schedTag = (lines[lineIdx].match(/\(SCHEDULED:[^)]+\)/) || [''])[0];
-          lines[lineIdx] = `${match[1]} [${e.target.checked ? 'x' : ' '}] ${lineText}`
+          
+          // Update the line with the new checkbox state
+          lines[lineIdx] = `${match[1]} [${newState ? 'x' : ' '}] ${lineText}`
             + (schedTag ? ' ' + schedTag : '')
             + (repeatTag ? ' ' + repeatTag : '');
+            
+          // Save the updated content
           setStorage(pageKey, lines.join('\n'));
-          updatePlannerDay(key);
-        }
-        return;
-      }
-      // Otherwise, scheduled item: update planner day content as before
-      let checkboxText = e.target.parentNode ? e.target.parentNode.textContent.trim() : '';
-      checkboxText = checkboxText.replace(/^\[.\]\s*/, '').replace(/^\s*-\s*/, '').trim();
-      // Try to extract the scheduled date/time tag from the label (if present)
-      let schedTagMatch = checkboxText.match(/\(SCHEDULED:[^)]+\)/i);
-      let schedTag = schedTagMatch ? schedTagMatch[0] : null;
-      // Remove the tag from the text for matching
-      let cleanCheckboxText = checkboxText.replace(/\(SCHEDULED:[^)]+\)/i, '').trim();
-      let lines = content.split('\n');
-      let changed = false;
-      for (let i = 0; i < lines.length; i++) {
-        let match = lines[i].match(/^([-*])\s*\[( |x)\]\s*(.*)$/i);
-        if (match) {
-          // Extract text and scheduled tag from the line
-          let lineText = match[3].replace(/\s*(\(REPEAT:[^)]+\))?\s*(\(SCHEDULED:[^)]+\))?\s*$/, '').trim();
-          let lineSchedTag = (lines[i].match(/\(SCHEDULED:[^)]+\)/) || [''])[0];
-          // Match both text and scheduled tag (if present)
-          let textMatch = lineText === cleanCheckboxText;
-          let schedMatch = (!schedTag || (lineSchedTag && lineSchedTag === schedTag));
-          if (textMatch && schedMatch) {
-            let repeatTag = (lines[i].match(/\(REPEAT:[^)]+\)/) || [''])[0];
-            lines[i] = `${match[1]} [${e.target.checked ? 'x' : ' '}] ${lineText}`
-              + (lineSchedTag ? ' ' + lineSchedTag : '')
-              + (repeatTag ? ' ' + repeatTag : '');
-            changed = true;
-            break;
+          
+          // Trigger cloud sync
+          if (typeof debouncedSyncWithCloud === 'function') {
+            debouncedSyncWithCloud();
+          }
+          
+          // Make sure the checkbox reflects the correct state
+          checkbox.checked = newState;
+          
+          // Get the current scroll position before updating other checkboxes
+          const wrapper = checkbox.closest('.content-wrapper');
+          const scrollTop = wrapper ? wrapper.scrollTop : 0;
+          
+          // Only update checkboxes with the same metadata (same task)
+          document.querySelectorAll('.task-metadata').forEach(span => {
+            if (span.getAttribute('data-key') === pageKey && 
+                span.getAttribute('data-line-index') === lineIdx &&
+                span !== metadataSpan) {
+              const nearbyCheckbox = span.previousElementSibling;
+              if (nearbyCheckbox && nearbyCheckbox.type === 'checkbox') {
+                nearbyCheckbox.checked = newState;
+              }
+            }
+          });
+          
+          // If this checkbox is in a library page, trigger a render of that page
+          if (pageKey.startsWith('page-')) {
+            const pageName = pageKey.substring(5);
+            if (typeof renderLibraryPage === 'function') {
+              renderLibraryPage(pageName);
+            }
+          }
+          
+          // Restore the scroll position
+          if (wrapper) {
+            wrapper.scrollTop = scrollTop;
           }
         }
       }
-      if (changed) {
-        setStorage(key, lines.join('\n'));
-        updatePlannerDay(key);
+    }
+  }
+  
+  // Add a new content-level change handler for plain text checkboxes
+  // (those without task-metadata spans, which are part of the note content itself)
+  contentWrapper.addEventListener('change', function(e) {
+    if (e.target && e.target.type === 'checkbox') {
+      // Store the current scroll position immediately
+      const wrapper = this;
+      const scrollTop = wrapper.scrollTop;
+      
+      // First check if this checkbox has an associated metadata span
+      let metadataSpan = null;
+      
+      // Try to find the metadata span that belongs to this checkbox
+      if (e.target.parentNode) {
+        // First check if it's a direct sibling
+        let sibling = e.target.nextElementSibling;
+        while (sibling) {
+          if (sibling.classList && sibling.classList.contains('task-metadata')) {
+            metadataSpan = sibling;
+            break;
+          }
+          sibling = sibling.nextElementSibling;
+        }
+        
+        // If not found as a direct sibling, look for it in nearby elements
+        if (!metadataSpan) {
+          // First check if there's a metadata span as a direct child of the parent
+          metadataSpan = e.target.parentNode.querySelector('.task-metadata');
+          
+          // Get the parent li element if exists
+          const liElement = e.target.closest('li');
+          if (liElement && !metadataSpan) {
+            metadataSpan = liElement.querySelector('.task-metadata');
+          }
+          
+          // Check the parent label if it's a label element
+          const labelElement = e.target.closest('label');
+          if (labelElement && !metadataSpan) {
+            metadataSpan = labelElement.querySelector('.task-metadata');
+          }
+          
+          // Still not found, try to find it in nearby elements
+          if (!metadataSpan) {
+            // Find the next element that might contain our metadata
+            let nextEl = e.target.parentNode.nextElementSibling;
+            while (nextEl && !metadataSpan) {
+              metadataSpan = nextEl.querySelector('.task-metadata');
+              nextEl = nextEl.nextElementSibling;
+            }
+          }
+        }
+      }
+      
+      // If we found a metadata span, this is a scheduled item checkbox and we'll handle it specially
+      if (metadataSpan) {
+        const pageKey = metadataSpan.getAttribute('data-key');
+        const lineIdx = metadataSpan.getAttribute('data-line-index');
+        
+        if (pageKey && lineIdx !== null) {
+          const newState = e.target.checked;
+          
+          // Use our updateSourceFromCheckbox helper which handles cloud sync too
+          updateSourceFromCheckbox(e.target, metadataSpan, newState);
+        }
+      }
+      // Otherwise, this is a regular checkbox in the note content
+      else {
+        let checkboxText = e.target.parentNode ? e.target.parentNode.textContent.trim() : '';
+        
+        // Clean up the text by removing the time prefix, checkbox marker, and other decorations
+        // Format is now "HH:MM: - [ ] Item text (from [[Page]])"
+        checkboxText = checkboxText.replace(/^\d{1,2}:\d{2}:\s*/, '')  // Remove time prefix if present
+                                .replace(/^All Day:\s*/, '')           // Remove "All Day:" prefix if present
+                                .replace(/^\[.\]\s*/, '')              // Remove checkbox marker
+                                .replace(/^\s*-\s*/, '')               // Remove list marker
+                                .replace(/\s*\(from \[\[[^\]]+\]\]\)/, '') // Remove source reference
+                                .trim();
+                                  
+        // Try to extract the scheduled date/time tag from the label (if present)
+        let schedTagMatch = checkboxText.match(/\(SCHEDULED:[^)]+\)/i);
+        let schedTag = schedTagMatch ? schedTagMatch[0] : null;
+        
+        // Remove the tag from the text for matching
+        let cleanCheckboxText = checkboxText.replace(/\(SCHEDULED:[^)]+\)/i, '').trim();
+        let lines = content.split('\n');
+        let changed = false;
+        
+        for (let i = 0; i < lines.length; i++) {
+          let match = lines[i].match(/^([-*])\s*\[( |x)\]\s*(.*)$/i);
+          if (match) {
+            // Extract text and scheduled tag from the line
+            let lineText = match[3].replace(/\s*(\(REPEAT:[^)]+\))?\s*(\(SCHEDULED:[^)]+\))?\s*$/, '').trim();
+            let lineSchedTag = (lines[i].match(/\(SCHEDULED:[^)]+\)/) || [''])[0];
+            
+            // Match both text and scheduled tag (if present)
+            let textMatch = lineText === cleanCheckboxText;
+            let schedMatch = (!schedTag || (lineSchedTag && lineSchedTag === schedTag));
+            
+            if (textMatch && schedMatch) {
+              let repeatTag = (lines[i].match(/\(REPEAT:[^)]+\)/) || [''])[0];
+              lines[i] = `${match[1]} [${e.target.checked ? 'x' : ' '}] ${lineText}`
+                + (lineSchedTag ? ' ' + lineSchedTag : '')
+                + (repeatTag ? ' ' + repeatTag : '');
+              changed = true;
+              break;
+            }
+          }
+        }
+        
+        if (changed) {
+          setStorage(key, lines.join('\n'));
+          
+          // Trigger cloud sync
+          if (typeof debouncedSyncWithCloud === 'function') {
+            debouncedSyncWithCloud();
+          }
+          
+          // Only update if the content has actually changed
+          updatePlannerDay(key);
+        }
+      }
+      
+      // Restore scroll position
+      if (wrapper) {
+        wrapper.scrollTop = scrollTop;
+        setTimeout(() => {
+          wrapper.scrollTop = scrollTop;
+        }, 0);
       }
     }
   });
@@ -70,11 +346,231 @@ function attachPlannerCheckboxHandler(contentWrapper, key, content) {
 
 // --- Flag to prevent scroll event conflicts ---
 let isProgrammaticScroll = false;
+// Helper function to build the HTML block for scheduled and recurring items
+function buildScheduledItemsHtml(dayDateStr, allScheduled) {
+  // Add inline style to hide metadata spans
+  const metadataStyle = `<style>
+    .task-metadata {
+      display: none;
+      visibility: hidden;
+      height: 0;
+      width: 0;
+      overflow: hidden;
+    }
+  </style>`;
+
+  let scheduledBlock = '';
+  if (allScheduled.has(dayDateStr)) {
+    const itemsForDay = allScheduled.get(dayDateStr);
+    if (itemsForDay && itemsForDay.length > 0) {
+      // Extract time from scheduled items and add to the item object
+      const enhancedItems = itemsForDay.map(item => {
+        // Check if there's a time in the originalDate (e.g., "2025-07-05 23:55")
+        let timeStr = null;
+        let timeMinutes = -1; // For sorting purposes
+        
+        const pageContent = getStorage(item.pageKey);
+        const lines = pageContent.split('\n');
+        let foundIndex = -1;
+        let hasNotify = false;
+        let notifyTime = null;
+        let isCheckboxTask = false;
+        
+        // If the item was already identified as a checkbox in getAllScheduledItems
+        if (item.isCheckbox !== undefined) {
+          isCheckboxTask = item.isCheckbox;
+        }
+        
+        // Find the line containing this item
+        for (let idx = 0; idx < lines.length; idx++) {
+          if (!lines[idx].includes(item.text)) continue;
+          
+          // For scheduled items, find the original line
+          if (!item.notify && !item.recurring) {
+            const dateMatch = lines[idx].match(new RegExp(window.DATE_REGEX_PATTERN));
+            const lineNormDate = dateMatch ? window.normalizeDateStringToYyyyMmDd(dateMatch[0]) : null;
+            if (lineNormDate === dayDateStr) {
+              foundIndex = idx;
+              
+              // If not already determined, check if this item is a checkbox task
+              if (item.isCheckbox === undefined) {
+                isCheckboxTask = /^[-*]\s*\[[ x]\]/.test(lines[idx]);
+              }
+              
+              // Check if this line also has a NOTIFY tag with time
+              const notifyMatch = lines[idx].match(/\(NOTIFY:.*?(\d{1,2}:\d{2})\)/i);
+              if (notifyMatch) {
+                // If this is a scheduled item with a NOTIFY tag with time,
+                // use the notify time instead of the scheduled time
+                notifyTime = notifyMatch[1];
+                timeStr = notifyTime;
+                const [hours, minutes] = timeStr.split(':').map(Number);
+                timeMinutes = hours * 60 + minutes;
+                hasNotify = true;
+              } else {
+                // Otherwise, check for time in the SCHEDULED tag
+                const schedTimeMatch = lines[idx].match(/\(SCHEDULED:.*?(\d{1,2}:\d{2})\)/i);
+                if (schedTimeMatch) {
+                  timeStr = schedTimeMatch[1];
+                  const [hours, minutes] = timeStr.split(':').map(Number);
+                  timeMinutes = hours * 60 + minutes;
+                }
+                hasNotify = /\(NOTIFY:[^)]+\)/i.test(lines[idx]);
+              }
+              break;
+            }
+          } 
+          // For notification items
+          else if (item.notify) {
+            if (lines[idx].includes(item.text) && lines[idx].includes('NOTIFY:')) {
+              foundIndex = idx;
+              // Extract time from NOTIFY tag
+              const notifyTimeMatch = lines[idx].match(/\(NOTIFY:.*?(\d{1,2}:\d{2})\)/i);
+              if (notifyTimeMatch) {
+                timeStr = notifyTimeMatch[1];
+                const [hours, minutes] = timeStr.split(':').map(Number);
+                timeMinutes = hours * 60 + minutes;
+              }
+              break;
+            }
+          }
+          // For recurring items
+          else if (item.recurring && lines[idx].includes('(REPEAT:')) {
+            foundIndex = idx;
+            break;
+          }
+        }
+        
+        const checked = foundIndex !== -1 && /\[x\]/i.test(lines[foundIndex]);
+        // Check if this is a checkbox task (starts with - [ ] or - [x])
+        isCheckboxTask = foundIndex !== -1 && /^[-*]\s*\[[ x]\]/.test(lines[foundIndex]);
+        
+        return {
+          ...item,
+          timeStr,
+          timeMinutes,
+          foundIndex,
+          checked,
+          hasNotify,
+          notifyTime,
+          isCheckboxTask
+        };
+      });
+
+      // Sort all items by time (all-day items first, then by time)
+      enhancedItems.sort((a, b) => {
+        if (a.timeMinutes === -1 && b.timeMinutes === -1) {
+          return 0; // Both are all-day items
+        }
+        if (a.timeMinutes === -1) return -1; // a is all-day
+        if (b.timeMinutes === -1) return 1;  // b is all-day
+        return a.timeMinutes - b.timeMinutes; // Sort by time
+      });
+      
+      // Create a single chronological list of all items
+      const allItemsContent = enhancedItems
+        .map(item => {
+          const pageKey = item.pageKey;
+          if (item.foundIndex === -1) return '';
+          
+          let prefix = '';
+          if (item.timeStr) {
+            prefix = `${item.timeStr}: `;
+          } else {
+            prefix = 'All Day: ';
+          }
+          
+          const notifyIcon = item.hasNotify ? ' <span title="Notification set" class="notify-icon" style="vertical-align:middle;">\uD83D\uDD14</span>' : '';
+          
+          if (item.notify) {
+            // Render NOTIFY items with a bell icon, time prefix but no "Notify:" label
+            return `${prefix}\uD83D\uDD14 ${item.text} (from [[${item.displayName}]])`;
+          } else if (item.recurring) {
+            // Recurring event with time prefix and recurring icon
+            // Only use one 🔁 icon
+            let ageStr = '';
+            if (item.originalDate && item.originalDate.match(/^\d{4}-\d{2}-\d{2}|\d{2}[./-]\d{2}[./-]\d{4}$/)) {
+              const origDate = window.parseDateString(item.originalDate);
+              if (origDate) {
+                const thisYear = dateFns.getYear(dateFns.parseISO(dayDateStr));
+                const origYear = dateFns.getYear(origDate);
+                const years = thisYear - origYear;
+                if (years > 0) ageStr = ` (${years} yr${years > 1 ? 's' : ''})`;
+              }
+            }
+            // Remove any existing 🔁 from the text to prevent duplicates
+            const cleanedText = item.text.replace(/🔁\s*/g, '');
+            return `${prefix}🔁 ${cleanedText}${ageStr} (from [[${item.displayName}]])`;
+          } else {
+            if (item.isCheckboxTask || item.isCheckbox) {
+              // Keep the checkbox format for actual checkbox tasks
+              // If the item comes from getAllScheduledItems with isCheckbox flag,
+              // use the original checkboxState. Otherwise, clean the text and use the checked flag.
+              let cleanText;
+              let isChecked;
+              
+              if (item.isCheckbox !== undefined) {
+                // The checkbox info came from getAllScheduledItems
+                cleanText = item.text.replace(/^[-*]\s*\[[ x]\]\s*/, '');
+                isChecked = item.checkboxState || item.checked;
+              } else {
+                // The checkbox was detected in buildScheduledItemsHtml
+                cleanText = item.text.replace(/^[-*]\s*\[[ x]\]\s*/, '');
+                isChecked = item.checked;
+              }
+              
+              // Format as a simple checkbox with hidden metadata and unique ID to ensure independence
+              const uniqueId = `checkbox-${pageKey.replace(/[^a-zA-Z0-9]/g, '')}-${item.foundIndex}-${dayDateStr}`;
+              return `${prefix}<input type="checkbox" id="${uniqueId}" ${isChecked ? 'checked' : ''}> ${cleanText} (from [[${item.displayName}]])${notifyIcon}<span class="task-metadata" data-key="${pageKey}" data-line-index="${item.foundIndex}" data-scheduled-date="${dayDateStr}"></span>`;
+            } else {
+              // For regular scheduled items, don't include checkbox markup
+              // Still include metadata in a format that won't trigger checkbox rendering
+              return `${prefix}${item.text} (from [[${item.displayName}]])${notifyIcon}`;
+            }
+          }
+        })
+        .filter(Boolean)
+        .join('<hr>');
+
+      if (allItemsContent) {
+        // We want to preserve the original structure without making it a list item
+        // as this was causing rendering issues with the checkboxes
+        const parsedContent = parseMarkdown(allItemsContent);
+        scheduledBlock = `<div class="scheduled-items-scroll">${metadataStyle}${parsedContent}</div>`;
+      }
+    }
+  }
+  return scheduledBlock;
+}
+
 // Update only a single planner day in the grid
 function updatePlannerDay(key) {
   // key: e.g. '2025-W27-monday'
   const noteEl = document.querySelector(`.planner-note[data-key="${key}"]`);
   if (!noteEl) return;
+  
+  // Store the current scroll position
+  const oldContentWrapper = noteEl.querySelector('.content-wrapper[data-key]');
+  const scrollTop = oldContentWrapper ? oldContentWrapper.scrollTop : 0;
+  
+  // Store checkbox states before updating
+  const checkboxStates = new Map();
+  if (oldContentWrapper) {
+    oldContentWrapper.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+      // Store by metadata info if available
+      const nextEl = checkbox.nextElementSibling;
+      if (nextEl && nextEl.classList && nextEl.classList.contains('task-metadata')) {
+        const key = `${nextEl.getAttribute('data-key')}-${nextEl.getAttribute('data-line-index')}`;
+        checkboxStates.set(key, checkbox.checked);
+      } else {
+        // Otherwise store by checkbox ID
+        if (checkbox.id) {
+          checkboxStates.set(checkbox.id, checkbox.checked);
+        }
+      }
+    });
+  }
+  
   // Get the box info
   const boxId = key.split('-').pop();
   const box = PLANNER_BOXES.find(b => b.id === boxId);
@@ -87,77 +583,10 @@ function updatePlannerDay(key) {
   const allScheduled = getAllScheduledItems();
   let content = getStorage(key) || '';
   content = content.replace(/\n?\*\*Scheduled Items\*\*[\s\S]*?(?=\n{2,}|$)/, '').trim();
-  // --- Build scheduled/repeat items section as markdown, but wrap in scrollable div ---
-  let scheduledBlock = '';
-  if (allScheduled.has(dayDateStr)) {
-    const itemsForDay = allScheduled.get(dayDateStr);
-    if (itemsForDay.length > 0) {
-      const scheduledItems = itemsForDay.filter(item => !item.recurring);
-      const recurringItems = itemsForDay.filter(item => item.recurring);
-      let scheduledContent = '';
-      let recurringContent = '';
-      if (scheduledItems.length > 0) {
-        scheduledContent = scheduledItems
-          .map(item => {
-            const pageKey = item.pageKey;
-            const pageContent = getStorage(pageKey);
-            const lines = pageContent.split('\n');
-            let foundIndex = -1;
-            let hasNotify = false;
-            for (let idx = 0; idx < lines.length; idx++) {
-              if (!lines[idx].includes(item.text)) continue;
-              const dateMatch = lines[idx].match(new RegExp(window.DATE_REGEX_PATTERN));
-              const lineNormDate = dateMatch ? window.normalizeDateStringToYyyyMmDd(dateMatch[0]) : null;
-              if (lineNormDate === dayDateStr) {
-                foundIndex = idx;
-                // Check if this line also has a NOTIFY tag
-                hasNotify = /\(NOTIFY:[^)]+\)/i.test(lines[idx]);
-                break;
-              }
-            }
-            if (foundIndex === -1) return '';
-            const checked = /\[x\]/i.test(lines[foundIndex]);
-            const notifyIcon = hasNotify ? ' <span title="Notification set" class="notify-icon" style="vertical-align:middle;">🔔</span>' : '';
-            return `- [${checked ? 'x' : ' '}] ${item.text}${notifyIcon} (from [[${item.displayName}]]){key=${pageKey} line-index=${foundIndex} scheduled-date=${dayDateStr}}`;
-          })
-          .filter(Boolean)
-          .join('\n');
-      }
-      if (recurringItems.length > 0) {
-        // Render recurring events as a plain HTML list (no checkboxes), but parse with parseMarkdown for wiki-links
-        recurringContent = '<ul class="recurring-events-list">' +
-          recurringItems
-            .map(item => {
-              const recurringIcon = '🔁 ';
-              let ageStr = '';
-              if (item.originalDate && item.originalDate.match(/^\d{4}-\d{2}-\d{2}|\d{2}[./-]\d{2}[./-]\d{4}$/)) {
-                const origDate = window.parseDateString(item.originalDate);
-                if (origDate) {
-                  const thisYear = dateFns.getYear(dayDate);
-                  const origYear = dateFns.getYear(origDate);
-                  const years = thisYear - origYear;
-                  if (years > 0) ageStr = ` (${years} yr${years > 1 ? 's' : ''})`;
-                }
-              }
-              // Parse the line with parseMarkdown to render wiki-links
-              const line = `${recurringIcon}${item.text}${ageStr} (from [[${item.displayName}]])`;
-              return `<li>${parseMarkdown(line)}</li>`;
-            })
-            .filter(Boolean)
-            .join('') + '</ul>';
-      }
-      let block = '';
-      if (scheduledContent) block += `**Scheduled**\n${scheduledContent}`;
-      let blockHtml = '';
-      if (block) blockHtml += `<div class="scheduled-items-scroll">${parseMarkdown(block)}</div>`;
-      if (recurringContent) {
-        blockHtml += `<div class="scheduled-items-scroll"><div class="event-header"><b>Event</b></div>${recurringContent}</div>`;
-      }
-      if (blockHtml) {
-        scheduledBlock = blockHtml;
-      }
-    }
-  }
+
+  // --- Build scheduled/repeat items section using the helper function ---
+  const scheduledBlock = buildScheduledItemsHtml(dayDateStr, allScheduled);
+
   const parsed = parseMarkdown(content);
   let parsedClean = parsed;
   if (typeof window !== 'undefined') {
@@ -165,16 +594,71 @@ function updatePlannerDay(key) {
     tempDiv.innerHTML = parsed;
     parsedClean = tempDiv.innerHTML;
   }
-  noteEl.innerHTML = `
+  
+  // Save the old HTML to avoid unnecessary DOM changes if content hasn't changed
+  const oldHtml = noteEl.innerHTML;
+  const newHtml = `
     <div class="heading">${box.title} <span>${dateFns.format(dayDate, 'd.M')}</span></div>
     <div class="content-wrapper" data-key="${key}">
       ${parsedClean}
       ${scheduledBlock}
     </div>
   `;
-  // Attach checkbox handler for this day after re-render
+  
+  // Only update the DOM if content actually changed
+  if (oldHtml !== newHtml) {
+    noteEl.innerHTML = newHtml;
+  }
+  
+  // Now get the new content wrapper after the update
   const contentWrapper = noteEl.querySelector('.content-wrapper[data-key]');
+  
+  // Attach checkbox handler for this day
   attachPlannerCheckboxHandler(contentWrapper, key, content);
+  
+  // Restore checkbox states and scroll position
+  if (contentWrapper) {
+    // First restore any checkbox states from metadata
+    contentWrapper.querySelectorAll('.task-metadata').forEach(metadataSpan => {
+      const pageKey = metadataSpan.getAttribute('data-key');
+      const lineIdx = metadataSpan.getAttribute('data-line-index');
+      if (pageKey && lineIdx) {
+        // Check if we have saved state
+        const savedKey = `${pageKey}-${lineIdx}`;
+        if (checkboxStates.has(savedKey)) {
+          // Find the checkbox that's adjacent to this metadata span
+          const checkbox = metadataSpan.previousElementSibling;
+          if (checkbox && checkbox.type === 'checkbox') {
+            checkbox.checked = checkboxStates.get(savedKey);
+          }
+        } else {
+          // Otherwise check the source content
+          const pageContent = getStorage(pageKey);
+          const lines = pageContent.split('\n');
+          if (lines[lineIdx]) {
+            const isChecked = lines[lineIdx].includes('[x]');
+            // Find the checkbox that's adjacent to this metadata span
+            const checkbox = metadataSpan.previousElementSibling;
+            if (checkbox && checkbox.type === 'checkbox') {
+              checkbox.checked = isChecked;
+            }
+          }
+        }
+      }
+    });
+    
+    // Also check for checkboxes with IDs
+    contentWrapper.querySelectorAll('input[type="checkbox"][id]').forEach(checkbox => {
+      if (checkboxStates.has(checkbox.id)) {
+        checkbox.checked = checkboxStates.get(checkbox.id);
+      }
+    });
+    
+    // Restore scroll position with a slightly longer delay to ensure rendering is complete
+    setTimeout(() => {
+      contentWrapper.scrollTop = scrollTop;
+    }, 50);
+  }
 }
 
 // --- Snap to center after manual scroll on mobile ---
@@ -254,9 +738,13 @@ function getAllScheduledItems() {
     const scheduledItems = new Map();
     // SCHEDULED
     // Allow for optional time after the date (e.g. 2025-07-03 03:22)
-    const scheduleRegex = new RegExp(`^(?:[-*]\\s*\\[[x ]\\]\\s*)?(.*)\\(SCHEDULED: \\s*${window.DATE_REGEX_PATTERN}(?: \\d{1,2}:\\d{2})?\\)`, 'i');
+    // Capture checkbox marker if present, then the rest of the text
+    const scheduleRegex = new RegExp(`^([-*]\\s*\\[([x ])\\]\\s*)?(.*?)\\(SCHEDULED:\\s*${window.DATE_REGEX_PATTERN}(?:\\s*(\\d{1,2}:\\d{2}))?\\)`, 'i');
     // NOTIFY
-    const notifyRegex = new RegExp(`^(?:[-*]\\s*\\[[x ]\\]\\s*)?(.*)\\(NOTIFY: \\s*${window.DATE_REGEX_PATTERN}(?: \\d{1,2}:\\d{2})?\\)`, 'i');
+    // Capture both date and time
+    const notifyRegex = new RegExp(`^(?:[-*]\\s*\\[[x ]\\]\\s*)?(.*)\\(NOTIFY:\\s*${window.DATE_REGEX_PATTERN}(?:\\s*(\\d{1,2}:\\d{2}))?\\)`, 'i');
+    // NOTIFY with only time (attached to an item with SCHEDULED)
+    const notifyTimeRegex = /\(NOTIFY:\s*(\d{1,2}:\d{2})\)/i;
     // REPEAT (recurring, new flexible syntax)
     const repeatRegex = /\(REPEAT: ([^)]+)\)/i;
 
@@ -270,19 +758,35 @@ function getAllScheduledItems() {
                 // SCHEDULED
                 const match = line.match(scheduleRegex);
                 if (match) {
-                    const itemText = match[1].trim();
-                    const dateStr = match[2];
-                    if (!itemText) return;
+                    const checkboxPrefix = match[1] || ''; // The checkbox prefix (- [x] or - [ ])
+                    const checkboxState = match[2] || '';  // The checkbox state (x or space)
+                    const itemText = match[3].trim();
+                    const dateStr = match[4];
+                    const timeStr = match[5]; // This will be undefined if no time was specified
+                    if (!itemText && !checkboxPrefix) return;
                     let normalizedDate = window.normalizeDateStringToYyyyMmDd(dateStr);
                     if (!normalizedDate) return;
                     if (!scheduledItems.has(normalizedDate)) scheduledItems.set(normalizedDate, []);
+                    
+                    // Check if this item also has a NOTIFY tag with just time
+                    const notifyTimeMatch = line.match(notifyTimeRegex);
+                    const hasNotifyTag = notifyTimeMatch !== null;
+                    
+                    // Construct the full text including checkbox if present
+                    const fullText = checkboxPrefix ? `${checkboxPrefix}${itemText}` : itemText;
+                    
                     scheduledItems.get(normalizedDate).push({
-                        text: itemText,
+                        text: fullText,
+                        isCheckbox: !!checkboxPrefix,
+                        checkboxState: checkboxState === 'x',
                         pageKey: key,
                         displayName: pageTitle,
                         recurring: false,
-                        originalDate: dateStr,
-                        notify: false
+                        originalDate: timeStr ? `${dateStr} ${timeStr}` : dateStr,
+                        time: timeStr,
+                        notify: false,
+                        hasNotifyTag: hasNotifyTag,
+                        notifyTime: notifyTimeMatch ? notifyTimeMatch[1] : null
                     });
                 }
                 // NOTIFY
@@ -290,6 +794,7 @@ function getAllScheduledItems() {
                 if (notifyMatch) {
                     const itemText = notifyMatch[1].trim();
                     const dateStr = notifyMatch[2];
+                    const timeStr = notifyMatch[3]; // This will be undefined if no time was specified
                     if (!itemText) return;
                     let normalizedDate = window.normalizeDateStringToYyyyMmDd(dateStr);
                     if (!normalizedDate) return;
@@ -299,7 +804,8 @@ function getAllScheduledItems() {
                         pageKey: key,
                         displayName: pageTitle,
                         recurring: false,
-                        originalDate: dateStr,
+                        originalDate: timeStr ? `${dateStr} ${timeStr}` : dateStr,
+                        time: timeStr,
                         notify: true
                     });
                 }
@@ -568,6 +1074,20 @@ function renderWeeklyPlanner(scrollToToday = false) {
   document.querySelectorAll('.content-wrapper[data-key]').forEach(el => {
     scrollPositions[el.dataset.key] = el.scrollTop;
   });
+  
+  // --- Preserve checkbox states ---
+  const checkboxStates = {};
+  document.querySelectorAll('.task-metadata').forEach(metadataSpan => {
+    const pageKey = metadataSpan.getAttribute('data-key');
+    const lineIdx = metadataSpan.getAttribute('data-line-index');
+    if (pageKey && lineIdx) {
+      const checkbox = metadataSpan.previousElementSibling;
+      if (checkbox && checkbox.type === 'checkbox') {
+        const stateKey = `${pageKey}-${lineIdx}`;
+        checkboxStates[stateKey] = checkbox.checked;
+      }
+    }
+  });
 
   const weekKey = getWeekKey(appState.currentDate);
   const startOfWeek = dateFns.startOfISOWeek(appState.currentDate);
@@ -590,88 +1110,8 @@ function renderWeeklyPlanner(scrollToToday = false) {
     const dayDate = dateFns.addDays(startOfWeek, index);
     const dayDateStr = dateFns.format(dayDate, 'yyyy-MM-dd');
 
-    // --- Build scheduled/repeat items section as markdown, but wrap in scrollable div ---
-    let scheduledBlock = '';
-    if (allScheduled.has(dayDateStr)) {
-      const itemsForDay = allScheduled.get(dayDateStr);
-      if (itemsForDay.length > 0) {
-        // Separate scheduled and recurring items
-        const scheduledItems = itemsForDay.filter(item => !item.recurring);
-        const recurringItems = itemsForDay.filter(item => item.recurring);
-        let scheduledContent = '';
-        let recurringContent = '';
-        if (scheduledItems.length > 0) {
-          scheduledContent = scheduledItems
-            .map(item => {
-              const pageKey = item.pageKey;
-              const pageContent = getStorage(pageKey);
-              const lines = pageContent.split('\n');
-              let foundIndex = -1;
-              let hasNotify = false;
-              for (let idx = 0; idx < lines.length; idx++) {
-                if (!lines[idx].includes(item.text)) continue;
-                const dateMatch = lines[idx].match(new RegExp(window.DATE_REGEX_PATTERN));
-                const lineNormDate = dateMatch ? window.normalizeDateStringToYyyyMmDd(dateMatch[0]) : null;
-                if (lineNormDate === dayDateStr) {
-                  foundIndex = idx;
-                  // Check if this line also has a NOTIFY tag
-                  hasNotify = /\(NOTIFY:[^)]+\)/i.test(lines[idx]);
-                  break;
-                }
-              }
-              if (foundIndex === -1) {
-                return '';
-              }
-              const checked = /\[x\]/i.test(lines[foundIndex]);
-              const notifyIcon = hasNotify ? ' <span title="Notification set" class="notify-icon" style="vertical-align:middle;">\uD83D\uDD14</span>' : '';
-              if (item.notify) {
-                // Render NOTIFY items with a bell icon and Notify label, no checkbox
-                return `\uD83D\uDD14 <b>Notify:</b> ${item.text} (from [[${item.displayName}]])`;
-              } else {
-                // Add bell icon to scheduled items that also have a NOTIFY tag, after the text and before (from ...)
-                return `- [${checked ? 'x' : ' '}] ${item.text} (from [[${item.displayName}]])${notifyIcon}{key=${pageKey} line-index=${foundIndex} scheduled-date=${dayDateStr}}`;
-              }
-            })
-            .filter(Boolean)
-            .join('\n');
-        }
-        if (recurringItems.length > 0) {
-          recurringContent = recurringItems
-            .map(item => {
-              const pageKey = item.pageKey;
-              const pageContent = getStorage(pageKey);
-              const lines = pageContent.split('\n');
-              let foundIndex = -1;
-              for (let idx = 0; idx < lines.length; idx++) {
-                if (!lines[idx].includes(item.text)) continue;
-                if (lines[idx].includes('(REPEAT:')) { foundIndex = idx; break; }
-              }
-              if (foundIndex === -1) return '';
-              const recurringIcon = '🔁 ';
-              let ageStr = '';
-              if (item.originalDate && item.originalDate.match(/^\d{4}-\d{2}-\d{2}|\d{2}[./-]\d{2}[./-]\d{4}$/)) {
-                const origDate = window.parseDateString(item.originalDate);
-                if (origDate) {
-                  const thisYear = dateFns.getYear(dayDate);
-                  const origYear = dateFns.getYear(origDate);
-                  const years = thisYear - origYear;
-                  if (years > 0) ageStr = ` (${years} yr${years > 1 ? 's' : ''})`;
-                }
-              }
-              // No checkbox for recurring events in planner view
-              return `${recurringIcon}${item.text}${ageStr} (from [[${item.displayName}]])`;
-            })
-            .filter(Boolean)
-            .join('\n');
-        }
-        let block = '';
-        if (scheduledContent) block += `**Scheduled**\n${scheduledContent}`;
-        if (recurringContent) block += (block ? '\n\n---\n' : '') + `**Event**\n${recurringContent}`;
-        if (block) {
-          scheduledBlock = `<div class="scheduled-items-scroll">${parseMarkdown(block)}</div>`;
-        }
-      }
-    }
+    // --- Build scheduled/repeat items section using the helper function ---
+    const scheduledBlock = buildScheduledItemsHtml(dayDateStr, allScheduled);
 
     const noteEl = document.createElement('div');
     noteEl.className = `planner-note ${box.class}`;
@@ -707,40 +1147,40 @@ function renderWeeklyPlanner(scrollToToday = false) {
       contentWrapper.scrollTop = scrollPositions[contentWrapper.dataset.key];
     }
 
-    // Checkbox logic: update only the [ ] or [x] state, preserve (REPEAT:) and (SCHEDULED:) tags
-    if (contentWrapper) {
-      contentWrapper.addEventListener('change', function(e) {
-        if (e.target && e.target.type === 'checkbox') {
-          // Find the text after the checkbox in the day content
-          let checkboxText = e.target.parentNode ? e.target.parentNode.textContent.trim() : '';
-          checkboxText = checkboxText.replace(/^\[.\]\s*/, '').replace(/^\s*-\s*/, '').trim();
-          let lines = content.split('\n');
-          let changed = false;
-          for (let i = 0; i < lines.length; i++) {
-            // Match a markdown task line
-            let match = lines[i].match(/^([-*])\s*\[( |x)\]\s*(.*)$/i);
-            if (match) {
-              let lineText = match[3].replace(/\s*(\(REPEAT:[^)]+\))?\s*(\(SCHEDULED:[^)]+\))?\s*$/, '').trim();
-              if (lineText === checkboxText) {
-                // Preserve (REPEAT:) and (SCHEDULED:) tags
-                let repeatTag = (lines[i].match(/\(REPEAT:[^)]+\)/) || [''])[0];
-                let schedTag = (lines[i].match(/\(SCHEDULED:[^)]+\)/) || [''])[0];
-                lines[i] = `${match[1]} [${e.target.checked ? 'x' : ' '}] ${lineText}`
-                  + (schedTag ? ' ' + schedTag : '')
-                  + (repeatTag ? ' ' + repeatTag : '');
-                changed = true;
-                break;
+    // Attach our improved checkbox handler instead of using the inline handler
+    attachPlannerCheckboxHandler(contentWrapper, key, content);
+  });
+  
+  // --- Restore checkbox states after rendering ---
+  setTimeout(() => {
+    document.querySelectorAll('.task-metadata').forEach(metadataSpan => {
+      const pageKey = metadataSpan.getAttribute('data-key');
+      const lineIdx = metadataSpan.getAttribute('data-line-index');
+      if (pageKey && lineIdx) {
+        const stateKey = `${pageKey}-${lineIdx}`;
+        
+        if (stateKey in checkboxStates) {
+          // Find associated checkbox and set its state
+          const checkbox = metadataSpan.previousElementSibling;
+          if (checkbox && checkbox.type === 'checkbox') {
+            checkbox.checked = checkboxStates[stateKey];
+          }
+        } else {
+          // If state wasn't saved, check the source content
+          const pageContent = getStorage(pageKey);
+          if (pageContent) {
+            const lines = pageContent.split('\n');
+            if (lines[lineIdx] && lines[lineIdx].includes('[x]')) {
+              const checkbox = metadataSpan.previousElementSibling;
+              if (checkbox && checkbox.type === 'checkbox') {
+                checkbox.checked = true;
               }
             }
           }
-          if (changed) {
-            setStorage(key, lines.join('\n'));
-            updatePlannerDay(key);
-          }
         }
-      });
-    }
-  });
+      }
+    });
+  }, 0);
 
   // Only scroll to the current day if requested
   if (scrollToToday) {

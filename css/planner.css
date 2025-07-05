@@ -4,6 +4,12 @@
 .scheduled-items-scroll label {
   pointer-events: auto;
 }
+
+/* Make checkboxes easier to click */
+.scheduled-items-scroll input[type="checkbox"] {
+  cursor: pointer;
+  margin-right: 4px;
+}
 /* Remove dots before checkboxes of scheduled/event items in planner view */
 .planner-note .scheduled-items-scroll ul,
 .planner-note .scheduled-items-scroll ol {
@@ -22,7 +28,7 @@
 }
 /* --- Scrollable scheduled/repeat items block in planner --- */
 .scheduled-items-scroll {
-  max-height: 300px;
+  /* max-height: 300px; */
   overflow-y: auto;
   margin-top: 2em;
   background: var(--color-background, #f9f9f9);
@@ -170,14 +176,10 @@ textarea {
   padding: 1rem 2rem;
   margin: 0;
   border: 1px solid var(--color-border);
-  font-size: 16px;
-  line-height: 1.6;
   max-width: 700px;
 }
 #library-page-view textarea {
   min-height: 500px;
-  font-size: 16px;
-  line-height: 1.6;
 }
 .content-wrapper:focus-within { 
   box-shadow: none;
