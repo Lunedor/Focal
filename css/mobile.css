@@ -111,11 +111,9 @@
     overflow-x: auto;
     gap: 0.5rem;
     height: auto;
-    padding-bottom: 1rem;
   }
   .planner-note {
     flex: 0 0 100%;
-    margin-bottom: 4.5rem; /* space for hamburger menu */
     box-sizing: border-box;
   }
   .planner-header, .calendar-header {
