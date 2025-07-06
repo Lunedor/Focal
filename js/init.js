@@ -182,6 +182,14 @@ function init() {
     const notificationTime = dateFns.addMinutes(today, 1); // Set for 1 minute in the future
     const notificationTimeStr = dateFns.format(notificationTime, 'yyyy-MM-dd HH:mm');
 
+    // Dates for mood tracker example
+    const yesterday = dateFns.subDays(today, 1);
+    const twoDaysAgo = dateFns.subDays(today, 2);
+    const threeDaysAgo = dateFns.subDays(today, 3);
+    const yesterdayStr = dateFns.format(yesterday, 'yyyy-MM-dd');
+    const twoDaysAgoStr = dateFns.format(twoDaysAgo, 'yyyy-MM-dd');
+    const threeDaysAgoStr = dateFns.format(threeDaysAgo, 'yyyy-MM-dd');
+
     // 2. Create a planner entry for today (show checkboxes, bold, italic, scheduled, repeat, wiki-links)
     setStorage(todayKey, `
 # Today's Plan
@@ -261,6 +269,11 @@ GOAL: Simple checklist goal
 
 ---
 
+## Mood Tracking
+Log your daily mood and visualize patterns on the [[Daily Journal]] page.
+
+---
+
 ## Backlinks
 This page is linked from [[Welcome to Focal]].
     `.trim();
@@ -305,7 +318,34 @@ All tasks for this are tracked on the [[Feature Showcase]] page.
     `.trim();
     setStorage('page-My 2025 Goals', goalsContent);
 
-    // 6. Set the visited flag
+    // 6. Create a "Daily Journal" page with a mood tracker
+    const journalContent = `
+# Daily Journal
+
+Use this page for your daily thoughts, reflections, and mood tracking.
+
+---
+
+## Mood Log
+*Track your mood by selecting an emoji and clicking a date.*
+MOOD: calendar, emoji, ${threeDaysAgoStr}:calm, ${twoDaysAgoStr}:happy, ${yesterdayStr}:sad
+
+---
+
+## Today's Entry
+
+### What went well?
+-
+
+### What could be improved?
+-
+
+### Notes
+-
+    `.trim();
+    setStorage('page-Daily Journal', journalContent);
+
+    // 7. Set the visited flag
     localStorage.setItem('focal-journal-visited', 'true');
   }
   

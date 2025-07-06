@@ -11,6 +11,7 @@ A minimalist, local-first digital bullet journal designed for clarity and focus.
 *   **Powerful Note-Taking**: All notes are written in Markdown. Create a personal knowledge base with wiki-style `[[bi-directional links]]`.
 *   **Integrated Task Management**: Create tasks with `- [ ]` syntax. Summarize progress on related tasks with `TASKS:` blocks.
 *   **Advanced Goal Tracking**: Define goals with `GOAL:` and track them automatically via checklists, counters, or manual `PROGRESS: [x%]` bars.
+*   **Visual Mood Tracking**: Log your daily moods with an interactive widget. Choose between calendar, circular, or chart views and customize the display with colors or emojis to visualize your emotional patterns over time.
 *   **Smart Scheduling**: Schedule tasks for specific dates with `(SCHEDULED: YYYY-MM-DD)` and create recurring events with `(REPEAT: ...)` syntax. These automatically appear in your weekly planner. Also can be set reminders with `(NOTIFY: YYYY-MM-DD HH:mm)` syntax for push notifications.
 *   **Push Notifications**: Set reminders with `(NOTIFY: YYYY-MM-DD HH:mm)` syntax to receive push notifications for important tasks and events, even when the app is closed.
 *   **Local-First & Private**: Your data lives in your browser's `localStorage` by default. No account is needed to get started.
