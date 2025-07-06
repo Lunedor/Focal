@@ -185,6 +185,9 @@
     opacity: 1;
     pointer-events: auto;
   }
+  .mood-palette {
+    padding: 0.5rem;
+  }
    .mood-palette-buttons {
     gap: 0.125rem !important;
   }
@@ -194,5 +197,9 @@
   }
   .mood-emoji {
     font-size: 1.5rem !important;
+  }
+  .circular-widget{
+    height: 320px;
+    width: 320px;
   }
 }
