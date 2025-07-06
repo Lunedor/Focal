@@ -186,17 +186,17 @@
     pointer-events: auto;
   }
   .mood-palette {
-    padding: 0.5rem;
+    padding: 0.5rem 0.25rem;
   }
    .mood-palette-buttons {
     gap: 0.125rem !important;
   }
   .mood-button {
-    width: 2.5rem !important;
-    height: 3rem !important;
+    width: 2.25rem !important;
+    height: 2.5rem !important;
   }
   .mood-emoji {
-    font-size: 1.5rem !important;
+    font-size: 1.25rem !important;
   }
     /* Mood Tracker Adjustments */
     .calendar-widget, .chart-widget {
