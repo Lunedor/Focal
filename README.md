@@ -11,7 +11,8 @@ A minimalist, local-first digital bullet journal designed for clarity and focus.
 *   **Powerful Note-Taking**: All notes are written in Markdown. Create a personal knowledge base with wiki-style `[[bi-directional links]]`.
 *   **Integrated Task Management**: Create tasks with `- [ ]` syntax. Summarize progress on related tasks with `TASKS:` blocks.
 *   **Advanced Goal Tracking**: Define goals with `GOAL:` and track them automatically via checklists, counters, or manual `PROGRESS: [x%]` bars.
-*   **Visual Mood Tracking**: Log your daily moods with an interactive widget. Choose between calendar, circular, or chart views and customize the display with colors or emojis to visualize your emotional patterns over time.
+*   **Visual Mood Tracking**: Log your daily moods with an interactive widget. Choose between calendar, circular, or chart views and customize the display with colors or emojis to visualize your emotional patterns over time. Easy-to-use interface lets you record your mood with a simple click.
+*   **Comprehensive Finance Tracking**: Monitor your income, expenses, and spending patterns with powerful finance widgets. Features include transaction categorization, multiple currency support, flexible time period filtering (daily, weekly, monthly, yearly, or custom date ranges), and various visualization options (summary tables, bar charts for trends, and pie charts for category breakdowns).
 *   **Smart Scheduling**: Schedule tasks for specific dates with `(SCHEDULED: YYYY-MM-DD)` and create recurring events with `(REPEAT: ...)` syntax. These automatically appear in your weekly planner. Also can be set reminders with `(NOTIFY: YYYY-MM-DD HH:mm)` syntax for push notifications.
 *   **Push Notifications**: Set reminders with `(NOTIFY: YYYY-MM-DD HH:mm)` syntax to receive push notifications for important tasks and events, even when the app is closed.
 *   **Local-First & Private**: Your data lives in your browser's `localStorage` by default. No account is needed to get started.
@@ -41,6 +42,17 @@ Focal extends standard Markdown to create a rich, interconnected planning system
 *   `[[Page Title]]`: Creates a link to another page. If the page doesn't exist, it's created on the fly. All pages that link to the current page are shown in a "Linked Mentions" section, creating backlinks.
 *   `GOAL: Track 10 books`: Defines a goal. Progress can be tracked automatically from checklists or numbered lists below it, or manually with a `PROGRESS: [50%]` line.
 *   `TASKS: Project Alpha`: Creates a summary block that counts all `- [ ]` checklist items below it until the next major heading or horizontal rule.
+*   `FINANCE: summary+chart, USD, this-month`: Creates a finance widget with the specified visualization types (summary, chart, chartpie), currency, and time filter. After the widget declaration, list transactions in this format:
+    ```
+    - YYYY-MM-DD, Description, +/-Amount, Category
+    ```
+    Examples:
+    ```
+    - 2025-01-01, Coffee, -4.50, Food
+    - 2025-01-02, Freelance Payment, +500.00, Income
+    ```
+
+*   `MOOD: calendar, color, 2025-01-01:happy`: Creates a mood tracking widget with the specified display type (calendar, circular, chart) and style (color, emoji, all). Optionally add mood data directly in the format `date:mood_state`. Available mood states include: happy, excited, content, calm, neutral, tired, anxious, sad, angry.
 *   `(SCHEDULED: 2025-12-25)`: Attaches a date to a task, making it appear in the weekly planner on that day.
 *   `(REPEAT: every monday)`: Creates a recurring event that appears in the weekly planner.
 *   `(NOTIFY: 2025-12-25 09:00)`: Schedules a push notification for a specific date and time.

@@ -57,3 +57,12 @@
 .filled {
   fill: var(--color-text);
 }
+
+/* Finance modal button styles */
+#finance-modal-confirm.modal-btn.primary {
+  background-color: var(--color-accent, #0277bd);
+}
+
+#finance-modal-confirm.modal-btn.primary:hover {
+  background-color: var(--color-accent-darker, #0056b3);
+}

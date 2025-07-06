@@ -42,6 +42,47 @@ const goalExtension = {
     }
 };
 
+const financeExtension = {
+    name: 'finance',
+    level: 'block',
+    start(src) { return src.match(/^FINANCE:/i)?.index; },
+    tokenizer(src, tokens) {
+        // This regex looks for FINANCE: blocks which may have multiple FINANCE: lines
+        // followed by transaction lines that start with "-"
+        const rule = /^(FINANCE:[^\n]*(?:\n+FINANCE:[^\n]*)*)\n?((?:[\s]*-[^\n]*\n?)*)/i;
+        const match = rule.exec(src);
+        if (match) {
+            // Get the command part (could be multiple lines starting with FINANCE:)
+            const commandPart = match[1].trim();
+            // Get the transaction lines (lines starting with "-")
+            const transactionPart = match[2].trim();
+            
+            return {
+                type: 'finance',
+                raw: match[0],
+                command: commandPart,
+                transactions: transactionPart,
+            };
+        }
+    },
+    renderer(token) {
+        // For multi-widget commands, include the entire block in the command attribute
+        // If there are multiple FINANCE: lines, we want to keep them all together
+        let fullCommand = token.command;
+        if (token.command.toLowerCase().startsWith('finance:') && 
+            token.transactions && 
+            token.transactions.split('\n').some(line => line.trim().toLowerCase().startsWith('finance:'))) {
+            // This is a multi-widget case - put everything in the command
+            fullCommand = `${token.command}\n${token.transactions}`;
+            // And clear the transactions since they're now part of the command
+            token.transactions = '';
+        }
+        
+        // Use single quotes for data attributes to handle potential double quotes in content
+        return `<div class="finance-widget-placeholder" data-command='${fullCommand}' data-transactions='${token.transactions}'></div>`;
+    }
+};
+
 const moodTrackerExtension = {
     name: 'moodTracker',
     level: 'block',
@@ -140,7 +181,7 @@ renderer.listitem = (text, task, checked) => {
 };
 
 marked.use({
-    extensions: [wikiLinkExtension, taskSummaryExtension, goalExtension, moodTrackerExtension],
+    extensions: [wikiLinkExtension, taskSummaryExtension, goalExtension, moodTrackerExtension, financeExtension],
     gfm: true,
     breaks: true,
     renderer: renderer

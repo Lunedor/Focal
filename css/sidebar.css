@@ -143,7 +143,6 @@ body.dark-mode .library-page-item.pinned:last-of-type {
   padding: 0.6rem 1rem;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 0.9em;
   font-weight: 500;
   transition: all 0.2s ease;
 }

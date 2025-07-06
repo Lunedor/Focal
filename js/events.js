@@ -209,9 +209,11 @@ const EditModeManager = {
     ];
     if (key && key.startsWith('page-')) {
       buttons = [
-        { icon: 'target', action: 'goal', title: 'Insert GOAL:', md: { prefix: 'GOAL: ' } },
         { icon: 'list', action: 'tasks', title: 'Insert TASKS:', md: { prefix: 'TASKS:\n' } },
+        { icon: 'target', action: 'goal', title: 'Insert GOAL:', md: { prefix: 'GOAL: ' } },
         { icon: 'bar-chart-2', action: 'progress', title: 'Insert PROGRESS: []', md: { prefix: 'PROGRESS: []' } },
+        { icon: 'dollar-sign', action: 'finance', title: 'Insert Finance Tracker', md: null },
+        { icon: 'smile', action: 'mood', title: 'Insert Mood Tracker', md: null },
         { separator: true },
         { icon: 'clock', action: 'scheduled', title: 'Insert (SCHEDULED: )', md: { prefix: '(SCHEDULED: )' } },
         { icon: 'repeat', action: 'repeat', title: 'Insert (REPEAT: )', md: { prefix: '(REPEAT: )' } },
@@ -252,7 +254,10 @@ const EditModeManager = {
     if (window.feather) feather.replace();
     textarea.focus();
     textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
+    
+    // Store the key both in appState and directly on the wrapper for redundancy
     appState.activeEditorKey = key;
+    wrapper.dataset.key = key;  // Make sure the key is always available on the wrapper
     toolbar.addEventListener('click', (evt) => {
       const button = evt.target.closest('button');
       if (!button) return;
@@ -260,6 +265,498 @@ const EditModeManager = {
       evt.stopPropagation();
       const action = button.dataset.action;
       const buttonConfig = buttons.find(b => b.action === action);
+      
+      if (action === 'finance') {
+        // Show finance filter dropdown
+        const dropdown = document.createElement('div');
+        dropdown.className = 'finance-filter-dropdown';
+        dropdown.style.cssText = 'position:absolute;z-index:1000;background:var(--color-planner-bg);border:1px solid var(--color-border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);padding:0;overflow:hidden;max-width:280px;min-width:240px;';
+        
+        const filters = [
+          { label: 'All Time', value: 'all' },
+          { label: 'This Month', value: 'this-month' },
+          { label: 'This Year', value: 'this-year', default: true },
+          { label: 'Last 3 Months', value: 'last-3-months' },
+          { label: 'Last 6 Months', value: 'last-6-months' },
+          { label: 'Last 12 Months', value: 'last-12-months' }
+        ];
+        
+        const layouts = [
+          { label: 'All Widgets', value: 'summary+chart+chartpie', default: true },
+          { label: 'Summary Only', value: 'summary' },
+          { label: 'Bar Chart Only', value: 'chart' },
+          { label: 'Pie Chart Only', value: 'chartpie' },
+          { label: 'Summary + Bar Chart', value: 'summary+chart' },
+          { label: 'Summary + Pie Chart', value: 'summary+chartpie' }
+        ];
+        
+        // Add an icon indicator for selected items
+        const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="float:right;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+        
+        dropdown.innerHTML = `
+          <div style="padding:10px 15px;font-weight:600;color:var(--color-text);font-size:1.0em;border-bottom:1px solid var(--color-border);background:var(--color-planner-header-bg, rgba(0,0,0,0.03));">Finance Widget Settings</div>
+          <div style="padding:10px 15px;font-weight:600;color:var(--color-sidebar-text);font-size:0.9em;border-bottom:1px solid var(--color-border);">Time Period</div>
+          ${filters.map(filter => `
+            <div class="dropdown-item ${filter.default ? 'selected' : ''}" data-value="${filter.value}" style="padding:8px 15px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
+              <span>${filter.label}</span>
+              ${filter.default ? `<span class="check-icon">${checkIcon}</span>` : ''}
+            </div>
+          `).join('')}
+          <div style="padding:10px 15px;font-weight:600;color:var(--color-sidebar-text);font-size:0.9em;border-bottom:1px solid var(--color-border);margin-top:5px;">Layout</div>
+          ${layouts.map(layout => `
+            <div class="dropdown-item layout-item ${layout.default ? 'selected' : ''}" data-layout="${layout.value}" style="padding:8px 15px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
+              <span>${layout.label}</span>
+              ${layout.default ? `<span class="check-icon">${checkIcon}</span>` : ''}
+            </div>
+          `).join('')}
+        `;
+        
+        // Position the dropdown below the button
+        const buttonRect = button.getBoundingClientRect();
+        dropdown.style.top = (buttonRect.bottom + window.scrollY) + 'px';
+        dropdown.style.left = (buttonRect.left + window.scrollX) - 40 + 'px';
+        
+        // Add hover effect with CSS
+        const style = document.createElement('style');
+        style.textContent = `
+          .dropdown-item:hover {
+            background-color: var(--color-border);
+          }
+          .dropdown-item.selected {
+            background-color: var(--color-bg-highlight, rgba(0,0,0,0.05));
+          }
+        `;
+        document.head.appendChild(style);
+        
+        document.body.appendChild(dropdown);
+        
+        // Handle item selection
+        let selectedFilter = 'this-year';
+        let selectedLayout = 'summary+chart+chartpie';
+        
+        dropdown.addEventListener('click', (e) => {
+          const item = e.target.closest('.dropdown-item');
+          if (!item) return;
+          
+          // Prevent the event from bubbling up
+          e.stopPropagation();
+          
+          if (item.classList.contains('layout-item')) {
+            // Update layout selection
+            selectedLayout = item.dataset.layout;
+            
+            // Update check icons for layouts
+            dropdown.querySelectorAll('.layout-item .check-icon').forEach(el => el.remove());
+            const checkIcon = document.createElement('span');
+            checkIcon.className = 'check-icon';
+            checkIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="float:right;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+            item.appendChild(checkIcon);
+            
+            // Highlight selected layout
+            dropdown.querySelectorAll('.layout-item').forEach(el => 
+              el.classList.toggle('selected', el === item));
+          } else if (item.dataset.value) {
+            // Update filter selection
+            selectedFilter = item.dataset.value;
+            
+            // Update check icons for filters
+            dropdown.querySelectorAll('.dropdown-item:not(.layout-item) .check-icon').forEach(el => el.remove());
+            const checkIcon = document.createElement('span');
+            checkIcon.className = 'check-icon';
+            checkIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="float:right;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+            item.appendChild(checkIcon);
+            
+            // Highlight selected filter
+            dropdown.querySelectorAll('.dropdown-item:not(.layout-item)').forEach(el => 
+              el.classList.toggle('selected', el === item));
+          }
+        });
+        
+        // Add done button at the bottom
+        const doneButton = document.createElement('div');
+        doneButton.className = 'dropdown-done-button';
+        doneButton.textContent = 'Apply';
+        doneButton.style.cssText = 'text-align:center;padding:8px;margin-top:8px;font-weight:500;background:var(--income-color,#4CAF50);color:white;cursor:pointer;border-radius:0 0 4px 4px;';
+        dropdown.appendChild(doneButton);
+        
+        doneButton.addEventListener('click', () => {
+          console.log('Apply button clicked');
+          console.log(`Selected filter: ${selectedFilter}, layout: ${selectedLayout}`);
+          
+          // Create the finance widget syntax
+          const financeString = `FINANCE: ${selectedLayout}, USD, ${selectedFilter}\n- `;
+          console.log('Inserting finance string:', financeString);
+          
+          // Get the current content from the textarea
+          const originalValue = textarea.value;
+          const start = textarea.selectionStart;
+          const end = textarea.selectionEnd;
+          
+          // Create new content with the finance string inserted
+          const newContent = 
+            originalValue.substring(0, start) + 
+            financeString + 
+            originalValue.substring(end);
+          
+          // Update the textarea content first (visual feedback)
+          textarea.value = newContent;
+          textarea.selectionStart = textarea.selectionEnd = start + financeString.length;
+          
+          // Update the storage with the new content
+          // Try to get key from activeEditorKey first, if not available, try to get from wrapper's data-key attribute
+          let key = appState.activeEditorKey;
+          
+          if (!key && EditModeManager.currentEditWrapper) {
+            key = EditModeManager.currentEditWrapper.dataset.key;
+            console.log('Using key from wrapper data attribute:', key);
+          }
+          
+          // For new pages, we might need to check the current view
+          if (!key && appState.currentView && !['weekly', 'monthly', 'tasks', 'mood'].includes(appState.currentView)) {
+            key = `page-${appState.currentView}`;
+            console.log('Derived key from currentView:', key);
+          }
+          
+          if (key) {
+            console.log('Updating storage for key:', key);
+            setStorage(key, newContent);
+            
+            // Trigger storage sync
+            debouncedSyncWithCloud();
+            renderApp();
+          } else {
+            console.error('No active editor key found - cannot save finance widget');
+            // Show a visual indicator that saving failed
+            const errorMsg = document.createElement('div');
+            errorMsg.textContent = 'Could not save finance widget - please try again';
+            errorMsg.style.cssText = 'position:fixed;top:10px;right:10px;background:red;color:white;padding:10px;border-radius:4px;z-index:9999;';
+            document.body.appendChild(errorMsg);
+            setTimeout(() => errorMsg.remove(), 3000);
+          }
+          
+          // Clean up using the safe close function
+          safeCloseDropdown();
+          textarea.focus();
+          
+          // Update the display by fully exiting edit mode to render the widget
+          if (EditModeManager.currentEditWrapper) {
+            const wrapper = EditModeManager.currentEditWrapper;
+            // Schedule this after the dropdown is closed to avoid conflicts
+            setTimeout(() => {
+              try {
+                console.log('Exiting edit mode to render the finance widget');
+                
+                // If we have a key, use the standard exit mechanism
+                EditModeManager.exit(wrapper);
+                
+                // Ensure the content is rendered properly
+                if (key) {
+                  // Render the page or specific component if needed
+                  if (typeof renderLibraryPage === 'function' && key.startsWith('page-')) {
+                    renderLibraryPage(key.substring(5));
+                  } else if (key.match(/^\d{4}-W\d{1,2}-/)) {
+                    updatePlannerDay(key);
+                  }
+                } else if (appState.currentView) {
+                  // If no key but we have a currentView, try to render the current view
+                  console.log('Rendering current view as fallback:', appState.currentView);
+                  renderApp();
+                }
+              } catch (e) {
+                console.error('Error rendering after finance widget insertion:', e);
+              }
+            }, 50);
+          }
+        });
+        
+        // Track if dropdown is already closed to avoid DOM errors
+        let isDropdownClosed = false;
+        
+        // Function to safely close the dropdown
+        const safeCloseDropdown = () => {
+          console.log('Safe close dropdown called');
+          if (isDropdownClosed) {
+            console.log('Dropdown already closed');
+            return;
+          }
+          
+          try {
+            if (dropdown.parentNode) {
+              document.body.removeChild(dropdown);
+              console.log('Removed dropdown from body');
+            }
+            
+            if (style.parentNode) {
+              document.head.removeChild(style);
+              console.log('Removed style from head');
+            }
+            
+            document.removeEventListener('mousedown', closeDropdown);
+            isDropdownClosed = true;
+            console.log('Dropdown closed successfully');
+          } catch (e) {
+            console.error('Error closing dropdown:', e);
+          }
+        };
+        
+        // Close dropdown when clicking outside
+        const closeDropdown = (e) => {
+          // Only close if click is outside dropdown AND outside button
+          if (!dropdown.contains(e.target) && e.target !== button) {
+            safeCloseDropdown();
+          }
+        };
+        
+        // Use setTimeout to avoid immediate triggering
+        setTimeout(() => {
+          document.addEventListener('mousedown', closeDropdown);
+        }, 0);
+        
+        return;
+      }
+      
+      if (action === 'mood') {
+        // Show mood tracker dropdown
+        const dropdown = document.createElement('div');
+        dropdown.className = 'mood-tracker-dropdown';
+        dropdown.style.cssText = 'position:absolute;z-index:1000;background:var(--color-planner-bg);border:1px solid var(--color-border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);padding:0;overflow:hidden;max-width:280px;min-width:240px;';
+        
+        const types = [
+          { label: 'Calendar View', value: 'calendar', default: true },
+          { label: 'Circular View', value: 'circular' },
+          { label: 'Chart View', value: 'chart' }
+        ];
+        
+        const styles = [
+          { label: 'Color Only', value: 'color', default: true },
+          { label: 'Emoji Only', value: 'emoji' },
+          { label: 'Color + Emoji', value: 'all' }
+        ];
+        
+        // Add an icon indicator for selected items
+        const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="float:right;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+        
+        dropdown.innerHTML = `
+          <div style="padding:10px 15px;font-weight:600;color:var(--color-text);font-size:1.0em;border-bottom:1px solid var(--color-border);background:var(--color-planner-header-bg, rgba(0,0,0,0.03));">Mood Tracker Settings</div>
+          <div style="padding:10px 15px;font-weight:600;color:var(--color-sidebar-text);font-size:0.9em;border-bottom:1px solid var(--color-border);">Display Type</div>
+          ${types.map(type => `
+            <div class="dropdown-item ${type.default ? 'selected' : ''}" data-value="${type.value}" style="padding:8px 15px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
+              <span>${type.label}</span>
+              ${type.default ? `<span class="check-icon">${checkIcon}</span>` : ''}
+            </div>
+          `).join('')}
+          <div style="padding:10px 15px;font-weight:600;color:var(--color-sidebar-text);font-size:0.9em;border-bottom:1px solid var(--color-border);margin-top:5px;">Style</div>
+          ${styles.map(style => `
+            <div class="dropdown-item style-item ${style.default ? 'selected' : ''}" data-style="${style.value}" style="padding:8px 15px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
+              <span>${style.label}</span>
+              ${style.default ? `<span class="check-icon">${checkIcon}</span>` : ''}
+            </div>
+          `).join('')}
+        `;
+        
+        // Position the dropdown below the button
+        const buttonRect = button.getBoundingClientRect();
+        dropdown.style.top = (buttonRect.bottom + window.scrollY) + 'px';
+        dropdown.style.left = (buttonRect.left + window.scrollX) - 40 + 'px';
+        
+        // Add hover effect with CSS
+        const style = document.createElement('style');
+        style.textContent = `
+          .dropdown-item:hover {
+            background-color: var(--color-border);
+          }
+          .dropdown-item.selected {
+            background-color: var(--color-bg-highlight, rgba(0,0,0,0.05));
+          }
+        `;
+        document.head.appendChild(style);
+        
+        document.body.appendChild(dropdown);
+        
+        // Handle item selection
+        let selectedType = 'calendar';
+        let selectedStyle = 'color';
+        
+        dropdown.addEventListener('click', (e) => {
+          const item = e.target.closest('.dropdown-item');
+          if (!item) return;
+          
+          // Prevent the event from bubbling up
+          e.stopPropagation();
+          
+          if (item.classList.contains('style-item')) {
+            // Update style selection
+            selectedStyle = item.dataset.style;
+            
+            // Update check icons for styles
+            dropdown.querySelectorAll('.style-item .check-icon').forEach(el => el.remove());
+            const checkIcon = document.createElement('span');
+            checkIcon.className = 'check-icon';
+            checkIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="float:right;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+            item.appendChild(checkIcon);
+            
+            // Highlight selected style
+            dropdown.querySelectorAll('.style-item').forEach(el => 
+              el.classList.toggle('selected', el === item));
+          } else if (item.dataset.value) {
+            // Update type selection
+            selectedType = item.dataset.value;
+            
+            // Update check icons for types
+            dropdown.querySelectorAll('.dropdown-item:not(.style-item) .check-icon').forEach(el => el.remove());
+            const checkIcon = document.createElement('span');
+            checkIcon.className = 'check-icon';
+            checkIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="float:right;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+            item.appendChild(checkIcon);
+            
+            // Highlight selected type
+            dropdown.querySelectorAll('.dropdown-item:not(.style-item)').forEach(el => 
+              el.classList.toggle('selected', el === item));
+          }
+        });
+        
+        // Add done button at the bottom
+        const doneButton = document.createElement('div');
+        doneButton.className = 'dropdown-done-button';
+        doneButton.textContent = 'Apply';
+        doneButton.style.cssText = 'text-align:center;padding:8px;margin-top:8px;font-weight:500;background:var(--mood-happy,#4CAF50);color:white;cursor:pointer;border-radius:0 0 4px 4px;';
+        dropdown.appendChild(doneButton);
+        
+        doneButton.addEventListener('click', () => {
+          console.log('Mood Apply button clicked');
+          console.log(`Selected type: ${selectedType}, style: ${selectedStyle}`);
+          
+          // Create the mood widget syntax
+          const moodString = `MOOD: ${selectedType}, ${selectedStyle}\n`;
+          console.log('Inserting mood string:', moodString);
+          
+          // Get the current content from the textarea
+          const originalValue = textarea.value;
+          const start = textarea.selectionStart;
+          const end = textarea.selectionEnd;
+          
+          // Create new content with the mood string inserted
+          const newContent = 
+            originalValue.substring(0, start) + 
+            moodString + 
+            originalValue.substring(end);
+          
+          // Update the textarea content first (visual feedback)
+          textarea.value = newContent;
+          textarea.selectionStart = textarea.selectionEnd = start + moodString.length;
+          
+          // Update the storage with the new content
+          // Try to get key from activeEditorKey first, if not available, try to get from wrapper's data-key attribute
+          let key = appState.activeEditorKey;
+          
+          if (!key && EditModeManager.currentEditWrapper) {
+            key = EditModeManager.currentEditWrapper.dataset.key;
+            console.log('Using key from wrapper data attribute:', key);
+          }
+          
+          // For new pages, we might need to check the current view
+          if (!key && appState.currentView && !['weekly', 'monthly', 'tasks', 'mood'].includes(appState.currentView)) {
+            key = `page-${appState.currentView}`;
+            console.log('Derived key from currentView:', key);
+          }
+          
+          if (key) {
+            console.log('Updating storage for key:', key);
+            setStorage(key, newContent);
+            renderApp();
+            // Trigger storage sync
+            debouncedSyncWithCloud();
+          } else {
+            console.error('No active editor key found - cannot save mood widget');
+            // Show a visual indicator that saving failed
+            const errorMsg = document.createElement('div');
+            errorMsg.textContent = 'Could not save mood widget - please try again';
+            errorMsg.style.cssText = 'position:fixed;top:10px;right:10px;background:red;color:white;padding:10px;border-radius:4px;z-index:9999;';
+            document.body.appendChild(errorMsg);
+            setTimeout(() => errorMsg.remove(), 3000);
+          }
+          
+          // Clean up using the safe close function
+          safeCloseDropdown();
+          textarea.focus();
+          
+          // Update the display by fully exiting edit mode to render the widget
+          if (EditModeManager.currentEditWrapper) {
+            const wrapper = EditModeManager.currentEditWrapper;
+            // Schedule this after the dropdown is closed to avoid conflicts
+            setTimeout(() => {
+              try {
+                console.log('Exiting edit mode to render the mood widget');
+                
+                // If we have a key, use the standard exit mechanism
+                EditModeManager.exit(wrapper);
+                
+                // Ensure the content is rendered properly
+                if (key) {
+                  // Render the page or specific component if needed
+                  if (typeof renderLibraryPage === 'function' && key.startsWith('page-')) {
+                    renderLibraryPage(key.substring(5));
+                  } else if (key.match(/^\d{4}-W\d{1,2}-/)) {
+                    updatePlannerDay(key);
+                  }
+                } else if (appState.currentView) {
+                  // If no key but we have a currentView, try to render the current view
+                  console.log('Rendering current view as fallback:', appState.currentView);
+                  renderApp();
+                }
+              } catch (e) {
+                console.error('Error rendering after mood widget insertion:', e);
+              }
+            }, 50);
+          }
+        });
+        
+        // Track if dropdown is already closed to avoid DOM errors
+        let isDropdownClosed = false;
+        
+        // Function to safely close the dropdown
+        const safeCloseDropdown = () => {
+          console.log('Safe close mood dropdown called');
+          if (isDropdownClosed) {
+            console.log('Mood dropdown already closed');
+            return;
+          }
+          
+          try {
+            if (dropdown.parentNode) {
+              document.body.removeChild(dropdown);
+              console.log('Removed mood dropdown from body');
+            }
+            
+            if (style.parentNode) {
+              document.head.removeChild(style);
+              console.log('Removed mood style from head');
+            }
+            
+            document.removeEventListener('mousedown', closeDropdown);
+            isDropdownClosed = true;
+            console.log('Mood dropdown closed successfully');
+          } catch (e) {
+            console.error('Error closing mood dropdown:', e);
+          }
+        };
+        
+        // Close dropdown when clicking outside
+        const closeDropdown = (e) => {
+          // Only close if click is outside dropdown AND outside button
+          if (!dropdown.contains(e.target) && e.target !== button) {
+            safeCloseDropdown();
+          }
+        };
+        
+        // Use setTimeout to avoid immediate triggering
+        setTimeout(() => {
+          document.addEventListener('mousedown', closeDropdown);
+        }, 0);
+        
+        return;
+      }
+      
       if (action === 'custom-date') {
         // Show custom date picker (withTime toggle)
         window.showDateTimePicker({ withTime: false }).then(result => {

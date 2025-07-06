@@ -20,6 +20,53 @@ function renderLibraryPage(pageTitle) {
     moodTracker.init(moodTrackerPlaceholder, command, onCommandChange);
   }
 
+  // --- Initialize Finance Tracker if placeholder exists ---
+  const financeTrackerPlaceholder = DOM.pageContentWrapper.querySelector('.finance-widget-placeholder');
+  if (financeTrackerPlaceholder) {
+    const command = financeTrackerPlaceholder.dataset.command;
+    const transactions = financeTrackerPlaceholder.dataset.transactions;
+    // Ensure financeTracker is available
+    if (typeof financeTracker !== 'undefined' && financeTracker.init) {
+      // Create a callback to update the command in the document when filter changes
+      const onCommandChange = (newCommand) => {
+        // Get the current page content
+        const currentPageKey = DOM.pageContentWrapper.dataset.key;
+        if (!currentPageKey) return;
+        
+        // Get the current content
+        const content = getStorage(currentPageKey);
+        if (!content) return;
+        
+        // Replace the FINANCE command with the new one
+        const oldCommand = command;
+        const updatedContent = content.replace(oldCommand, newCommand);
+        
+        // Update the storage
+        setStorage(currentPageKey, updatedContent);
+        
+        // Update the placeholder's command attribute
+        financeTrackerPlaceholder.dataset.command = newCommand;
+        
+        // Trigger sync to cloud
+        if (typeof debouncedSyncWithCloud === 'function') {
+          debouncedSyncWithCloud();
+        }
+        
+        // Re-render the current page to reflect the command changes
+        if (currentPageKey.startsWith('page-')) {
+          const pageTitle = currentPageKey.substring(5);
+          renderLibraryPage(pageTitle);
+        }
+      };
+      
+      // Initialize the finance tracker with the command change callback
+      financeTracker.init(financeTrackerPlaceholder, command, transactions, {
+        onCommandChange,
+        commandNode: financeTrackerPlaceholder
+      });
+    }
+  }
+
   // --- Backlinks (Linked Mentions) ---
   const backlinks = findBacklinks(pageTitle);
   let backlinksHtml = '';

@@ -22,4 +22,18 @@ DOM = {
   calendarGrid: document.getElementById('calendar-grid-container'),
   monthSelect: document.getElementById('month-select'),
   yearSelect: document.getElementById('year-select'),
+  
+  // Finance modal elements
+  financeEntryModal: document.getElementById('finance-entry-modal'),
+  financeModalTitle: document.getElementById('finance-modal-title'),
+  financeEntryForm: document.getElementById('finance-entry-form'),
+  financeEntryDate: document.getElementById('finance-entry-date'),
+  financeEntryDateDisplay: document.getElementById('finance-entry-date-display'),
+  financeEntryDatePickerBtn: document.getElementById('finance-entry-date-picker-btn'),
+  financeEntryDescription: document.getElementById('finance-entry-description'),
+  financeEntryAmount: document.getElementById('finance-entry-amount'),
+  financeEntryCategory: document.getElementById('finance-entry-category'),
+  financeModalConfirm: document.getElementById('finance-modal-confirm'),
+  financeModalCancel: document.getElementById('finance-modal-cancel'),
+  financeModalClose: document.getElementById('finance-modal-close'),
 };

@@ -206,15 +206,28 @@ GOAL: Try all features
 
 Welcome to your new personal dashboard. Focal is a minimalist, local-first planner and knowledge base.
 
-
 ## Quick Start
 
-
+- Use the Weekly Planner for your day-to-day planning
+- Create new pages using the + icon in the sidebar
+- Try out the markdown editor with our extended syntax
 
 ## Features to Explore
 
+- **Weekly Planner**: Plan your week with a day-by-day view
+- **Monthly Calendar**: Get a bird's eye view of your month
+- **Task Management**: Create and track tasks with checkboxes
+- **Goal Tracking**: Set and monitor goals with progress bars
+- **Mood Tracking**: Log and visualize your daily moods ([[Daily Journal]])
+- **Finance Tracking**: Monitor income, expenses, and spending patterns ([[Finances]])
+- **Wiki Links**: Create connected notes with [[Feature Showcase|wiki-style links]]
 
 TASKS: Getting Started
+- [ ] Explore the Weekly Planner
+- [ ] Check out the [[Feature Showcase]] page
+- [ ] Create your first custom page
+- [ ] Try the mood tracking in the [[Daily Journal]]
+- [ ] Set up your finances in the [[Finances]] page
     `.trim();
     setStorage('page-Welcome to Focal', welcomeContent);
     setPinnedPages(['Welcome to Focal']); // Pin this page
@@ -270,6 +283,17 @@ GOAL: Simple checklist goal
 ## Mood Tracking
 Log your daily mood and visualize patterns on the [[Daily Journal]] page.
 
+Use the MOOD: syntax with different view types (calendar, circular, chart) and styles (color, emoji, all).
+
+---
+
+## Finance Tracking
+Track your finances and visualize spending patterns on the [[Finances]] page.
+
+Use the FINANCE: syntax with different view types (summary, chart, chartpie) and time filters.
+
+Each transaction follows this format: Date, Description, Amount, Category
+
 ---
 
 ## Backlinks
@@ -320,32 +344,134 @@ All tasks for this are tracked on the [[Feature Showcase]] page.
     const journalContent = `
 # Daily Journal
 
-Use this page for your daily thoughts, reflections, and mood tracking.
+Use this page for your daily thoughts, reflections, and mood tracking. Tracking your mood can help you identify patterns and improve your mental well-being over time.
 
 ---
 
-## Mood Log
-*Track your mood by selecting an emoji and clicking a date.*
+## Mood Tracking System
 
+The Mood Tracking feature lets you visualize your emotional states over time with different display options.
 
-MOOD: calendar, emoji, ${threeDaysAgoStr}:calm, ${twoDaysAgoStr}:happy, ${yesterdayStr}:sad
+### Calendar View
+*See your moods laid out in a calendar format*
+
+MOOD: calendar, emoji, ${threeDaysAgoStr}:calm, ${twoDaysAgoStr}:happy, ${yesterdayStr}:sad, ${todayDateStr}:excited
+
+### Circular View
+*View your mood patterns in a circular timeline*
+
+MOOD: circular, all
+
+### Chart View
+*Track mood trends with a line chart*
+
+MOOD: chart, color
 
 ---
 
-## Today's Entry
+## Mood Widget Options
+
+You can customize mood tracking widgets with:
+
+### View Types
+- \`calendar\`: Display moods on a monthly calendar
+- \`circular\`: Show moods in a circular timeline
+- \`chart\`: Visualize mood trends in a line chart
+
+### Display Styles
+- \`emoji\`: Show moods as emojis (😀, 😐, 😔)
+- \`color\`: Represent moods with colors
+- \`all\`: Display both emoji and color indicators
+
+---
+
+## Today's Journal Entry
 
 ### What went well?
--
+- Started using Focal for my journal and mood tracking
+- Made progress on my main project
+- Had a productive meeting with the team
 
 ### What could be improved?
--
+- Need to manage my time better
+- Should take more breaks during focused work
 
 ### Notes
--
+- Remember to check out the [[Feature Showcase]] page to learn more about Focal
+- Try the new finance tracking features on the [[Finances]] page
     `.trim();
     setStorage('page-Daily Journal', journalContent);
 
-    // 7. Set the visited flag
+    // 7. Create a "Finances" page to showcase the finance tracker
+    const financesContent = `
+# Financial Management
+
+Track all your income and expenses in one place with Focal's finance tracking system. The finance widgets automatically summarize and visualize your transactions to help you understand your spending patterns.
+
+## How to Use
+1. Add transactions using the format: \`Date, Description, Amount, Category\`
+2. Use positive amounts for income (e.g., +500.00) and negative for expenses (e.g., -45.00)
+3. Group transactions under FINANCE: widgets with different visualizations
+
+---
+
+## This Month's Summary
+
+FINANCE: summary+chart, USD, this-month
+- ${todayDateStr}, Coffee, -4.50, Food
+- ${todayDateStr}, Lunch, -12.75, Food
+- ${yesterdayStr}, Freelance Payment, +500.00, Income
+- ${yesterdayStr}, Internet Bill, -65.00, Utilities
+- ${twoDaysAgoStr}, Groceries, -85.20, Food
+- ${twoDaysAgoStr}, Gas, -45.00, Transportation
+- ${threeDaysAgoStr}, Movie Tickets, -25.00, Entertainment
+- ${threeDaysAgoStr}, Monthly Salary, +2500.00, Income
+- ${dateFns.format(dateFns.subDays(today, 4), 'yyyy-MM-dd')}, Rent, -1200.00, Housing
+- ${dateFns.format(dateFns.subDays(today, 5), 'yyyy-MM-dd')}, Phone Bill, -45.00, Utilities
+- ${dateFns.format(dateFns.subDays(today, 6), 'yyyy-MM-dd')}, Dinner with Friends, -65.00, Food
+- ${dateFns.format(dateFns.subDays(today, 7), 'yyyy-MM-dd')}, Book Purchase, -15.00, Entertainment
+
+---
+
+## Spending by Category
+
+FINANCE: chartpie, USD, this-month
+
+---
+
+## Yearly Overview
+
+FINANCE: chart, USD, this-year
+
+---
+
+## Widget Options
+
+You can customize finance widgets with the following options:
+
+### View Types
+- \`summary\`: Shows total income, expenses, and balance
+- \`chart\`: Bar chart of income/expenses over time
+- \`chartpie\`: Pie chart showing category distribution
+
+### Time Filters
+- \`this-week\`: Current week transactions
+- \`this-month\`: Current month transactions 
+- \`this-year\`: Current year transactions
+- \`last-month\`: Previous month transactions
+- \`custom:YYYY-MM-DD:YYYY-MM-DD\`: Custom date range
+
+### Currency Support
+- Specify currency code (USD, EUR, GBP, etc.)
+- Example: \`FINANCE: summary, EUR, this-month\`
+
+### Combined Widgets
+- Combine multiple views using +
+- Example: \`FINANCE: summary+chartpie, USD, this-month\`
+    `.trim();
+    setStorage('page-Finances', financesContent);
+
+    // 8. Set the visited flag
     localStorage.setItem('focal-journal-visited', 'true');
   }
   
