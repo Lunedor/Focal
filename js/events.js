@@ -270,7 +270,7 @@ const EditModeManager = {
         // Show finance filter dropdown
         const dropdown = document.createElement('div');
         dropdown.className = 'finance-filter-dropdown';
-        dropdown.style.cssText = 'position:absolute;z-index:1000;background:var(--color-planner-bg);border:1px solid var(--color-border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);padding:0;overflow:hidden;max-width:280px;min-width:240px;';
+        dropdown.style.cssText = 'position:absolute;z-index:1000;background:var(--color-background);border:1px solid var(--color-border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);padding:0;overflow:hidden;max-width:280px;min-width:240px;';
         
         const filters = [
           { label: 'All Time', value: 'all' },
@@ -519,7 +519,7 @@ const EditModeManager = {
         // Show mood tracker dropdown
         const dropdown = document.createElement('div');
         dropdown.className = 'mood-tracker-dropdown';
-        dropdown.style.cssText = 'position:absolute;z-index:1000;background:var(--color-planner-bg);border:1px solid var(--color-border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);padding:0;overflow:hidden;max-width:280px;min-width:240px;';
+        dropdown.style.cssText = 'position:absolute;z-index:1000;background:var(--color-background);border:1px solid var(--color-border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);padding:0;overflow:hidden;max-width:280px;min-width:240px;';
         
         const types = [
           { label: 'Calendar View', value: 'calendar', default: true },
