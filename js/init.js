@@ -172,12 +172,10 @@ function init() {
     const todayKey = `${getWeekKey(today)}-${todayDayName}`;
 
     // Get dates for this week for scheduling examples
-    const tomorrow = dateFns.addDays(today, 1);
     const dayAfterTomorrow = dateFns.addDays(today, 2);
 
     // Format dates for (SCHEDULED: ...) and (NOTIFY: ...) tags
     const todayDateStr = dateFns.format(today, 'yyyy-MM-dd');
-    const tomorrowDateStr = dateFns.format(tomorrow, 'dd.MM.yyyy'); // Use different format
     const dayAfterTomorrowDateStr = dateFns.format(dayAfterTomorrow, 'yyyy-MM-dd');
     const notificationTime = dateFns.addMinutes(today, 1); // Set for 1 minute in the future
     const notificationTimeStr = dateFns.format(notificationTime, 'yyyy-MM-dd HH:mm');
@@ -328,6 +326,8 @@ Use this page for your daily thoughts, reflections, and mood tracking.
 
 ## Mood Log
 *Track your mood by selecting an emoji and clicking a date.*
+
+
 MOOD: calendar, emoji, ${threeDaysAgoStr}:calm, ${twoDaysAgoStr}:happy, ${yesterdayStr}:sad
 
 ---
