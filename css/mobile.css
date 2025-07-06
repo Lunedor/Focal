@@ -201,6 +201,9 @@
   .calendar-widget, .chart-widget {
       max-width: 100%;  /* Allow calendar and chart to use full width */
   }
+  .mood-tracker-wrapper {
+    padding: 0 !important;
+  }
   .mood-interaction-bar {
     font-size: small;
   }
