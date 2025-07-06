@@ -133,6 +133,16 @@ const moodTracker = (() => {
         });
     }
 
+    function renderWidgetHeader() {
+        return `
+            <div class="widget-header">
+              <button id="prev-month" class="widget-nav-btn">&lt; Prev</button>
+              <h2 class="widget-title">${dateFns.format(state.currentMonthDate, 'MMMM yyyy')}</h2>
+              <button id="next-month" class="widget-nav-btn">Next &gt;</button>
+            </div>
+        `;
+    }
+
     function renderCalendarWidget() {
         const monthStart = dateFns.startOfMonth(state.currentMonthDate);
         const monthEnd = dateFns.endOfMonth(state.currentMonthDate);
@@ -171,11 +181,7 @@ const moodTracker = (() => {
 
         widgetContainer.innerHTML = `
             <div class="calendar-widget">
-              <div class="widget-header">
-                <button id="prev-month" class="widget-nav-btn">&lt; Prev</button>
-                <h2 class="widget-title">${dateFns.format(state.currentMonthDate, 'MMMM yyyy')}</h2>
-                <button id="next-month" class="widget-nav-btn">Next &gt;</button>
-              </div>
+              ${renderWidgetHeader()}
               <div class="calendar-grid-header">
                 ${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<div>${d}</div>`).join('')}
               </div>
@@ -242,11 +248,7 @@ const moodTracker = (() => {
 
         widgetContainer.innerHTML = `
             <div class="circular-widget-container">
-                <div class="widget-header">
-                    <button id="prev-month" class="widget-nav-btn">&lt; Prev</button>
-                    <h2 class="widget-title">${dateFns.format(state.currentMonthDate, 'MMMM yyyy')}</h2>
-                    <button id="next-month" class="widget-nav-btn">Next &gt;</button>
-                </div>
+                ${renderWidgetHeader()}
                 <div class="circular-widget">
                     <span class="circular-month-label">${dateFns.format(state.currentMonthDate, 'MMM')}</span>
                     ${cells}
@@ -308,11 +310,7 @@ const moodTracker = (() => {
 
         widgetContainer.innerHTML = `
             <div class="chart-widget">
-              <div class="widget-header">
-                <button id="prev-month" class="widget-nav-btn">&lt; Prev</button>
-                <h2 class="widget-title">${dateFns.format(state.currentMonthDate, 'MMMM yyyy')}</h2>
-                <button id="next-month" class="widget-nav-btn">Next &gt;</button>
-              </div>
+              ${renderWidgetHeader()}
               <div class="calendar-grid-header">
                 ${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<div>${d}</div>`).join('')}
               </div>

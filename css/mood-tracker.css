@@ -214,7 +214,9 @@
 .circular-widget {
     position: relative;
     width: 350px;
-    height: 350px;
+    height: 350px; /* Keep large size for bigger screens */
+    max-height: 80vmin; /* Limit max size to 80% of the smaller viewport dimension (vmin) */
+    max-width: 80vmin; /* Limit max size to 80% of the smaller viewport dimension (vmin) */
     display: flex;
     align-items: center;
     justify-content: center;

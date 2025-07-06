@@ -198,8 +198,8 @@
   .mood-emoji {
     font-size: 1.5rem !important;
   }
-  .circular-widget{
-    height: 320px;
-    width: 320px;
-  }
+    /* Mood Tracker Adjustments */
+    .calendar-widget, .chart-widget {
+        max-width: 100%;  /* Allow calendar and chart to use full width */
+    }
 }
