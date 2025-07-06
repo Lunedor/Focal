@@ -6,6 +6,20 @@ function renderLibraryPage(pageTitle) {
   DOM.pageContentWrapper.innerHTML = parseMarkdown(content);
   DOM.pageContentWrapper.dataset.key = key;
 
+  // --- Initialize Mood Tracker if placeholder exists ---
+  const moodTrackerPlaceholder = DOM.pageContentWrapper.querySelector('.mood-tracker-placeholder');
+  if (moodTrackerPlaceholder) {
+    const command = moodTrackerPlaceholder.dataset.command;
+    const onCommandChange = (newCommand) => {
+        // Update the page content in the background without re-rendering the whole page
+        const currentPageKey = DOM.pageContentWrapper.dataset.key;
+        if (currentPageKey) {
+            setStorage(currentPageKey, newCommand);
+        }
+    };
+    moodTracker.init(moodTrackerPlaceholder, command, onCommandChange);
+  }
+
   // --- Backlinks (Linked Mentions) ---
   const backlinks = findBacklinks(pageTitle);
   let backlinksHtml = '';

@@ -185,4 +185,14 @@
     opacity: 1;
     pointer-events: auto;
   }
+   .mood-palette-buttons {
+    gap: 0.125rem !important;
+  }
+  .mood-button {
+    width: 2.5rem !important;
+    height: 3rem !important;
+  }
+  .mood-emoji {
+    font-size: 1.5rem !important;
+  }
 }

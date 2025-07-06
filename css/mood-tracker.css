@@ -1,0 +1,362 @@
+/* css/mood-tracker.css */
+
+/* General Wrapper */
+.mood-tracker-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1rem;
+    background-color: var(--color-background);
+    color: var(--color-text);
+    height: 100%;
+}
+
+.mood-tracker-wrapper .widget-error {
+    color: #dc2626; /* red-600 */
+    background-color: var(--color-sidebar-bg);
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid #dc2626;
+}
+
+/* Widget Header */
+.widget-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    width: 100%;
+    max-width: 450px;
+}
+
+.widget-title {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--color-text);
+}
+
+.widget-nav-btn {
+    background-color: transparent;
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.widget-nav-btn:hover {
+    background-color: var(--color-sidebar-active-bg);
+    border-color: var(--color-link);
+}
+
+/* Mood Palette */
+.mood-palette {
+    background-color: var(--color-sidebar-bg);
+    padding: 1rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.mood-palette-title {
+    text-align: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-sidebar-text);
+    margin-bottom: 0.75rem;
+    letter-spacing: 0.05em;
+}
+
+.mood-palette-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.mood-button {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    cursor: pointer;
+    border: 2px solid transparent;
+    background-color: var(--color-background);
+    transition: all 0.2s ease-in-out;
+}
+
+.mood-button:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.mood-button.ring-2 {
+    border-color: var(--color-link);
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.mood-emoji {
+    font-size: 1.5rem;
+}
+
+.mood-label {
+    font-size: 0.75rem;
+    color: var(--color-text);
+}
+
+/* Interaction Text */
+.mood-interaction-area {
+    width: 100%;
+    max-width: 500px;
+    padding: 1rem;
+    background-color: var(--color-sidebar-bg);
+    border-radius: 8px;
+    text-align: center;
+    min-height: 40px;
+}
+
+#mood-interaction-text {
+    color: var(--color-sidebar-text);
+    transition: opacity 0.3s;
+}
+
+/* Calendar Widget */
+.calendar-widget {
+    width: 100%;
+    max-width: 450px;
+}
+
+.calendar-grid-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--color-sidebar-text);
+    margin-bottom: 0.5rem;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.25rem;
+}
+
+.day-cell {
+    height: 40px;
+    width: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease-in-out;
+}
+
+.day-cell.cursor-pointer:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 2px var(--color-link);
+    z-index: 10;
+}
+
+.day-cell.disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.day-cell {
+    cursor: pointer;
+}
+
+.day-cell-content {
+    position: relative;
+    z-index: 1;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.day-cell-emoji {
+    font-size: 1.5rem;
+}
+
+.day-cell-number {
+    font-size: 0.9rem;
+    color: var(--color-text);
+}
+
+.day-cell-default {
+    border: 1px solid var(--color-border);
+    background-color: var(--color-sidebar-bg);
+}
+
+.day-cell.is-today,
+.circular-cell.is-today,
+.chart-cell.is-today {
+    box-shadow: 0 0 0 2px var(--color-link);
+    z-index: 11; /* Ensure today is always on top */
+}
+
+/* Circular Widget */
+.circular-widget-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+}
+
+.circular-widget {
+    position: relative;
+    width: 350px;
+    height: 350px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--color-border);
+    border-radius: 50%;
+    background-color: var(--color-background);
+}
+
+.circular-widget::before {
+    content: '';
+    position: absolute;
+    width: 80%;
+    height: 80%;
+    border: 1px dashed var(--color-border);
+    border-radius: 50%;
+    opacity: 0.5;
+}
+
+.circular-cell {
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    transition: all 0.2s ease-in-out;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-sidebar-bg);
+    z-index: 5; /* Default z-index */
+    cursor: pointer;
+}
+
+.circular-cell:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 0 2px var(--color-link);
+    z-index: 10;
+}
+
+.circular-cell.has-mood {
+    z-index: 6;
+    border: none; /* No border for colored cells */
+}
+
+.circular-cell-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.circular-month-label {
+    position: absolute;
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: var(--color-sidebar-text);
+    -webkit-user-select: none; /* Safari */
+    user-select: none;
+    opacity: 0.4;
+    z-index: 1;
+}
+
+/* Chart Widget */
+.chart-widget {
+    width: 100%;
+    max-width: 450px;
+}
+
+.chart-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.1rem;
+}
+
+.chart-cell {
+    height: 40px;
+    width: 40px;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease-in-out;
+    position: relative;
+    cursor: pointer;
+}
+
+.chart-cell.cursor-pointer:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 2px var(--color-link);
+    z-index: 10;
+}
+
+.chart-cell.disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.chart-cell-content {
+    position: relative;
+    z-index: 1;
+}
+
+.chart-cell-emoji {
+    font-size: 1.5rem;
+}
+
+.chart-cell-default {
+    border: 1px solid var(--color-border);
+    background-color: var(--color-sidebar-bg);
+}
+
+.chart-cell-tooltip {
+    display: none;
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    background-color: var(--color-sidebar-bg);
+    color: var(--color-text);
+    font-size: 0.8rem;
+    border-radius: 8px;
+    white-space: nowrap;
+    z-index: 20;
+    pointer-events: none;
+}
+
+.chart-cell-group:hover .chart-cell-tooltip {
+    display: block;
+}
+
+
+/* Mood Colors */
+.mood-happy    { background-color: #4ade80; } /* green-400 - brighter, more joyful */
+.mood-excited  { background-color: #facc15; } /* yellow-400 - vivid energy */
+.mood-neutral  { background-color: #e5e7eb; } /* gray-200 - clean, even */
+.mood-sad      { background-color: #60a5fa; } /* blue-400 - soft melancholy */
+.mood-angry    { background-color: #dc2626; } /* red-600 - deeper rage */
+.mood-calm     { background-color: #5eead4; } /* teal-300 - soothing and soft */
+.mood-anxious  { background-color: #fcd34d; } /* amber-300 - nervous tension */
+.mood-proud    { background-color: #c084fc; } /* violet-400 - noble and elevated */
+
+.text-contrast {
+    color: white;
+}

@@ -42,6 +42,26 @@ const goalExtension = {
     }
 };
 
+const moodTrackerExtension = {
+    name: 'moodTracker',
+    level: 'block',
+    start(src) { return src.match(/^MOOD:/)?.index; },
+    tokenizer(src, tokens) {
+        const rule = /^MOOD:.*(?:\n|$)/;
+        const match = rule.exec(src);
+        if (match) {
+            return {
+                type: 'moodTracker',
+                raw: match[0],
+                text: match[0].trim()
+            };
+        }
+    },
+    renderer(token) {
+        return `<div class="mood-tracker-placeholder" data-command='${token.text}'></div>`;
+    }
+};
+
 const taskSummaryExtension = {
     name: 'taskSummary',
     level: 'block',
@@ -120,7 +140,7 @@ renderer.listitem = (text, task, checked) => {
 };
 
 marked.use({
-    extensions: [wikiLinkExtension, taskSummaryExtension, goalExtension],
+    extensions: [wikiLinkExtension, taskSummaryExtension, goalExtension, moodTrackerExtension],
     gfm: true,
     breaks: true,
     renderer: renderer
