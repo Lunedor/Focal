@@ -198,8 +198,10 @@
   .mood-emoji {
     font-size: 1.25rem !important;
   }
-    /* Mood Tracker Adjustments */
-    .calendar-widget, .chart-widget {
-        max-width: 100%;  /* Allow calendar and chart to use full width */
-    }
+  .calendar-widget, .chart-widget {
+      max-width: 100%;  /* Allow calendar and chart to use full width */
+  }
+  .mood-interaction-bar {
+    font-size: small;
+  }
 }
