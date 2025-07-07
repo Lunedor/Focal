@@ -213,7 +213,7 @@ textarea {
   max-width: 700px;
 }
 #library-page-view textarea {
-  min-height: 500px;
+  height: 65vh;
 }
 .content-wrapper:focus-within { 
   box-shadow: none;
@@ -222,7 +222,7 @@ textarea {
   border-top-left-radius: 0;
   border-top-right-radius: 0;
   border-top: none;
-  height: 70vh;
+  height: 60vh;
 }
 textarea:focus { 
   outline: none !important;

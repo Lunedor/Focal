@@ -14,7 +14,24 @@ function renderLibraryPage(pageTitle) {
         // Update the page content in the background without re-rendering the whole page
         const currentPageKey = DOM.pageContentWrapper.dataset.key;
         if (currentPageKey) {
-            setStorage(currentPageKey, newCommand);
+            // Get the current content
+            const content = getStorage(currentPageKey);
+            if (!content) return;
+            
+            // Replace the MOOD command with the new one
+            const oldCommand = moodTrackerPlaceholder.dataset.command;
+            const updatedContent = content.replace(oldCommand, newCommand);
+            
+            // Update the storage
+            setStorage(currentPageKey, updatedContent);
+            
+            // Update the placeholder's command attribute
+            moodTrackerPlaceholder.dataset.command = newCommand;
+            
+            // Trigger sync to cloud if available
+            if (typeof debouncedSyncWithCloud === 'function') {
+              debouncedSyncWithCloud();
+            }
         }
     };
     moodTracker.init(moodTrackerPlaceholder, command, onCommandChange);

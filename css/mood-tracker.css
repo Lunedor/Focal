@@ -25,15 +25,16 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 1rem;
-    width: 100%;
+    margin: auto;
     max-width: 450px;
+    margin-bottom: 1.5rem;
 }
 
 .widget-title {
-    font-size: 1.1rem;
+    font-size: 1.1rem !important;
     font-weight: bold;
     color: var(--color-text);
+    margin: 0 !important;
 }
 
 .widget-nav-btn {
@@ -49,6 +50,69 @@
 .widget-nav-btn:hover {
     background-color: var(--color-sidebar-active-bg);
     border-color: var(--color-link);
+}
+
+/* Mood Controls */
+.mood-controls {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    width: 100%;
+    max-width: 450px;
+    background-color: var(--color-sidebar-bg);
+    padding: 1rem;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    position: relative;
+    z-index: 100; /* Ensure dropdowns appear above other content */
+}
+
+.mood-control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    position: relative;
+}
+
+.mood-select-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.mood-control-group label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-sidebar-text);
+}
+
+.mood-select {
+    background-color: var(--color-background);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 0.5rem;
+    width: 150px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    pointer-events: auto; /* Ensure click events work normally */
+    -webkit-appearance: menulist;
+    -moz-appearance: menulist;
+    appearance: menulist; /* Force native dropdown appearance */
+    -webkit-user-select: none;
+    user-select: none; /* Prevent text selection */
+}
+
+.mood-select:focus {
+    outline: none;
+    border-color: var(--color-link);
+    box-shadow: 0 0 0 2px rgba(var(--color-link-rgb), 0.25);
+}
+
+.mood-select option {
+    background-color: var(--color-background);
+    color: var(--color-text);
+    padding: 0.5rem;
 }
 
 /* Mood Palette */
@@ -69,7 +133,8 @@
 }
 
 .mood-palette-buttons {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
     justify-content: center;
     gap: 0.75rem;
 }
@@ -87,11 +152,17 @@
     border: 2px solid transparent;
     background-color: var(--color-background);
     transition: all 0.2s ease-in-out;
+    position: relative;
+    overflow: hidden;
 }
 
 .mood-button:hover {
     transform: translateY(-4px);
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.mood-button:hover .mood-color-splotch {
+    opacity: 1;
 }
 
 .mood-button.ring-2 {
@@ -100,8 +171,32 @@
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
+.mood-button.ring-2 .mood-color-splotch {
+    opacity: 1;
+}
+
 .mood-emoji {
     font-size: 1.5rem;
+    position: relative;
+    z-index: 2;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.mood-color-splotch {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    opacity: 0.8;
 }
 
 .mood-label {
@@ -281,83 +376,199 @@
 /* Chart Widget */
 .chart-widget {
     width: 100%;
-    max-width: 450px;
+    max-width: 700px;
 }
 
-.chart-grid {
+/* Year Grid Chart */
+.year-grid-container {
+    position: relative;
+    width: 100%;
+    margin: 1rem 0;
+    padding: 3rem;
+    overflow-x: auto; /* Allow horizontal scrolling if needed */
+    background-color: var(--color-background);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.month-headers {
+    display: flex;
+    width: 100%;
+    margin-bottom: 8px;
+}
+
+.month-header-spacer {
+    width: 30px; /* Same width as day-number column */
+    flex-shrink: 0;
+}
+
+.month-label {
+    flex: 1;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: var(--color-sidebar-text);
+    padding: 4px 0;
+}
+
+.year-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.day-row {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 0.1rem;
+    grid-template-columns: 30px 1fr;
+    height: 30px;
 }
 
-.chart-cell {
-    height: 40px;
-    width: 40px;
-    border-radius: 2px;
+.day-number {
+    font-size: 0.7rem;
+    text-align: center;
+    padding-right: 8px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease-in-out;
+    justify-content: flex-end;
+    color: var(--color-sidebar-text);
+}
+
+.month-cells {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 2px;
+}
+
+.pixel-cell-wrapper {
     position: relative;
+}
+
+.pixel-cell-wrapper.empty {
+    background: repeating-linear-gradient(
+        45deg,
+        var(--color-sidebar-bg),
+        var(--color-sidebar-bg) 3px,
+        var(--color-background) 3px,
+        var(--color-background) 6px
+    );
+    opacity: 0.3;
+}
+
+.pixel-cell {
+    height: 30px;
+    width: 30px;
+    border-radius: 2px;
+    transition: all 0.15s ease-in-out;
     cursor: pointer;
 }
 
-.chart-cell.cursor-pointer:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 0 2px var(--color-link);
+.pixel-cell:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     z-index: 10;
 }
 
-.chart-cell.disabled {
-    opacity: 0.4;
-    cursor: default;
+.pixel-cell-emoji {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.9rem;
 }
 
-.chart-cell-content {
-    position: relative;
-    z-index: 1;
-}
-
-.chart-cell-emoji {
-    font-size: 1.5rem;
-}
-
-.chart-cell-default {
-    border: 1px solid var(--color-border);
+.pixel-cell-default {
     background-color: var(--color-sidebar-bg);
+    border: 1px solid var(--color-border);
 }
 
-.chart-cell-tooltip {
+.pixel-cell-tooltip {
     display: none;
     position: absolute;
     bottom: 100%;
     left: 50%;
     transform: translateX(-50%);
-    margin-bottom: 0.5rem;
-    padding: 0.25rem 0.5rem;
-    background-color: var(--color-sidebar-bg);
+    margin-bottom: 6px;
+    padding: 0.5rem;
+    background-color: var(--color-background);
     color: var(--color-text);
     font-size: 0.8rem;
-    border-radius: 8px;
+    border-radius: 6px;
     white-space: nowrap;
-    z-index: 20;
+    z-index: 50;
     pointer-events: none;
+    border: 1px solid var(--color-border);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    min-width: 120px;
 }
 
-.chart-cell-group:hover .chart-cell-tooltip {
+/* Edge detection for tooltips */
+.pixel-cell-wrapper:nth-child(1) .pixel-cell-tooltip {
+    transform: translateX(-10%);
+    left: 10%;
+}
+
+.pixel-cell-wrapper:nth-child(2) .pixel-cell-tooltip {
+    transform: translateX(-25%);
+    left: 25%;
+}
+
+.pixel-cell-wrapper:nth-child(11) .pixel-cell-tooltip {
+    transform: translateX(-75%);
+    left: 75%;
+}
+
+.pixel-cell-wrapper:nth-child(12) .pixel-cell-tooltip {
+    transform: translateX(-90%);
+    left: 90%;
+}
+
+.pixel-cell-wrapper:hover .pixel-cell-tooltip {
     display: block;
+}
+
+.tooltip-date {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.tooltip-mood {
+    font-size: 0.75rem;
+    opacity: 0.9;
+}
+
+/* Year header styling */
+.year-header {
+    width: 50%;
+    margin-bottom: -1rem;
 }
 
 
 /* Mood Colors */
-.mood-happy    { background-color: #4ade80; } /* green-400 - brighter, more joyful */
-.mood-excited  { background-color: #facc15; } /* yellow-400 - vivid energy */
-.mood-neutral  { background-color: #e5e7eb; } /* gray-200 - clean, even */
-.mood-sad      { background-color: #60a5fa; } /* blue-400 - soft melancholy */
-.mood-angry    { background-color: #dc2626; } /* red-600 - deeper rage */
-.mood-calm     { background-color: #5eead4; } /* teal-300 - soothing and soft */
-.mood-anxious  { background-color: #fcd34d; } /* amber-300 - nervous tension */
-.mood-proud    { background-color: #c084fc; } /* violet-400 - noble and elevated */
+.mood-happy       { background-color: #4ade80; } /* green‑400  – joyful boost            */
+.mood-excited     { background-color: #f97316; } /* orange‑500 – high‑energy buzz        */
+.mood-content     { background-color: #86efac; } /* green‑300  – gentle satisfaction     */
+.mood-neutral     { background-color: #9ca3af; } /* gray‑400   – balanced neutrality     */
+.mood-sad         { background-color: #60a5fa; } /* blue‑400   – mellow blues            */
+.mood-angry       { background-color: #ef4444; } /* red‑500    – intense frustration     */
+.mood-calm        { background-color: #5eead4; } /* teal‑300   – soothing calmness       */
+.mood-anxious     { background-color: #facc15; } /* yellow‑400 – restless caution        */
+.mood-lonely      { background-color: #a78bfa; } /* violet‑400 – reflective solitude     */
+.mood-tired       { background-color: #d4d4d8; } /* gray‑300   – low energy              */
+.mood-stressed    { background-color: #fb7185; } /* rose‑400   – tension peak            */
+.mood-grateful    { background-color: #fbbf24; } /* amber‑400  – warm appreciation       */
+.mood-motivated   { background-color: #22c55e; } /* emerald‑500– go‑get‑’em green        */
+.mood-overwhelmed { background-color: #f472b6; } /* pink‑400   – emotional saturation    */
+.mood-proud       { background-color: #8b5cf6; } /* violet‑500 – confident purple        */
+.mood-nostalgic   { background-color: #fcd34d; } /* amber‑300  – sepia memories          */
+.mood-bored       { background-color: #94a3b8; } /* slate‑400  – monotonous gray         */
+.mood-hopeful     { background-color: #7dd3fc; } /* sky‑300    – optimistic horizon      */
+.mood-peaceful    { background-color: #a7f3d0; } /* mint green – inner harmony         */
+.mood-inspired    { background-color: #fcd34d; } /* gold‑300   – creative spark        */
+.mood-confused    { background-color: #fda4af; } /* rose‑300   – dazed uncertainty     */
+.mood-loved       { background-color: #f87171; } /* red‑400    – warmth & affection    */
+.mood-shy         { background-color: #c4b5fd; } /* indigo‑300 – soft vulnerability     */
+.mood-determined  { background-color: #fb923c; } /* orange‑400 – drive & fire          */
+
 
 .text-contrast {
     color: white;

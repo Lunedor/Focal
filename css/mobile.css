@@ -199,10 +199,12 @@
     font-size: 1.25rem !important;
   }
   .calendar-widget, .chart-widget {
-      max-width: 100%;  /* Allow calendar and chart to use full width */
+      max-height: 900px;
   }
   .mood-tracker-wrapper {
+    overflow-x: hidden;
     padding: 0 !important;
+    margin: -15px !important;
   }
   .mood-interaction-bar {
     font-size: small;
@@ -223,5 +225,16 @@
 .finance-transaction-list th {
     padding: 4px !important;
     font-size: 0.85em !important;
+  }
+.year-header {
+    margin-bottom: -5rem !important;
+  }
+.year-grid-container {
+    transform: scale(0.8);
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  #mood-controls-container {
+    transform: scale(0.9);
   }
 }

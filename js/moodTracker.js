@@ -2,16 +2,39 @@
 
 const moodTracker = (() => {
     // --- STATE & CONSTANTS ---
+    // Reference to global DOM object if available
+    const DOM = window.DOM || {};
+    // Reference to storage functions
+    const getStorage = window.getStorage || ((key) => localStorage.getItem(key) || '');
+    const setStorage = window.setStorage || ((key, value) => localStorage.setItem(key, value));
     const MOODS = {
-        happy: { label: 'Happy', color: 'mood-happy', emoji: '😊' },
-        excited: { label: 'Excited', color: 'mood-excited', emoji: '🤩' },
-        neutral: { label: 'Neutral', color: 'mood-neutral', emoji: '😐' },
-        sad: { label: 'Sad', color: 'mood-sad', emoji: '😢' },
-        angry: { label: 'Angry', color: 'mood-angry', emoji: '😠' },
-        calm: { label: 'Calm', color: 'mood-calm', emoji: '😌' },
-        anxious: { label: 'Anxious', color: 'mood-anxious', emoji: '😟' },
-        proud: { label: 'Proud', color: 'mood-proud', emoji: '😎' }
+        happy:       { label: 'Happy', color: 'mood-happy', emoji: '😊' },
+        excited:     { label: 'Excited', color: 'mood-excited', emoji: '🤩' },
+        motivated:   { label: 'Motivated', color: 'mood-motivated', emoji: '💪' },
+        inspired:    { label: 'Inspired', color: 'mood-inspired', emoji: '✨' },
+        proud:       { label: 'Proud', color: 'mood-proud', emoji: '😎' },
+        hopeful:     { label: 'Hopeful', color: 'mood-hopeful', emoji: '🌈' },
+        grateful:    { label: 'Grateful', color: 'mood-grateful', emoji: '🙏' },
+        peaceful:    { label: 'Peaceful', color: 'mood-peaceful', emoji: '🕊️' },
+        loved:       { label: 'Loved', color: 'mood-loved', emoji: '❤️' },
+        content:     { label: 'Content', color: 'mood-content', emoji: '🙂' },
+        calm:        { label: 'Calm', color: 'mood-calm', emoji: '😌' },
+        neutral:     { label: 'Neutral', color: 'mood-neutral', emoji: '😐' },
+        nostalgic:   { label: 'Nostalgic', color: 'mood-nostalgic', emoji: '🕰️' },
+        tired:       { label: 'Tired', color: 'mood-tired', emoji: '😴' },
+        bored:       { label: 'Bored', color: 'mood-bored', emoji: '🥱' },
+        shy:         { label: 'Shy', color: 'mood-shy', emoji: '😳' },
+        confused:    { label: 'Confused', color: 'mood-confused', emoji: '😵' },
+        anxious:     { label: 'Anxious', color: 'mood-anxious', emoji: '😟' },
+        stressed:    { label: 'Stressed', color: 'mood-stressed', emoji: '😣' },
+        overwhelmed: { label: 'Overwhelmed', color: 'mood-overwhelmed', emoji: '😩' },
+        sad:         { label: 'Sad', color: 'mood-sad', emoji: '😢' },
+        lonely:      { label: 'Lonely', color: 'mood-lonely', emoji: '🥺' },
+        angry:       { label: 'Angry', color: 'mood-angry', emoji: '😠' },
+        determined:  { label: 'Determined', color: 'mood-determined', emoji: '🔥' }
     };
+
+
     const MOOD_KEYS = Object.keys(MOODS);
     const WIDGET_TYPES = ['calendar', 'circular', 'chart'];
     const WIDGET_STYLES = ['color', 'emoji', 'all'];
@@ -30,6 +53,7 @@ const moodTracker = (() => {
     let containerEl = null;
     let widgetContainer = null;
     let moodPaletteContainer = null;
+    let controlsContainer = null;
     let interactionTextEl = null;
 
     // --- PARSER ---
@@ -99,6 +123,83 @@ const moodTracker = (() => {
     }
 
     // --- RENDER FUNCTIONS ---
+    function renderControls() {
+        // Create options for widget type dropdown
+        const typeOptions = WIDGET_TYPES.map(type => {
+            const isSelected = state.widgetType === type;
+            return `<option value="${type}" ${isSelected ? 'selected' : ''}>${type.charAt(0).toUpperCase() + type.slice(1)}</option>`;
+        }).join('');
+
+        // Create options for widget style dropdown
+        const styleOptions = WIDGET_STYLES.map(style => {
+            const isSelected = state.widgetStyle === style;
+            return `<option value="${style}" ${isSelected ? 'selected' : ''}>${style.charAt(0).toUpperCase() + style.slice(1)}</option>`;
+        }).join('');
+
+        controlsContainer.innerHTML = `
+            <div class="mood-controls">
+                <div class="mood-control-group" onclick="event.stopPropagation()">
+                    <label for="widget-type-select">Widget Type:</label>
+                    <div class="mood-select-wrapper">
+                        <select id="widget-type-select" class="mood-select" tabindex="0">
+                            ${typeOptions}
+                        </select>
+                    </div>
+                </div>
+                <div class="mood-control-group" onclick="event.stopPropagation()">
+                    <label for="widget-style-select">Display Style:</label>
+                    <div class="mood-select-wrapper">
+                        <select id="widget-style-select" class="mood-select" tabindex="0">
+                            ${styleOptions}
+                        </select>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Get references to the dropdown elements
+        const typeSelect = controlsContainer.querySelector('#widget-type-select');
+        const styleSelect = controlsContainer.querySelector('#widget-style-select');
+
+        // Remove any existing listeners to avoid duplicates
+        const newTypeSelect = typeSelect.cloneNode(true);
+        const newStyleSelect = styleSelect.cloneNode(true);
+        
+        typeSelect.parentNode.replaceChild(newTypeSelect, typeSelect);
+        styleSelect.parentNode.replaceChild(newStyleSelect, styleSelect);
+
+        // Add event listeners
+        newTypeSelect.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent event bubbling
+        });
+        
+        newStyleSelect.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent event bubbling
+        });
+        
+        newTypeSelect.addEventListener('change', (e) => {
+            e.preventDefault(); // Prevent default action that might trigger edit mode
+            e.stopPropagation(); // Stop event from bubbling up
+            const newType = e.target.value;
+            updateWidgetConfig(newType, state.widgetStyle);
+        });
+
+        newStyleSelect.addEventListener('change', (e) => {
+            e.preventDefault(); // Prevent default action that might trigger edit mode
+            e.stopPropagation(); // Stop event from bubbling up
+            const newStyle = e.target.value;
+            updateWidgetConfig(state.widgetType, newStyle);
+        });
+        
+        // Prevent edit mode when clicking labels
+        controlsContainer.querySelectorAll('label').forEach(label => {
+            label.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+        });
+    }
+    
     function renderMoodPalette() {
         const buttonsHTML = MOOD_KEYS.map(mood => {
             const config = MOODS[mood];
@@ -110,8 +211,8 @@ const moodTracker = (() => {
                     class="mood-button ${ringClass}"
                     title="${config.label}"
                 >
-                    <span class="mood-emoji">${config.emoji}</span>
                     <div class="mood-color-splotch ${config.color}"></div>
+                    <span class="mood-emoji">${config.emoji}</span>
                 </button>
             `;
         }).join('');
@@ -275,80 +376,199 @@ const moodTracker = (() => {
     }
 
     function renderChartWidget() {
-        const monthStart = dateFns.startOfMonth(state.currentMonthDate);
-        const monthEnd = dateFns.endOfMonth(state.currentMonthDate);
-        const calendarStart = dateFns.startOfWeek(monthStart);
-        const calendarEnd = dateFns.endOfWeek(monthEnd);
-        const days = dateFns.eachDayOfInterval({ start: calendarStart, end: calendarEnd });
-
-        const dayCellsHTML = days.map(day => {
-            const dateKey = dateFns.format(day, 'yyyy-MM-dd');
-            const mood = state.moodData[dateKey];
-            const moodInfo = mood ? MOODS[mood] : null;
-            const isCurrentMonth = dateFns.isSameMonth(day, state.currentMonthDate);
-            const isToday = dateFns.isToday(day);
-
-            let cellStyle = '';
-            if (moodInfo && (state.widgetStyle === 'color' || state.widgetStyle === 'all')) {
-                cellStyle = moodInfo.color;
-            } else if (isCurrentMonth) {
-                cellStyle = 'chart-cell-default';
+        // Get the current year from the selected date
+        const year = dateFns.getYear(state.currentMonthDate);
+        const yearStart = new Date(year, 0, 1); // January 1st
+        
+        // Create month headers (12 columns)
+        const monthHeaders = `<div class="month-header-spacer"></div>` + 
+            Array.from({ length: 12 }, (_, monthIndex) => {
+                const month = new Date(year, monthIndex, 1);
+                return `<div class="month-label">${dateFns.format(month, 'MMM')}</div>`;
+            }).join('');
+        
+        // Create day rows (31 rows)
+        let pixelGrid = '';
+        
+        for (let day = 1; day <= 31; day++) {
+            // Create a row for this day number
+            let dayRow = `<div class="day-row">
+                <div class="day-number">${day}</div>
+                <div class="month-cells">`;
+                
+            // Add cells for each month (12 cells per row)
+            for (let month = 0; month < 12; month++) {
+                // Check if this day exists in this month
+                const daysInMonth = dateFns.getDaysInMonth(new Date(year, month, 1));
+                
+                if (day <= daysInMonth) {
+                    // This is a valid day for this month
+                    const currentDate = new Date(year, month, day);
+                    const dateKey = dateFns.format(currentDate, 'yyyy-MM-dd');
+                    const mood = state.moodData[dateKey];
+                    const moodInfo = mood ? MOODS[mood] : null;
+                    const isToday = dateFns.isToday(currentDate);
+                    
+                    // Determine cell styling
+                    let cellStyle = 'pixel-cell-default';
+                    let cellContent = '';
+                    
+                    if (moodInfo) {
+                        cellStyle = moodInfo.color;
+                        if (state.widgetStyle === 'emoji' || state.widgetStyle === 'all') {
+                            cellContent = `<span class="pixel-cell-emoji">${moodInfo.emoji}</span>`;
+                        }
+                    }
+                    
+                    dayRow += `
+                        <div class="pixel-cell-wrapper" data-date="${currentDate.toISOString()}">
+                            <div class="pixel-cell ${cellStyle} ${isToday ? 'is-today' : ''}" title="${dateFns.format(currentDate, 'MMMM d, yyyy')}">
+                                ${cellContent}
+                            </div>
+                            <div class="pixel-cell-tooltip">
+                                <div class="tooltip-date">${dateFns.format(currentDate, 'MMM d')}</div>
+                                ${moodInfo ? `<div class="tooltip-mood">${moodInfo.label} ${moodInfo.emoji}</div>` : '<div class="tooltip-mood">No mood set</div>'}
+                            </div>
+                        </div>`;
+                } else {
+                    // This day doesn't exist in this month (e.g., February 30)
+                    dayRow += `<div class="pixel-cell-wrapper empty"></div>`;
+                }
             }
-
-            const content = (state.widgetStyle === 'emoji' && moodInfo) || (state.widgetStyle === 'all' && moodInfo) ? `<span class="chart-cell-emoji">${moodInfo.emoji}</span>` : ``;
-            const textColorClass = moodInfo && (state.widgetStyle === 'color' || state.widgetStyle === 'all') ? 'text-contrast' : '';
-
-            return `
-                <div class="chart-cell-group" data-date="${day.toISOString()}">
-                    <div class="chart-cell ${isCurrentMonth ? 'cursor-pointer' : 'disabled'} ${cellStyle} ${isToday ? 'is-today' : ''}">
-                        <span class="chart-cell-content ${textColorClass}">${content}</span>
-                    </div>
-                    <div class="chart-cell-tooltip">${dateFns.format(day, 'MMM d, yyyy')}${moodInfo ? `: ${moodInfo.label}` : ''}</div>
-                </div>
-            `;
-        }).join('');
+            
+            dayRow += `</div></div>`;
+            pixelGrid += dayRow;
+        }
 
         widgetContainer.innerHTML = `
             <div class="chart-widget">
-              ${renderWidgetHeader()}
-              <div class="calendar-grid-header">
-                ${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<div>${d}</div>`).join('')}
+              <div class="widget-header year-header">
+                <button id="prev-year" class="widget-nav-btn">&lt; Prev</button>
+                <h2 class="widget-title">${year}</h2>
+                <button id="next-year" class="widget-nav-btn">Next &gt;</button>
               </div>
-              <div class="chart-grid">${dayCellsHTML}</div>
+              <div class="year-grid-container">
+                <div class="month-headers">
+                  ${monthHeaders}
+                </div>
+                <div class="year-grid">
+                  ${pixelGrid}
+                </div>
+              </div>
             </div>
         `;
 
         // Attach Listeners
-        widgetContainer.querySelector('#prev-month').addEventListener('click', () => {
-            state.currentMonthDate = dateFns.subMonths(state.currentMonthDate, 1);
+        widgetContainer.querySelector('#prev-year').addEventListener('click', () => {
+            state.currentMonthDate = dateFns.subYears(state.currentMonthDate, 1);
             main();
         });
-        widgetContainer.querySelector('#next-month').addEventListener('click', () => {
-            state.currentMonthDate = dateFns.addMonths(state.currentMonthDate, 1);
+        
+        widgetContainer.querySelector('#next-year').addEventListener('click', () => {
+            state.currentMonthDate = dateFns.addYears(state.currentMonthDate, 1);
             main();
         });
-        widgetContainer.querySelectorAll('.chart-cell.cursor-pointer').forEach(cell => {
-             const date = new Date(cell.closest('.chart-cell-group').dataset.date);
-             cell.addEventListener('click', () => handleDayClick(date));
-             cell.addEventListener('mouseenter', () => handleDayHover(date));
-             cell.addEventListener('mouseleave', () => handleDayHover(null));
+        
+        widgetContainer.querySelectorAll('.pixel-cell').forEach(cell => {
+            const wrapper = cell.closest('.pixel-cell-wrapper');
+            if (wrapper && wrapper.dataset.date) {
+                const date = new Date(wrapper.dataset.date);
+                
+                cell.addEventListener('click', () => handleDayClick(date));
+                cell.addEventListener('mouseenter', () => handleDayHover(date));
+                cell.addEventListener('mouseleave', () => handleDayHover(null));
+            }
         });
     }
 
     // --- UTILITY FUNCTIONS ---
+    function updateWidgetConfig(newWidgetType, newWidgetStyle) {
+        state.widgetType = newWidgetType;
+        state.widgetStyle = newWidgetStyle;
+        
+        // Update the command string with new widget type and style
+        let commandPrefix = `MOOD: ${newWidgetType}, ${newWidgetStyle}`;
+        
+        const dataString = Object.entries(state.moodData)
+            .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+            .map(([date, mood]) => `${date}:${mood}`)
+            .join(', ');
+            
+        const newCommand = dataString ? `${commandPrefix}, ${dataString}` : commandPrefix;
+        
+        // Update state
+        const oldCommand = state.command;
+        state.command = newCommand;
+        
+        // Get the placeholder element
+        const placeholderEl = containerEl.closest('.mood-tracker-placeholder');
+        if (placeholderEl) {
+            // Update the command attribute on the placeholder element
+            placeholderEl.dataset.command = newCommand;
+            
+            // Get the current page key from the closest wrapper with a data-key
+            const pageWrapper = DOM.pageContentWrapper || document.querySelector('[data-key]');
+            if (pageWrapper && pageWrapper.dataset.key) {
+                const pageKey = pageWrapper.dataset.key;
+                const currentContent = getStorage(pageKey);
+                
+                if (currentContent) {
+                    // Replace the old command with the new one in the content
+                    const updatedContent = currentContent.replace(oldCommand, newCommand);
+                    setStorage(pageKey, updatedContent);
+                }
+            }
+        }
+        
+        // Then notify the parent app about the command change
+        state.onCommandChange(newCommand);
+        
+        main(); // Re-render the widget with new settings
+    }
+    
     function rebuildCommandString(newMoodData) {
-        const configMatch = state.command.match(/^mood:[^,]+,[^,]+/i);
-        if (!configMatch) return;
-
-        const configPart = configMatch[0];
+        // Extract widget type and style from current command
+        const widgetType = state.widgetType;
+        const widgetStyle = state.widgetStyle;
+        
+        // Create new command string with existing widget type and style
+        let commandPrefix = `MOOD: ${widgetType}, ${widgetStyle}`;
+        
         const dataString = Object.entries(newMoodData)
             .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
             .map(([date, mood]) => `${date}:${mood}`)
             .join(', ');
 
-        state.command = dataString ? `${configPart}, ${dataString}` : configPart;
+        // Create the new command
+        const newCommand = dataString ? `${commandPrefix}, ${dataString}` : commandPrefix;
+        const oldCommand = state.command;
+        
+        // Update state
+        state.command = newCommand;
         state.moodData = newMoodData;
-        state.onCommandChange(state.command);
+        
+        // Get the placeholder element
+        const placeholderEl = containerEl.closest('.mood-tracker-placeholder');
+        if (placeholderEl) {
+            // Update the command attribute on the placeholder element
+            placeholderEl.dataset.command = newCommand;
+            
+            // Get the current page key from the closest wrapper with a data-key
+            const pageWrapper = DOM.pageContentWrapper || document.querySelector('[data-key]');
+            if (pageWrapper && pageWrapper.dataset.key) {
+                const pageKey = pageWrapper.dataset.key;
+                const currentContent = getStorage(pageKey);
+                
+                if (currentContent) {
+                    // Replace the old command with the new one in the content
+                    const updatedContent = currentContent.replace(oldCommand, newCommand);
+                    setStorage(pageKey, updatedContent);
+                }
+            }
+        }
+        
+        // Then notify the parent app about the command change
+        state.onCommandChange(newCommand);
     }
 
     function updateInteractionText(text) {
@@ -363,6 +583,9 @@ const moodTracker = (() => {
         state.widgetStyle = parsed.widgetStyle;
         state.moodData = parsed.moodData;
 
+        // Refresh controls to match current state
+        renderControls();
+        
         // Clear previous widget
         widgetContainer.innerHTML = '';
 
@@ -388,6 +611,7 @@ const moodTracker = (() => {
         // Create the DOM structure for the widget inside the container
         containerEl.innerHTML = `
             <div class="mood-tracker-wrapper">
+                <div id="mood-controls-container"></div>
                 <div id="mood-widget-container"></div>
                 <div id="mood-palette-container"></div>
                 <div class="mood-interaction-bar">
@@ -398,8 +622,10 @@ const moodTracker = (() => {
 
         widgetContainer = containerEl.querySelector('#mood-widget-container');
         moodPaletteContainer = containerEl.querySelector('#mood-palette-container');
+        controlsContainer = containerEl.querySelector('#mood-controls-container');
         interactionTextEl = containerEl.querySelector('#mood-interaction-text');
 
+        renderControls();
         renderMoodPalette();
         main();
     }
