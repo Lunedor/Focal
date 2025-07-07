@@ -227,6 +227,7 @@
     font-size: 0.85em !important;
   }
 .year-header {
+    width: 70% !important;
     margin-bottom: -5rem !important;
   }
 .year-grid-container {
@@ -236,5 +237,16 @@
   }
   #mood-controls-container {
     transform: scale(0.9);
+  }
+  .day-row{
+    height: 25px !important;
+  }
+  .pixel-cell {
+    height: 25px !important;
+    width: 25px !important;
+  }
+  
+.circular-widget {
+  transform: scale(0.9);
   }
 }
