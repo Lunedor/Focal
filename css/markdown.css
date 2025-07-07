@@ -23,20 +23,20 @@
 .library-page-view .view-indicator::before {
   content: "📄";
 }
-.rendered-content a { color: var(--color-link); text-decoration: none; }
-.rendered-content a:hover { text-decoration: underline; }
-.rendered-content a[data-page-link] {
+.content-wrapper a { color: var(--color-link); text-decoration: none; }
+.content-wrapper a:hover { text-decoration: underline; }
+.content-wrapper a[data-page-link] {
   background-color: rgba(144, 202, 249, 0.15);
   border-bottom: 1px solid rgba(144, 202, 249, 0.4);
   padding: 0 2px;
   border-radius: 3px;
 }
-.rendered-content ul { padding-left: 1.5em; }
-.rendered-content li { margin-bottom: .25em; }
-.rendered-content input[type="checkbox"] { margin-right: .5em; }
+.content-wrapper ul { padding-left: 1.5em; }
+.content-wrapper li { margin-bottom: .25em; }
+.content-wrapper input[type="checkbox"] { margin-right: .5em; }
 
 /* Enhanced Blockquote Styling */
-.rendered-content blockquote {
+.content-wrapper blockquote {
   border-left: 4px solid var(--color-link);
   padding: 0.5rem 1rem;
   margin: 1rem 0;
@@ -44,13 +44,13 @@
   border-radius: 0 3px 3px 0;
 }
 
-.rendered-content blockquote p {
+.content-wrapper blockquote p {
   margin: 0.5em 0;
   font-style: italic;
 }
 
 /* Enhanced Table Styling */
-.rendered-content table {
+.content-wrapper table {
   border-collapse: collapse;
   width: 100%;
   margin: 1rem 0;
@@ -58,29 +58,30 @@
   border-radius: 4px;
 }
 
-.rendered-content th {
+.content-wrapper th {
   background-color: var(--color-sidebar-active-bg);
   color: var(--color-sidebar-text);
   font-weight: 600;
-  text-align: left;
+  text-align: center;
 }
 
-.rendered-content th, 
-.rendered-content td {
+.content-wrapper th, 
+.content-wrapper td {
   padding: 0.5rem 0.75rem;
   border: 1px solid var(--color-border);
+  text-align: center;
 }
 
-.rendered-content tr:nth-child(even) {
+.content-wrapper tr:nth-child(even) {
   background-color: rgba(var(--color-background-rgb, 255, 255, 255), 0.5);
 }
 
-.rendered-content tr:hover {
+.content-wrapper tr:hover {
   background-color: var(--color-focus);
 }
 
 /* Enhanced Code Block Styling */
-.rendered-content code {
+.content-wrapper code {
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
   background-color: var(--color-planner-bg);
   padding: 0.2em 0.4em;
@@ -89,7 +90,7 @@
   color: var(--color-planner-text);
 }
 
-.rendered-content pre {
+.content-wrapper pre {
   background-color: var(--color-sidebar-bg);
   border: 1px solid var(--color-border);
   border-radius: 4px;
@@ -99,7 +100,7 @@
   position: relative;
 }
 
-.rendered-content pre code {
+.content-wrapper pre code {
   background-color: transparent;
   padding: 0;
   border-radius: 0;
@@ -110,41 +111,41 @@
 }
 
 /* Syntax highlighting for code blocks */
-.rendered-content pre .keyword,
-.rendered-content pre .class,
-.rendered-content pre .tag {
+.content-wrapper pre .keyword,
+.content-wrapper pre .class,
+.content-wrapper pre .tag {
   color: var(--color-link);
 }
 
-.rendered-content pre .string,
-.rendered-content pre .value,
-.rendered-content pre .attr {
+.content-wrapper pre .string,
+.content-wrapper pre .value,
+.content-wrapper pre .attr {
   color: var(--color-progress-bar);
 }
 
-.rendered-content pre .comment {
+.content-wrapper pre .comment {
   color: var(--color-toggle-text);
   opacity: 0.7;
   font-style: italic;
 }
 
-.rendered-content pre .function,
-.rendered-content pre .method {
+.content-wrapper pre .function,
+.content-wrapper pre .method {
   color: var(--color-today-bg);
 }
 
-.rendered-content pre .number,
-.rendered-content pre .boolean {
+.content-wrapper pre .number,
+.content-wrapper pre .boolean {
   color: var(--color-today-text);
 }
 
 /* Language tag for code blocks */
-.rendered-content pre {
+.content-wrapper pre {
   counter-reset: line;
   position: relative;
 }
 
-.rendered-content pre::before {
+.content-wrapper pre::before {
   content: attr(data-language);
   position: absolute;
   top: 0;
@@ -158,11 +159,11 @@
 }
 
 /* Line numbers for code blocks */
-.rendered-content pre code {
+.content-wrapper pre code {
   counter-increment: line;
 }
 
-.rendered-content pre.line-numbers code::before {
+.content-wrapper pre.line-numbers code::before {
   content: counter(line);
   display: inline-block;
   width: 2em;
@@ -173,11 +174,11 @@
 }
 
 /* Copy button for code blocks */
-.rendered-content pre:hover .copy-button {
+.content-wrapper pre:hover .copy-button {
   opacity: 0.8;
 }
 
-.rendered-content pre .copy-button {
+.content-wrapper pre .copy-button {
   position: absolute;
   bottom: 0.5rem;
   right: 0.5rem;
@@ -191,66 +192,66 @@
   transition: opacity 0.2s;
 }
 
-.rendered-content pre .copy-button:hover {
+.content-wrapper pre .copy-button:hover {
   opacity: 1;
   background: var(--color-focus);
 }
 
 /* Enhanced styling for lists */
-.rendered-content ol, 
-.rendered-content ul {
+.content-wrapper ol, 
+.content-wrapper ul {
   padding-left: 2em;
 }
 
 /* Remove custom counter styling for ordered lists as Markdown already generates numbers */
-.rendered-content ol {
+.content-wrapper ol {
   list-style-position: outside;
   color: var(--color-link); /* Only the numbers will be colored */
 }
 
-.rendered-content ol li {
+.content-wrapper ol li {
   color: var(--color-text); /* Reset text color for list items */
   padding-left: 0.5em; /* Add a bit of padding after the number */
 }
 
 /* Style for nested lists */
-.rendered-content ol ol, 
-.rendered-content ul ul,
-.rendered-content ol ul,
-.rendered-content ul ol {
+.content-wrapper ol ol, 
+.content-wrapper ul ul,
+.content-wrapper ol ul,
+.content-wrapper ul ol {
   margin-top: 0.25em;
   margin-bottom: 0.5em;
 }
 
 /* Fix for paragraphs inside list items */
-.rendered-content li p {
+.content-wrapper li p {
   margin-top: 0.5em;
   margin-bottom: 0.5em;
 }
 
 /* Ensure proper spacing between list items with paragraphs */
-.rendered-content li + li {
+.content-wrapper li + li {
   margin-top: 0.5em;
 }
 
 /* Enhanced styling for definition lists */
-.rendered-content dl {
+.content-wrapper dl {
   margin: 1rem 0;
 }
 
-.rendered-content dt {
+.content-wrapper dt {
   font-weight: bold;
   color: var(--color-link);
   margin-top: 0.5rem;
 }
 
-.rendered-content dd {
+.content-wrapper dd {
   margin-left: 1.5rem;
   margin-bottom: 0.5rem;
 }
 
 /* Enhanced styling for horizontal rules */
-.rendered-content hr {
+.content-wrapper hr {
   border: none;
   height: 1px;
   background: linear-gradient(to right, transparent, var(--color-border) 20%, var(--color-border) 80%, transparent);
@@ -258,56 +259,56 @@
 }
 
 /* Enhanced styling for blockquotes with nested elements */
-.rendered-content blockquote blockquote {
+.content-wrapper blockquote blockquote {
   border-left-color: var(--color-progress-bar);
   background-color: rgba(var(--color-link-rgb, 11, 122, 255), 0.08);
 }
 
-.rendered-content blockquote blockquote blockquote {
+.content-wrapper blockquote blockquote blockquote {
   border-left-color: var(--color-today-bg);
   background-color: rgba(var(--color-link-rgb, 11, 122, 255), 0.12);
 }
 
 /* Enhanced styling for headers */
-.rendered-content h1,
-.rendered-content h2,
-.rendered-content h3,
-.rendered-content h4,
-.rendered-content h5,
-.rendered-content h6 {
+.content-wrapper h1,
+.content-wrapper h2,
+.content-wrapper h3,
+.content-wrapper h4,
+.content-wrapper h5,
+.content-wrapper h6 {
   margin-top: 1.5em;
   margin-bottom: 0.5em;
   position: relative;
 }
 
-.rendered-content h1 {
+.content-wrapper h1 {
   font-size: 2em;
   border-bottom: 1px solid var(--color-border);
   padding-bottom: 0.3em;
 }
 
-.rendered-content h2 {
+.content-wrapper h2 {
   font-size: 1.5em;
   border-bottom: 1px solid var(--color-border);
   padding-bottom: 0.2em;
 }
 
-.rendered-content h3 {
+.content-wrapper h3 {
   font-size: 1.25em;
 }
 
-.rendered-content h4 {
+.content-wrapper h4 {
   font-size: 1.1em;
   color: var(--color-link);
 }
 
-.rendered-content h5 {
+.content-wrapper h5 {
   font-size: 0.9em;
   font-weight: bold;
   text-transform: uppercase;
 }
 
-.rendered-content h6 {
+.content-wrapper h6 {
   font-size: 0.85em;
   color: var(--color-sidebar-text);
   font-weight: normal;
@@ -315,12 +316,12 @@
 }
 
 /* Add link icon to headers when hovering */
-.rendered-content h1:hover::after,
-.rendered-content h2:hover::after,
-.rendered-content h3:hover::after,
-.rendered-content h4:hover::after,
-.rendered-content h5:hover::after,
-.rendered-content h6:hover::after {
+.content-wrapper h1:hover::after,
+.content-wrapper h2:hover::after,
+.content-wrapper h3:hover::after,
+.content-wrapper h4:hover::after,
+.content-wrapper h5:hover::after,
+.content-wrapper h6:hover::after {
   content: '#';
   position: absolute;
   left: -1em;
@@ -332,7 +333,7 @@
 }
 
 /* Image styling */
-.rendered-content img {
+.content-wrapper img {
   max-width: 100%;
   border-radius: 4px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -340,7 +341,7 @@
 }
 
 /* Keyboard key styling */
-.rendered-content kbd {
+.content-wrapper kbd {
   background-color: var(--color-sidebar-active-bg);
   border: 1px solid var(--color-border);
   border-radius: 3px;

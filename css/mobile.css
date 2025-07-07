@@ -249,4 +249,11 @@
 .circular-widget {
   transform: scale(0.9);
   }
+  .widget-header {
+    max-width: 300px !important;
+  }
+  .mood-color-splotch {
+    width: 30px !important;
+    height: 30px !important;
+  }
 }

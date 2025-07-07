@@ -872,32 +872,49 @@ document.addEventListener('click', e => {
     let key = wrapper?.dataset.key;
     if (!key && e.target.dataset.key) key = e.target.dataset.key;
     if (!key) return;
+    
     const allCheckboxes = Array.from(wrapper.querySelectorAll('input[type="checkbox"]'));
     const clickedIndex = allCheckboxes.indexOf(e.target);
     if (clickedIndex === -1) return;
+    
     const fullText = getStorage(key);
     const lines = fullText.split('\n');
-    let taskItemCounter = -1;
+    let checkboxCounter = -1;
+    
     const newLines = lines.map(line => {
-      if (line.trim().match(/^[-*]\s*\[[x ]\]/i)) {
-        taskItemCounter++;
-        if (taskItemCounter === clickedIndex) {
-          const newLine = line.includes('[ ]') ? line.replace('[ ]', '[x]') : line.replace(/\[x\]/i, '[ ]');
-          return newLine;
+      // Check for both list checkboxes AND table checkboxes
+      const listCheckboxMatch = line.trim().match(/^[-*]\s*\[[x ]\]/i);
+      const tableCheckboxMatch = line.match(/\|[^|]*\[[x ]\][^|]*\|/i);
+      
+      if (listCheckboxMatch || tableCheckboxMatch) {
+        checkboxCounter++;
+        if (checkboxCounter === clickedIndex) {
+          if (listCheckboxMatch) {
+            // Handle list checkbox
+            const newLine = line.includes('[ ]') ? line.replace('[ ]', '[x]') : line.replace(/\[x\]/i, '[ ]');
+            return newLine;
+          } else if (tableCheckboxMatch) {
+            // Handle table checkbox
+            const newLine = line.includes('[ ]') ? line.replace('[ ]', '[x]') : line.replace(/\[x\]/i, '[ ]');
+            return newLine;
+          }
         }
       }
       return line;
     });
+    
     const newText = newLines.join('\n');
     setStorage(key, newText);
-    // --- FIX: TRIGGER SYNC AFTER CHECKING BOX ---
     debouncedSyncWithCloud();
+    
     if (typeof renderLibraryPage === 'function' && key.startsWith('page-')) {
       renderLibraryPage(key.substring(5));
+    } else if (key.match(/^\d{4}-W\d{1,2}-/)) {
+      updatePlannerDay(key);
     } else {
       wrapper.innerHTML = parseMarkdown(newText);
-      updatePlannerDay(key);
     }
+    return;
   }
 });
 

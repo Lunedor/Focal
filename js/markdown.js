@@ -20,7 +20,44 @@ const wikiLinkExtension = {
   }
 };
 
-
+// First, let's modify the tableCheckboxExtension to generate truly unique IDs
+const tableCheckboxExtension = {
+  name: 'tableCheckbox',
+  level: 'inline',
+  start(src) { return src.match(/(\[ \]|\[x\]|(?:[-*]\s+)?\[ ?\]|(?:[-*]\s+)?\[x\])/i)?.index; },
+  tokenizer(src, tokens) {
+    // Match both standalone checkbox syntax and your preferred syntax with dash/asterisk
+    const rule = /^(?:([-*]\s+)?\[([ xX])\])/;
+    const match = rule.exec(src);
+    
+    if (match) {
+      // Check if we're inside a table cell by examining the tokens stack
+      const inTableCell = tokens.some(token => 
+        token.type === 'table_cell_start' || 
+        token.type === 'th_open' || 
+        token.type === 'td_open' ||
+        token.type === 'tablecell'
+      );
+      
+      // Only process if inside a table cell
+      if (inTableCell) {
+        return {
+          type: 'tableCheckbox',
+          raw: match[0],
+          checked: match[2].toLowerCase() === 'x',
+          prefix: match[1] || '' // Capture the dash/asterisk prefix if present
+        };
+      }
+    }
+    return false;
+  },
+  renderer(token) {
+    // Generate a unique ID for the checkbox with table- prefix
+    const id = 'table-checkbox-' + Math.random().toString(36).substring(2, 15);
+    // Preserve the prefix in the rendered output if it exists
+    return `${token.prefix || ''}<input type="checkbox" id="${id}" class="table-checkbox" ${token.checked ? 'checked' : ''}>`;
+  }
+};
 
 const goalExtension = {
     name: 'goal',
@@ -123,7 +160,122 @@ const taskSummaryExtension = {
     }
 };
 
-// Add event listeners to enhance code blocks after markdown has been rendered
+// Add this function before the DOMContentLoaded event listener
+// Update the setupTableCheckboxes function to be independent for table vs list checkboxes
+const setupTableCheckboxes = () => {
+  // Process table checkboxes
+  document.querySelectorAll('td.checkbox-cell input[type="checkbox"], th.checkbox-cell input[type="checkbox"], input.table-checkbox').forEach(checkbox => {
+    if (!checkbox.dataset.initialized) {
+      // Remove any existing event listeners first
+      const oldCheckbox = checkbox.cloneNode(true);
+      checkbox.parentNode.replaceChild(oldCheckbox, checkbox);
+      checkbox = oldCheckbox;
+      
+      checkbox.addEventListener('change', (e) => {
+        // Stop event propagation to prevent interaction with list checkboxes
+        e.stopPropagation();
+        
+        // Get the current page content
+        const contentWrapper = e.target.closest('.content-wrapper');
+        if (!contentWrapper) return;
+        
+        const key = contentWrapper.dataset.key;
+        if (!key) return;
+        
+        // Signal that content has been modified
+        if (typeof window.markLocalDataAsModified === 'function') {
+          window.markLocalDataAsModified();
+        }
+        
+        // Optional: trigger sync to cloud
+        if (typeof debouncedSyncWithCloud === 'function') {
+          debouncedSyncWithCloud();
+        }
+      });
+      checkbox.dataset.initialized = 'true';
+    }
+  });
+
+  // Process list checkboxes separately
+  document.querySelectorAll('li.task-list-item input[type="checkbox"], input.list-checkbox').forEach(checkbox => {
+    if (!checkbox.dataset.initialized) {
+      // Remove any existing event listeners first
+      const oldCheckbox = checkbox.cloneNode(true);
+      checkbox.parentNode.replaceChild(oldCheckbox, checkbox);
+      checkbox = oldCheckbox;
+      
+      checkbox.addEventListener('change', (e) => {
+        // Stop event propagation
+        e.stopPropagation();
+        
+        const contentWrapper = e.target.closest('.content-wrapper');
+        if (!contentWrapper) return;
+        
+        const key = contentWrapper.dataset.key;
+        if (!key) return;
+        
+        if (typeof window.markLocalDataAsModified === 'function') {
+          window.markLocalDataAsModified();
+        }
+        
+        if (typeof debouncedSyncWithCloud === 'function') {
+          debouncedSyncWithCloud();
+        }
+      });
+      checkbox.dataset.initialized = 'true';
+    }
+  });
+};
+
+// Process table
+function processTableCheckboxes() {
+  // Find all table checkboxes
+  const tableCheckboxes = document.querySelectorAll('td.checkbox-cell input[type="checkbox"], th.checkbox-cell input[type="checkbox"], input.table-checkbox');
+  
+  // Clear existing event listeners and reassign them
+  tableCheckboxes.forEach(checkbox => {
+    // Create a fresh clone without event listeners
+    const newCheckbox = checkbox.cloneNode(false);
+    
+    // Copy all attributes and state
+    newCheckbox.checked = checkbox.checked;
+    
+    // Add the event listener directly to the new checkbox
+    newCheckbox.addEventListener('change', function(e) {
+      e.stopPropagation();
+      e.preventDefault();
+      
+      // Explicitly toggle the checkbox state
+      this.checked = !this.checked;
+      
+      // Get the current page content
+      const contentWrapper = this.closest('.content-wrapper');
+      if (!contentWrapper) return;
+      
+      const key = contentWrapper.dataset.key;
+      if (!key) return;
+      
+      // Signal content modification
+      if (typeof window.markLocalDataAsModified === 'function') {
+        window.markLocalDataAsModified();
+      }
+      
+      if (typeof debouncedSyncWithCloud === 'function') {
+        debouncedSyncWithCloud();
+      }
+    });
+    
+    // Replace the old checkbox
+    if (checkbox.parentNode) {
+      checkbox.parentNode.replaceChild(newCheckbox, checkbox);
+    }
+    
+    // Mark as initialized
+    newCheckbox.dataset.initialized = 'true';
+  });
+}
+
+// Update your document.addEventListener('DOMContentLoaded') function
 document.addEventListener('DOMContentLoaded', function() {
   // Function to process code blocks in rendered content
   const enhanceCodeBlocks = () => {
@@ -171,14 +323,16 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   };
   
-  // Call once at load
+  // Call both functions at load
   enhanceCodeBlocks();
+  setupTableCheckboxes();
   
-  // Create a MutationObserver to detect when new content is rendered
+  // Update your MutationObserver to also call setupTableCheckboxes
   const observer = new MutationObserver(mutations => {
     mutations.forEach(mutation => {
       if (mutation.addedNodes.length) {
         enhanceCodeBlocks();
+        setupTableCheckboxes();
       }
     });
   });
@@ -190,7 +344,6 @@ document.addEventListener('DOMContentLoaded', function() {
 const renderer = new marked.Renderer();
 renderer.listitem = (text, task, checked) => {
     // 1. Get the raw markdown for this list item block.
-    // This is YOUR correct discovery for your environment.
     let rawText = '';
     if (typeof text === 'string') {
         rawText = text;
@@ -243,7 +396,10 @@ renderer.listitem = (text, task, checked) => {
         const parsedItemText = marked.parseInline(itemText);
         const parsedSubList = subListMarkdown ? marked.parse(subListMarkdown) : '';
 
-        return `<li class="task-list-item" ${liAttributes}><input type="checkbox"${inputAttributes}${isChecked ? ' checked' : ''}> ${parsedItemText}${parsedSubList}</li>`;
+        // Generate a unique ID for list checkboxes with list- prefix
+        const checkboxId = 'list-checkbox-' + Math.random().toString(36).substring(2, 15);
+
+        return `<li class="task-list-item" ${liAttributes}><input type="checkbox" id="${checkboxId}" class="list-checkbox"${inputAttributes}${isChecked ? ' checked' : ''}> ${parsedItemText}${parsedSubList}</li>`;
 
     } else {
         // --- IT IS A REGULAR LIST ITEM ---
@@ -255,8 +411,7 @@ renderer.listitem = (text, task, checked) => {
         // `marked.parse()` correctly handles nested lists, blockquotes, code blocks, etc.
         let parsedContent = marked.parse(content);
         
-        // marked.parse() wraps single lines in <p> tags. We remove these for list items
-        // to prevent unwanted extra vertical spacing inside the <li>.
+        // Remove <p> tags for list items to prevent unwanted vertical spacing
         const pTagRegex = /^<p>([\s\S]*)<\/p>\n?$/;
         if (pTagRegex.test(parsedContent)) {
              parsedContent = parsedContent.replace(pTagRegex, '$1');
@@ -267,7 +422,7 @@ renderer.listitem = (text, task, checked) => {
 };
 
 marked.use({
-    extensions: [wikiLinkExtension, taskSummaryExtension, goalExtension, moodTrackerExtension, financeExtension],
+    extensions: [wikiLinkExtension, tableCheckboxExtension, taskSummaryExtension, goalExtension, moodTrackerExtension, financeExtension],
     gfm: true,
     breaks: true,
     renderer: renderer
@@ -279,10 +434,58 @@ marked.use({
 
 
 
-const parseMarkdown = (text) => {
+const parseMarkdown = (text, options = {}) => {
   if (!text) return '';
+  
+  // Track line indices if provided
+  const lines = text.split('\n');
+  const lineMap = new Map(); // Maps content to line indices
+  
+  if (options.trackLineIndices) {
+    lines.forEach((line, index) => {
+      if (line.trim()) {
+        lineMap.set(line.trim(), index);
+      }
+    });
+  }
+  
   let html = marked.parse(text, { breaks: true });
+  
+  // Remove disabled attribute from all checkboxes
   html = html.replace(/(<input[^>]*type="checkbox"[^>]*)\s*disabled[^>]*>/g, '$1>');
+  
+  // Handle checkbox text in tables that didn't get properly converted
+  html = html.replace(/<td>([\s\n]*)(?:-\s+)?\[([ xX])\]([\s\n]*)<\/td>/gi, (match, before, checked, after) => {
+    const isChecked = checked.toLowerCase() === 'x';
+    const id = 'table-checkbox-' + Math.random().toString(36).substring(2, 15);
+    
+    // Add line index if tracking is enabled
+    let lineIndexAttr = '';
+    if (options.trackLineIndices && options.currentLineIndex !== undefined) {
+      lineIndexAttr = ` data-line-index="${options.currentLineIndex}"`;
+    }
+    
+    return `<td class="checkbox-cell">${before}<input type="checkbox" id="${id}" class="table-checkbox"${lineIndexAttr} ${isChecked ? 'checked' : ''}>${after}</td>`;
+  });
+  
+  // Also look for basic [] or [x] without dash
+  html = html.replace(/<td>([\s\n]*)\[([ xX])\]([\s\n]*)<\/td>/gi, (match, before, checked, after) => {
+    const isChecked = checked.toLowerCase() === 'x';
+    const id = 'table-checkbox-' + Math.random().toString(36).substring(2, 15);
+    
+    // Add line index if tracking is enabled
+    let lineIndexAttr = '';
+    if (options.trackLineIndices && options.currentLineIndex !== undefined) {
+      lineIndexAttr = ` data-line-index="${options.currentLineIndex}"`;
+    }
+    
+    return `<td class="checkbox-cell">${before}<input type="checkbox" id="${id}" class="table-checkbox"${lineIndexAttr} ${isChecked ? 'checked' : ''}>${after}</td>`;
+  });
+  
+  // Additional table-specific enhancements for checkboxes in tables (keep these)
+  html = html.replace(/<td>(\s*)<input type="checkbox"/g, '<td class="checkbox-cell">$1<input type="checkbox"');
+  html = html.replace(/<th>(\s*)<input type="checkbox"/g, '<th class="checkbox-cell">$1<input type="checkbox"');
+  
   if (html.includes('[object Object]')) {
     html = html.replace(/\[object Object\]/g, '');
   }
@@ -452,16 +655,61 @@ const calculateTaskStats = (text, taskLabel) => {
       break;
     }
   }
+  
+  // Get the content for this TASKS block
+  const relevantLines = lines.slice(startIdx + 1, endIdx);
+  const contentForThisTask = relevantLines.join('\n');
+  
+  // Check if there's a table in the task content
+  const hasTable = contentForThisTask.includes('|') && 
+                  (contentForThisTask.includes('|-') || 
+                   /\|[-\s|:]+\|/.test(contentForThisTask));
+  
   let total = 0, completed = 0;
-  for (let i = startIdx + 1; i < endIdx; i++) {
-    const taskMatch = lines[i].trim().match(/^[-*]\s*\[([xX ])\]/);
-    if (taskMatch) {
-      total++;
-      if (taskMatch[1].trim().toLowerCase() === 'x') {
-        completed++;
+  
+  if (hasTable) {
+    // Count standard checkboxes and table checkboxes
+    const standardCheckboxLines = relevantLines.filter(line => {
+      // Must be a markdown checkbox and not in a table
+      return /^[-*]\s*\[([xX ])\]/.test(line) && !line.includes('|');
+    });
+    
+    // Extract checkbox states from table cells
+    const tableRows = relevantLines.filter(line => 
+      line.includes('|') && line.match(/\[([ xX])\]/));
+    
+    // Count table checkboxes
+    let tableCheckboxTotal = 0;
+    let tableCheckboxCompleted = 0;
+    
+    tableRows.forEach(row => {
+      const checkboxMatches = [...row.matchAll(/\[([ xX])\]/g)];
+      tableCheckboxTotal += checkboxMatches.length;
+      tableCheckboxCompleted += checkboxMatches.filter(match => 
+        match[1].toLowerCase() === 'x').length;
+    });
+    
+    // Count regular checkboxes
+    let standardTotal = standardCheckboxLines.length;
+    let standardCompleted = standardCheckboxLines.filter(line => 
+      /\[[xX]\]/.test(line)).length;
+    
+    // Combine counts
+    total = standardTotal + tableCheckboxTotal;
+    completed = standardCompleted + tableCheckboxCompleted;
+  } else {
+    // Original logic for non-table checkboxes
+    for (let i = startIdx + 1; i < endIdx; i++) {
+      const taskMatch = lines[i].trim().match(/^[-*]\s*\[([xX ])\]/);
+      if (taskMatch) {
+        total++;
+        if (taskMatch[1].trim().toLowerCase() === 'x') {
+          completed++;
+        }
       }
     }
   }
+  
   const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
   return { completed, total, percentage };
 };
@@ -477,11 +725,15 @@ function analyzeGoalProgress(text, goalLabel) {
     status: 'in-progress',
     details: ''
   };
+  
   // Multi-goal fix: use callCount to find the Nth occurrence
   let callCount = 1;
   if (arguments.length > 2 && typeof arguments[2] === 'number') callCount = arguments[2];
+  
   let foundCount = 0;
   let goalLineIndex = -1;
+  
+  // Find the correct goal section
   for (let i = 0; i < lines.length; i++) {
     if (lines[i].trim() === `GOAL: ${goalLabel}`) {
       foundCount++;
@@ -491,7 +743,9 @@ function analyzeGoalProgress(text, goalLabel) {
       }
     }
   }
+  
   if (goalLineIndex === -1) return null;
+  
   // Find the next GOAL, TASKS, heading, or horizontal rule after this GOAL
   let endIdx = lines.length;
   for (let i = goalLineIndex + 1; i < lines.length; i++) {
@@ -506,8 +760,10 @@ function analyzeGoalProgress(text, goalLabel) {
       break;
     }
   }
+  
   const relevantLines = lines.slice(goalLineIndex + 1, endIdx);
   const contentForThisGoal = relevantLines.join('\n');
+  
   // --- Fix: Do not extract target number from date in goal label ---
   const dateRegex = new RegExp(window.DATE_REGEX_PATTERN, 'g');
   let dateMatch = dateRegex.exec(goalLabel); // Find the first date match with its index
@@ -550,6 +806,7 @@ function analyzeGoalProgress(text, goalLabel) {
       break;
     }
   }
+  
   // --- PROGRESS line integration ---
   // Look for a PROGRESS: ... line in relevantLines
   let progressLine = null;
@@ -574,6 +831,7 @@ function analyzeGoalProgress(text, goalLabel) {
       break;
     }
   }
+  
   // --- Manual Progress Handling ---
   if (progressLine) {
     // Case 1: Manual progress WITH a target number
@@ -603,8 +861,67 @@ function analyzeGoalProgress(text, goalLabel) {
       }
     }
   }
-    // --- Automatic Progress Handling (if no manual progress line was handled) ---
-  // Only count checkboxes that are NOT scheduled or notify items
+  
+  // --- NEW: Detect checkboxes in tables ---
+  // Check if there's a table in the goal content
+  const hasTable = contentForThisGoal.includes('|') && 
+                  (contentForThisGoal.includes('|-') || 
+                   /\|[-\s|:]+\|/.test(contentForThisGoal));
+                   
+  if (hasTable) {
+    // Count standard checkboxes and table checkboxes
+    const standardCheckboxLines = contentForThisGoal.split('\n').filter(line => {
+      // Must be a markdown checkbox and not in a table
+      return /^[-*]\s*\[([xX ])\]/.test(line) && !line.includes('|');
+    });
+    
+    // Extract checkbox states from table cells
+    const tableRows = contentForThisGoal.split('\n').filter(line => 
+      line.includes('|') && line.match(/\[([ xX])\]/));
+    
+    // Count table checkboxes
+    let tableCheckboxTotal = 0;
+    let tableCheckboxCompleted = 0;
+    
+    tableRows.forEach(row => {
+      const checkboxMatches = [...row.matchAll(/\[([ xX])\]/g)];
+      tableCheckboxTotal += checkboxMatches.length;
+      tableCheckboxCompleted += checkboxMatches.filter(match => 
+        match[1].toLowerCase() === 'x').length;
+    });
+    
+    // Count regular checkboxes
+    let standardTotal = standardCheckboxLines.length;
+    let standardCompleted = standardCheckboxLines.filter(line => 
+      /\[[xX]\]/.test(line)).length;
+    
+    // Combine counts
+    const total = standardTotal + tableCheckboxTotal;
+    const completed = standardCompleted + tableCheckboxCompleted;
+    
+    if (total > 0) {
+      let target = total;
+      if (targetNumber && targetNumber > target) target = targetNumber;
+      
+      const percentage = target > 0 ? Math.round((completed / target) * 100) : 0;
+      analysis = {
+        type: 'checklist',
+        current: completed,
+        target: target,
+        percentage: percentage,
+        status: completed >= target ? 'completed' : 'in-progress',
+        details: `${completed}/${target} items completed` + (deadlineStatus ? ` (${deadlineStatus.details})` : '')
+      };
+      
+      if (deadlineStatus) {
+        analysis.status = completed >= target ? 'completed' : deadlineStatus.status;
+      }
+      
+      return analysis;
+    }
+  }
+  
+  // --- Automatic Progress Handling (for regular checkboxes) ---
   const goalLines = contentForThisGoal.split('\n');
   const checklistLines = goalLines.filter(line => {
     // Must be a markdown checkbox
@@ -614,6 +931,7 @@ function analyzeGoalProgress(text, goalLabel) {
     // Exclude if line is part of a TASKS: block (handled separately)
     return true;
   });
+  
   if (checklistLines.length > 0) {
     // Only count lines with [x] or [X] as completed, not [ ]
     const completed = checklistLines.filter(line => /\[[xX]\]/.test(line) && !/\[ \]/.test(line)).length;
@@ -632,6 +950,8 @@ function analyzeGoalProgress(text, goalLabel) {
     }
     return analysis;
   }
+  
+  // Rest of the function for other goal types...
   if (targetNumber) {
     const numberedItems = contentForThisGoal.match(/^(\d+[\.\):]\s|[-*]\s(?!\[))/gm);
     const currentCount = numberedItems ? numberedItems.length : 0;
@@ -645,6 +965,7 @@ function analyzeGoalProgress(text, goalLabel) {
     };
     return analysis;
   }
+  
   if (deadlineStatus) {
     analysis = {
       type: 'deadline',
@@ -656,6 +977,7 @@ function analyzeGoalProgress(text, goalLabel) {
     };
     return analysis;
   }
+  
   const completionKeywords = /\b(done|completed|finished|achieved)\b/i;
   if (completionKeywords.test(contentForThisGoal)) {
     analysis = {
@@ -668,5 +990,6 @@ function analyzeGoalProgress(text, goalLabel) {
     };
     return analysis;
   }
+  
   return null;
-};
+}
