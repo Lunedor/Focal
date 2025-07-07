@@ -34,3 +34,322 @@
 .rendered-content ul { padding-left: 1.5em; }
 .rendered-content li { margin-bottom: .25em; }
 .rendered-content input[type="checkbox"] { margin-right: .5em; }
+
+/* Enhanced Blockquote Styling */
+.rendered-content blockquote {
+  border-left: 4px solid var(--color-link);
+  padding: 0.5rem 1rem;
+  margin: 1rem 0;
+  background-color: rgba(var(--color-link-rgb, 11, 122, 255), 0.05);
+  border-radius: 0 3px 3px 0;
+}
+
+.rendered-content blockquote p {
+  margin: 0.5em 0;
+  font-style: italic;
+}
+
+/* Enhanced Table Styling */
+.rendered-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.rendered-content th {
+  background-color: var(--color-sidebar-active-bg);
+  color: var(--color-sidebar-text);
+  font-weight: 600;
+  text-align: left;
+}
+
+.rendered-content th, 
+.rendered-content td {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border);
+}
+
+.rendered-content tr:nth-child(even) {
+  background-color: rgba(var(--color-background-rgb, 255, 255, 255), 0.5);
+}
+
+.rendered-content tr:hover {
+  background-color: var(--color-focus);
+}
+
+/* Enhanced Code Block Styling */
+.rendered-content code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+  background-color: var(--color-planner-bg);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-size: 0.9em;
+  color: var(--color-planner-text);
+}
+
+.rendered-content pre {
+  background-color: var(--color-sidebar-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 1rem 0;
+  position: relative;
+}
+
+.rendered-content pre code {
+  background-color: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-size: 0.9em;
+  display: block;
+  line-height: 1.5;
+  color: var(--color-sidebar-text);
+}
+
+/* Syntax highlighting for code blocks */
+.rendered-content pre .keyword,
+.rendered-content pre .class,
+.rendered-content pre .tag {
+  color: var(--color-link);
+}
+
+.rendered-content pre .string,
+.rendered-content pre .value,
+.rendered-content pre .attr {
+  color: var(--color-progress-bar);
+}
+
+.rendered-content pre .comment {
+  color: var(--color-toggle-text);
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.rendered-content pre .function,
+.rendered-content pre .method {
+  color: var(--color-today-bg);
+}
+
+.rendered-content pre .number,
+.rendered-content pre .boolean {
+  color: var(--color-today-text);
+}
+
+/* Language tag for code blocks */
+.rendered-content pre {
+  counter-reset: line;
+  position: relative;
+}
+
+.rendered-content pre::before {
+  content: attr(data-language);
+  position: absolute;
+  top: 0;
+  right: 0;
+  color: var(--color-sidebar-text);
+  background: var(--color-border);
+  padding: 0.1rem 0.5rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  border-radius: 0 3px 0 3px;
+}
+
+/* Line numbers for code blocks */
+.rendered-content pre code {
+  counter-increment: line;
+}
+
+.rendered-content pre.line-numbers code::before {
+  content: counter(line);
+  display: inline-block;
+  width: 2em;
+  padding-right: 1em;
+  text-align: right;
+  color: var(--color-toggle-text);
+  opacity: 0.5;
+}
+
+/* Copy button for code blocks */
+.rendered-content pre:hover .copy-button {
+  opacity: 0.8;
+}
+
+.rendered-content pre .copy-button {
+  position: absolute;
+  bottom: 0.5rem;
+  right: 0.5rem;
+  background: var(--color-sidebar-active-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.rendered-content pre .copy-button:hover {
+  opacity: 1;
+  background: var(--color-focus);
+}
+
+/* Enhanced styling for lists */
+.rendered-content ol, 
+.rendered-content ul {
+  padding-left: 2em;
+}
+
+/* Remove custom counter styling for ordered lists as Markdown already generates numbers */
+.rendered-content ol {
+  list-style-position: outside;
+  color: var(--color-link); /* Only the numbers will be colored */
+}
+
+.rendered-content ol li {
+  color: var(--color-text); /* Reset text color for list items */
+  padding-left: 0.5em; /* Add a bit of padding after the number */
+}
+
+/* Style for nested lists */
+.rendered-content ol ol, 
+.rendered-content ul ul,
+.rendered-content ol ul,
+.rendered-content ul ol {
+  margin-top: 0.25em;
+  margin-bottom: 0.5em;
+}
+
+/* Fix for paragraphs inside list items */
+.rendered-content li p {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+/* Ensure proper spacing between list items with paragraphs */
+.rendered-content li + li {
+  margin-top: 0.5em;
+}
+
+/* Enhanced styling for definition lists */
+.rendered-content dl {
+  margin: 1rem 0;
+}
+
+.rendered-content dt {
+  font-weight: bold;
+  color: var(--color-link);
+  margin-top: 0.5rem;
+}
+
+.rendered-content dd {
+  margin-left: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Enhanced styling for horizontal rules */
+.rendered-content hr {
+  border: none;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--color-border) 20%, var(--color-border) 80%, transparent);
+  margin: 2rem 0;
+}
+
+/* Enhanced styling for blockquotes with nested elements */
+.rendered-content blockquote blockquote {
+  border-left-color: var(--color-progress-bar);
+  background-color: rgba(var(--color-link-rgb, 11, 122, 255), 0.08);
+}
+
+.rendered-content blockquote blockquote blockquote {
+  border-left-color: var(--color-today-bg);
+  background-color: rgba(var(--color-link-rgb, 11, 122, 255), 0.12);
+}
+
+/* Enhanced styling for headers */
+.rendered-content h1,
+.rendered-content h2,
+.rendered-content h3,
+.rendered-content h4,
+.rendered-content h5,
+.rendered-content h6 {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  position: relative;
+}
+
+.rendered-content h1 {
+  font-size: 2em;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 0.3em;
+}
+
+.rendered-content h2 {
+  font-size: 1.5em;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 0.2em;
+}
+
+.rendered-content h3 {
+  font-size: 1.25em;
+}
+
+.rendered-content h4 {
+  font-size: 1.1em;
+  color: var(--color-link);
+}
+
+.rendered-content h5 {
+  font-size: 0.9em;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.rendered-content h6 {
+  font-size: 0.85em;
+  color: var(--color-sidebar-text);
+  font-weight: normal;
+  font-style: italic;
+}
+
+/* Add link icon to headers when hovering */
+.rendered-content h1:hover::after,
+.rendered-content h2:hover::after,
+.rendered-content h3:hover::after,
+.rendered-content h4:hover::after,
+.rendered-content h5:hover::after,
+.rendered-content h6:hover::after {
+  content: '#';
+  position: absolute;
+  left: -1em;
+  color: var(--color-link);
+  opacity: 0.6;
+  font-weight: normal;
+  font-style: normal;
+  text-decoration: none;
+}
+
+/* Image styling */
+.rendered-content img {
+  max-width: 100%;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin: 1rem 0;
+}
+
+/* Keyboard key styling */
+.rendered-content kbd {
+  background-color: var(--color-sidebar-active-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  box-shadow: 0 1px 0 var(--color-border);
+  color: var(--color-sidebar-text);
+  display: inline-block;
+  font-family: monospace;
+  font-size: 0.85em;
+  line-height: 1;
+  padding: 0.2em 0.4em;
+  margin: 0 0.2em;
+}

@@ -1,5 +1,6 @@
 // --- Flag to prevent scroll event conflicts ---
 let isProgrammaticScroll = false;
+const microAdjust = 25;
 
 function goToNextDay() {
   if (window.innerWidth > 768) return;
@@ -14,7 +15,7 @@ function goToNextDay() {
   if (next) {
     const noteCenter = next.offsetLeft + next.offsetWidth / 2;
     const gridWidth = grid.clientWidth;
-    const targetScrollLeft = noteCenter - gridWidth / 2 - 15;
+    const targetScrollLeft = noteCenter - gridWidth / 2 - microAdjust;
     isProgrammaticScroll = true;
     grid.scrollTo({ left: targetScrollLeft, behavior: 'smooth' });
     setTimeout(() => { isProgrammaticScroll = false; }, 700);
@@ -39,7 +40,7 @@ function goToPreviousDay() {
   if (prev) {
     const noteCenter = prev.offsetLeft + prev.offsetWidth / 2;
     const gridWidth = grid.clientWidth;
-    const targetScrollLeft = noteCenter - gridWidth / 2 - 15;
+    const targetScrollLeft = noteCenter - gridWidth / 2 - microAdjust;
     isProgrammaticScroll = true;
     grid.scrollTo({ left: targetScrollLeft, behavior: 'smooth' });
     setTimeout(() => { isProgrammaticScroll = false; }, 700);
@@ -76,7 +77,7 @@ function scrollToMonday() {
   if (notes.length === 0) return;
   const first = notes[0];
   const noteCenter = first.offsetLeft + first.offsetWidth / 2;
-  const targetScrollLeft = noteCenter - grid.clientWidth / 2 - 15;
+  const targetScrollLeft = noteCenter - grid.clientWidth / 2 - microAdjust;
   isProgrammaticScroll = true;
   grid.scrollTo({ left: targetScrollLeft, behavior: 'smooth' });
   setTimeout(() => { isProgrammaticScroll = false; }, 700);
@@ -135,12 +136,11 @@ function renderWeeklyPlanner(scrollToToday = false) {
     // Ensure all goal/task HTML is inside .content-wrapper for planner view only
     // We use a temporary wrapper to extract only the .content-wrapper children
     const parsed = parseMarkdown(content);
-    // Remove any .goal-tracker accidentally rendered outside .content-wrapper
-    // (This is defensive, in case parseMarkdown ever returns stray block elements)
-    let parsedClean = parsed;
+    // Wrap the parsed content in a div with rendered-content class to ensure styling is applied
+    let parsedClean = `<div class="rendered-content">${parsed}</div>`;
     if (typeof window !== 'undefined') {
       const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = parsed;
+      tempDiv.innerHTML = parsedClean;
       // Move any .goal-tracker that is a sibling, not a child, into the .content-wrapper
       // (In practice, parseMarkdown should not do this, but this is a safe fix)
       // For planner, we want all content as a single block
@@ -241,7 +241,7 @@ function enablePlannerSnapToCenter() {
       if (centered) {
         const noteCenter = centered.offsetLeft + centered.offsetWidth / 2;
         const gridWidth = grid.clientWidth;
-        const targetScrollLeft = noteCenter - gridWidth / 2 - 15;
+        const targetScrollLeft = noteCenter - gridWidth / 2 - microAdjust;
         isProgrammaticScroll = true;
         grid.scrollTo({ left: targetScrollLeft, behavior: 'smooth' });
         setTimeout(() => {
@@ -284,9 +284,8 @@ function scrollToCurrentPlannerDay(smooth = true) {
     // Otherwise, center the note
     const noteCenter = noteLeft + noteWidth / 2;
     // Use a slightly larger micro-adjustment for more reliable centering
-    const microAdjust = -15;
     isProgrammaticScroll = true; // Set flag to prevent snap-to-center from interfering
-    grid.scrollTo({ left: noteCenter - gridWidth / 2 + microAdjust, behavior: 'smooth' });
+    grid.scrollTo({ left: noteCenter - gridWidth / 2 - microAdjust, behavior: 'smooth' });
     setTimeout(() => { isProgrammaticScroll = false; }, 700); // Reset flag after animation (longer)
   }
 }

@@ -3,7 +3,7 @@ function renderLibraryPage(pageTitle) {
   const key = `page-${pageTitle}`;
   const content = getStorage(key);
   DOM.pageTitle.textContent = pageTitle;
-  DOM.pageContentWrapper.innerHTML = parseMarkdown(content);
+  DOM.pageContentWrapper.innerHTML = `<div class="rendered-content">${parseMarkdown(content)}</div>`;
   DOM.pageContentWrapper.dataset.key = key;
 
   // --- Initialize Mood Tracker if placeholder exists ---

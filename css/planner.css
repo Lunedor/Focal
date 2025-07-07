@@ -17,14 +17,48 @@
   padding-left: 0;
   margin-left: 0;
 }
-/* Remove dots before checkboxes in planner view scheduled/repeat and main content */
+/* Only remove dots before checkboxes in scheduled items */
 .planner-note .scheduled-items-scroll ul,
-.planner-note .scheduled-items-scroll ol,
-.planner-note .content-wrapper ul,
-.planner-note .content-wrapper ol {
+.planner-note .scheduled-items-scroll ol {
   list-style-type: none;
   padding-left: 0;
   margin-left: 0;
+}
+
+/* Restore proper styling for regular lists in planner content */
+.planner-note .content-wrapper .rendered-content ul,
+.planner-note .content-wrapper > .rendered-content ul {
+  list-style-type: disc !important;
+  padding-left: 2em !important;
+  margin-left: 0;
+}
+
+.planner-note .content-wrapper .rendered-content ol,
+.planner-note .content-wrapper > .rendered-content ol {
+  list-style-type: decimal !important;
+  padding-left: 2em !important;
+  margin-left: 0;
+}
+
+/* Style for nested lists in planner content */
+.planner-note .content-wrapper .rendered-content ul ul,
+.planner-note .content-wrapper > .rendered-content ul ul {
+  list-style-type: circle !important;
+}
+
+.planner-note .content-wrapper .rendered-content ul ul ul,
+.planner-note .content-wrapper > .rendered-content ul ul ul {
+  list-style-type: square !important;
+}
+
+.planner-note .content-wrapper .rendered-content ol ol,
+.planner-note .content-wrapper > .rendered-content ol ol {
+  list-style-type: lower-alpha !important;
+}
+
+.planner-note .content-wrapper .rendered-content ol ol ol,
+.planner-note .content-wrapper > .rendered-content ol ol ol {
+  list-style-type: lower-roman !important;
 }
 /* --- Scrollable scheduled/repeat items block in planner --- */
 .scheduled-items-scroll {
@@ -309,4 +343,36 @@ textarea:focus {
 .toolbar-btn .feather {
   width: 16px;
   height: 16px;
+}
+
+/* Fix for copy button in code blocks to prevent it from triggering content editing */
+.rendered-content pre .copy-button {
+  position: absolute;
+  bottom: 0.5rem;
+  right: 0.5rem;
+  background: var(--color-sidebar-active-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  opacity: 0.8;
+  z-index: 10;
+  /* Prevent click event from propagating to parent elements */
+  pointer-events: auto;
+}
+
+.rendered-content pre .copy-button:hover {
+  opacity: 1;
+  background: var(--color-focus);
+}
+
+/* Make sure pre elements have position relative for absolute positioning of copy button */
+.rendered-content pre {
+  position: relative;
+}
+
+#library-nav-list {
+  padding: 0;
+  margin: 0;
 }

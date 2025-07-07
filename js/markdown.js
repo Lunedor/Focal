@@ -123,31 +123,105 @@ const taskSummaryExtension = {
     }
 };
 
+// Add event listeners to enhance code blocks after markdown has been rendered
+document.addEventListener('DOMContentLoaded', function() {
+  // Function to process code blocks in rendered content
+  const enhanceCodeBlocks = () => {
+    // Find all code blocks in the rendered content
+    document.querySelectorAll('.rendered-content pre code[class^="language-"]').forEach(codeBlock => {
+      const pre = codeBlock.parentElement;
+      if (!pre.dataset.enhanced) {
+        // Extract language from class name
+        const language = codeBlock.className.replace('language-', '');
+        
+        // Add language tag
+        pre.dataset.language = language;
+        
+        // Add line numbers class if needed
+        const lineCount = (codeBlock.textContent.match(/\n/g) || []).length;
+        if (lineCount > 3) {
+          pre.classList.add('line-numbers');
+        }
+        
+        // Add copy button
+        const copyButton = document.createElement('button');
+        copyButton.className = 'copy-button';
+        copyButton.textContent = 'Copy';
+        copyButton.addEventListener('click', function(e) {
+          // Prevent event from bubbling up and triggering content editing
+          e.stopPropagation();
+          e.preventDefault();
+          
+          navigator.clipboard.writeText(codeBlock.textContent.trim())
+            .then(() => {
+              const originalText = copyButton.textContent;
+              copyButton.textContent = 'Copied!';
+              setTimeout(() => {
+                copyButton.textContent = originalText;
+              }, 2000);
+            })
+            .catch(err => {
+              console.error('Failed to copy code: ', err);
+            });
+        });
+        
+        pre.appendChild(copyButton);
+        pre.dataset.enhanced = 'true';
+      }
+    });
+  };
+  
+  // Call once at load
+  enhanceCodeBlocks();
+  
+  // Create a MutationObserver to detect when new content is rendered
+  const observer = new MutationObserver(mutations => {
+    mutations.forEach(mutation => {
+      if (mutation.addedNodes.length) {
+        enhanceCodeBlocks();
+      }
+    });
+  });
+  
+  // Start observing the document body for DOM changes
+  observer.observe(document.body, { childList: true, subtree: true });
+});
+
 const renderer = new marked.Renderer();
 renderer.listitem = (text, task, checked) => {
-    // Handle both string and token object
+    // 1. Get the raw markdown for this list item block.
+    // This is YOUR correct discovery for your environment.
     let rawText = '';
     if (typeof text === 'string') {
         rawText = text;
     } else if (text && typeof text === 'object') {
-        // Try to get the raw property, or fallback to text property
         rawText = text.raw || text.text || '';
     }
-    // Now use rawText for all further processing
-    const taskMatch = rawText.match(/^\s*(?:[-*]|\d+\.)\s+\[([xX ])\]\s+(.*)/);
+
+    // 2. Check if it's a task item using regex on the raw text.
+    const taskMatch = rawText.match(/^\s*([-*]|\d+\.)\s+\[([xX ])\]\s/);
+
     if (taskMatch) {
-        const isChecked = taskMatch[1].trim().toLowerCase() === 'x';
-        let itemText = taskMatch[2];
+        // --- IT IS A TASK ITEM ---
+        const isChecked = taskMatch[2].trim().toLowerCase() === 'x';
+        
+        // Get the content AFTER the checkbox. This content can include sub-lists.
+        let content = rawText.replace(/^\s*([-*]|\d+\.)\s+\[[xX ]\]\s/, '');
+        
+        // Separate the first line (for attribute parsing) from potential sub-lists.
+        const lines = content.split('\n');
+        let itemText = lines[0];
+        let subListMarkdown = lines.slice(1).join('\n');
+
         let liAttributes = '';
         let inputAttributes = '';
 
-        // Extract custom attributes from {key=... line-index=... scheduled-date=...}
+        // --- All of your custom attribute logic is preserved exactly as it was ---
         const attrMatch = itemText.match(/\{([^}]+)\}$/);
         if (attrMatch) {
             const attrString = attrMatch[1];
             itemText = itemText.replace(/\{[^}]+\}$/, '').trim();
             if (/key=/.test(attrString)) {
-                // Regex to correctly parse attributes, allowing spaces in the 'key' value.
                 const attrRegex = /(key|line-index|scheduled-date)=(.+?)(?=\s+(?:key|line-index|scheduled-date)=|$)/g;
                 let match;
                 while ((match = attrRegex.exec(attrString)) !== null) {
@@ -159,25 +233,37 @@ renderer.listitem = (text, task, checked) => {
                 }
             }
         }
-
-        // Check if this task item is a scheduled item displayed in the planner
         const scheduledFromMatch = itemText.match(/^(.*)\s+\(from\s+\[\[([^\]]+)\]\]\)$/);
         if (scheduledFromMatch) {
             const originalTaskContent = scheduledFromMatch[1].trim();
             liAttributes = `data-original-task-content="${originalTaskContent}"`;
         }
 
-        const parsedText = marked.parseInline(itemText);
-        // Always render <input type="checkbox">, only add checked if isChecked is true, no extra space before checked
-        return `<li class="task-list-item" ${liAttributes}><input type="checkbox"${inputAttributes}${isChecked ? ' checked' : ''}> ${parsedText}</li>`;
+        // Parse the parts correctly: first line as inline, the rest as block.
+        const parsedItemText = marked.parseInline(itemText);
+        const parsedSubList = subListMarkdown ? marked.parse(subListMarkdown) : '';
+
+        return `<li class="task-list-item" ${liAttributes}><input type="checkbox"${inputAttributes}${isChecked ? ' checked' : ''}> ${parsedItemText}${parsedSubList}</li>`;
+
+    } else {
+        // --- IT IS A REGULAR LIST ITEM ---
+        
+        // Get the content AFTER the list marker (e.g., after "- " or "1. ").
+        let content = rawText.replace(/^\s*([-*]|\d+\.)\s+/, '');
+
+        // Now, parse the entire remaining content as block-level markdown.
+        // `marked.parse()` correctly handles nested lists, blockquotes, code blocks, etc.
+        let parsedContent = marked.parse(content);
+        
+        // marked.parse() wraps single lines in <p> tags. We remove these for list items
+        // to prevent unwanted extra vertical spacing inside the <li>.
+        const pTagRegex = /^<p>([\s\S]*)<\/p>\n?$/;
+        if (pTagRegex.test(parsedContent)) {
+             parsedContent = parsedContent.replace(pTagRegex, '$1');
+        }
+        
+        return `<li>${parsedContent}</li>`;
     }
-    const regularMatch = rawText.match(/^\s*(?:[-*]|\d+\.)\s+(.*)/);
-    if (regularMatch) {
-        const itemText = regularMatch[1];
-        const parsedText = marked.parseInline(itemText);
-        return `<li>${parsedText}</li>`;
-    }
-    return `<li>${marked.parseInline(rawText)}</li>`;
 };
 
 marked.use({

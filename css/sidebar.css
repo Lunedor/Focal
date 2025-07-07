@@ -8,7 +8,11 @@
   margin-top: 1rem;
 }
 #sidebar h2:first-child { margin-top: 0; }
-#sidebar ul { list-style: none; }
+#sidebar ul { list-style: none; padding-inline-start: 0;}
+#sidebar li {
+  padding: .2rem 0rem;
+  font-size: 0.9em;
+}
 #sidebar li.empty-library {
   padding: .4rem .5rem;
   color: var(--color-sidebar-text);

@@ -188,7 +188,7 @@ function buildScheduledItemsHtml(dayDateStr, allScheduled) {
         // We want to preserve the original structure without making it a list item
         // as this was causing rendering issues with the checkboxes
         const parsedContent = parseMarkdown(allItemsContent);
-        scheduledBlock = `<div class="scheduled-items-scroll">${metadataStyle}${parsedContent}</div>`;
+        scheduledBlock = `<div class="scheduled-items-scroll">${metadataStyle}<div class="rendered-content">${parsedContent}</div></div>`;
       }
     }
   }
@@ -239,11 +239,12 @@ function updatePlannerDay(key) {
   // --- Build scheduled/repeat items section using the helper function ---
   const scheduledBlock = buildScheduledItemsHtml(dayDateStr, allScheduled);
 
+  // Wrap the parsed content in a div with class rendered-content
   const parsed = parseMarkdown(content);
-  let parsedClean = parsed;
+  let parsedClean = `<div class="rendered-content">${parsed}</div>`;
   if (typeof window !== 'undefined') {
     const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = parsed;
+    tempDiv.innerHTML = parsedClean;
     parsedClean = tempDiv.innerHTML;
   }
   

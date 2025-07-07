@@ -669,7 +669,7 @@ body.dark-mode .finance-card {
     padding: 4px 0;
 }
 
-.calendar-day {
+.finance-date-picker-dropdown .calendar-day {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -680,16 +680,16 @@ body.dark-mode .finance-card {
     min-height: 0;
 }
 
-.calendar-day:hover {
+.finance-date-picker-dropdown .calendar-day:hover {
     background-color: var(--color-hover-bg, rgba(0,0,0,0.05));
 }
 
-.calendar-day.selected {
+.finance-date-picker-dropdown .calendar-day.selected {
     background-color: var(--color-accent, #0277bd);
     color: white;
 }
 
-.calendar-day.empty {
+.finance-date-picker-dropdown .calendar-day.empty {
     cursor: default;
 }
 

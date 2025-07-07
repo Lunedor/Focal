@@ -357,16 +357,6 @@ The Mood Tracking feature lets you visualize your emotional states over time wit
 
 MOOD: calendar, emoji, ${threeDaysAgoStr}:calm, ${twoDaysAgoStr}:happy, ${yesterdayStr}:sad, ${todayDateStr}:excited
 
-### Circular View
-*View your mood patterns in a circular timeline*
-
-MOOD: circular, all
-
-### Chart View
-*Track mood trends with a line chart*
-
-MOOD: chart, color
-
 ---
 
 ## Mood Widget Options
@@ -417,7 +407,7 @@ Track all your income and expenses in one place with Focal's finance tracking sy
 
 ## This Month's Summary
 
-FINANCE: summary+chart, USD, this-month
+FINANCE: summary+chart+chartpie, USD, this-month
 - ${todayDateStr}, Coffee, -4.50, Food
 - ${todayDateStr}, Lunch, -12.75, Food
 - ${yesterdayStr}, Freelance Payment, +500.00, Income
@@ -430,18 +420,6 @@ FINANCE: summary+chart, USD, this-month
 - ${dateFns.format(dateFns.subDays(today, 5), 'yyyy-MM-dd')}, Phone Bill, -45.00, Utilities
 - ${dateFns.format(dateFns.subDays(today, 6), 'yyyy-MM-dd')}, Dinner with Friends, -65.00, Food
 - ${dateFns.format(dateFns.subDays(today, 7), 'yyyy-MM-dd')}, Book Purchase, -15.00, Entertainment
-
----
-
-## Spending by Category
-
-FINANCE: chartpie, USD, this-month
-
----
-
-## Yearly Overview
-
-FINANCE: chart, USD, this-year
 
 ---
 

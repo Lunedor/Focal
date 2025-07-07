@@ -1,8 +1,9 @@
 /* Base resets and variables */
-* { margin: 0; padding: 0; box-sizing: border-box; }
+* { box-sizing: border-box; }
 :root {
   color-scheme: light dark;
   --color-background: #fff;
+  --color-background-rgb: 255, 255, 255;
   --color-text: #222;
   --color-sidebar-bg: #f7f7f7;
   --color-sidebar-text: #444;
@@ -17,6 +18,7 @@
   --color-today-border: rgba(255,255,255, .5);
   --color-today-text: #000;
   --color-link: #007aff;
+  --color-link-rgb: 0, 122, 255;
   --color-progress-bar: #007aff;
   --color-progress-bar-bg: rgba(0,0,0, .1);
   --color-toggle-bg: #f0f0f0;
@@ -28,6 +30,7 @@
 }
 body.dark-mode {
     --color-background: #222;
+    --color-background-rgb: 34, 34, 34;
     --color-text: #ddd;
     --color-sidebar-bg: #1a1a1a;
     --color-sidebar-text: #bbb;
@@ -42,6 +45,7 @@ body.dark-mode {
     --color-today-border: rgba(255,255,255, .5);
     --color-today-text: #fff;
     --color-link: #0a84ff;
+    --color-link-rgb: 10, 132, 255;
     --color-progress-bar: #0a84ff;
     --color-progress-bar-bg: rgba(255,255,255, .1); 
     --color-toggle-bg: #333;
@@ -54,6 +58,7 @@ body.dark-mode {
 /* Solarized Theme */
 body.solarized-mode {
   --color-background: #fdf6e3;
+  --color-background-rgb: 253, 246, 227;
   --color-text: #657b83;
   --color-sidebar-bg: #eee8d5;
   --color-sidebar-text: #586e75;
@@ -68,6 +73,7 @@ body.solarized-mode {
   --color-today-border: #eee8d5;
   --color-today-text: #fff;
   --color-link: #268bd2;
+  --color-link-rgb: 38, 139, 210;
   --color-progress-bar: #2aa198;
   --color-progress-bar-bg: #eee8d5;
   --color-toggle-bg: #eee8d5;
@@ -79,6 +85,7 @@ body.solarized-mode {
 /* Dracula Theme */
 body.dracula-mode {
   --color-background: #282a36;
+  --color-background-rgb: 40, 42, 54;
   --color-text: #f8f8f2;
   --color-sidebar-bg: #44475a;
   --color-sidebar-text: #f8f8f2;
@@ -93,6 +100,7 @@ body.dracula-mode {
   --color-today-border: #44475a;
   --color-today-text: #282a36;
   --color-link: #8be9fd;
+  --color-link-rgb: 139, 233, 253;
   --color-progress-bar: #50fa7b;
   --color-progress-bar-bg: #44475a;
   --color-toggle-bg: #44475a;
@@ -156,6 +164,7 @@ hr {
 /* Nord Theme */
 body.nord-mode {
   --color-background: #2e3440;
+  --color-background-rgb: 46, 52, 64;
   --color-text: #d8dee9;
   --color-sidebar-bg: #3b4252;
   --color-sidebar-text: #eceff4;
@@ -170,6 +179,7 @@ body.nord-mode {
   --color-today-border: #4c566a;
   --color-today-text: #2e3440;
   --color-link: #81a1c1;
+  --color-link-rgb: 129, 161, 193;
   --color-progress-bar: #5e81ac;
   --color-progress-bar-bg: #434c5e;
   --color-toggle-bg: #434c5e;
@@ -182,6 +192,7 @@ body.nord-mode {
 /* Gruvbox Theme */
 body.gruvbox-mode {
   --color-background: #282828;
+  --color-background-rgb: 40, 40, 40;
   --color-text: #ebdbb2;
   --color-sidebar-bg: #3c3836;
   --color-sidebar-text: #d5c4a1;
@@ -196,6 +207,7 @@ body.gruvbox-mode {
   --color-today-border: #3c3836;
   --color-today-text: #282828;
   --color-link: #83a598;
+  --color-link-rgb: 131, 165, 152;
   --color-progress-bar: #b8bb26;
   --color-progress-bar-bg: #504945;
   --color-toggle-bg: #504945;
@@ -208,6 +220,7 @@ body.gruvbox-mode {
 /* Monokai Theme */
 body.monokai-mode {
   --color-background: #272822;
+  --color-background-rgb: 39, 40, 34;
   --color-text: #f8f8f2;
   --color-sidebar-bg: #383830;
   --color-sidebar-text: #f8f8f2;
@@ -222,6 +235,7 @@ body.monokai-mode {
   --color-today-border: #49483e;
   --color-today-text: #272822;
   --color-link: #66d9ef;
+  --color-link-rgb: 102, 217, 239;
   --color-progress-bar: #fd971f;
   --color-progress-bar-bg: #49483e;
   --color-toggle-bg: #49483e;
@@ -234,6 +248,7 @@ body.monokai-mode {
 /* High Contrast Theme */
 body.highcontrast-mode {
   --color-background: #000000;
+  --color-background-rgb: 0, 0, 0;
   --color-text: #ffffff;
   --color-sidebar-bg: #000000;
   --color-sidebar-text: #ffffff;
@@ -248,6 +263,7 @@ body.highcontrast-mode {
   --color-today-border: #ffffff;
   --color-today-text: #000000;
   --color-link: #00eaff;
+  --color-link-rgb: 0, 234, 255;
   --color-progress-bar: #fff700;
   --color-progress-bar-bg: #222222;
   --color-toggle-bg: #222222;
@@ -260,6 +276,7 @@ body.highcontrast-mode {
 /* Sepia Theme */
 body.sepia-mode {
   --color-background: #f4ecd8;
+  --color-background-rgb: 244, 236, 216;
   --color-text: #5b4636;
   --color-sidebar-bg: #e9decf;
   --color-sidebar-text: #7c5e3c;
@@ -274,6 +291,7 @@ body.sepia-mode {
   --color-today-border: #c9b18b;
   --color-today-text: #5b4636;
   --color-link: #b08968;
+  --color-link-rgb: 176, 137, 104;
   --color-progress-bar: #b08968;
   --color-progress-bar-bg: #e2cfa5;
   --color-toggle-bg: #e2cfa5;
@@ -286,6 +304,7 @@ body.sepia-mode {
 /* Amoled Theme */
 body.amoled-mode {
   --color-background: #000000;
+  --color-background-rgb: 0, 0, 0;
   --color-text: #e0e0e0;
   --color-sidebar-bg: #101010;
   --color-sidebar-text: #e0e0e0;
@@ -300,6 +319,7 @@ body.amoled-mode {
   --color-today-border: #222222;
   --color-today-text: #000000;
   --color-link: #00fff7;
+  --color-link-rgb: 0, 255, 247;
   --color-progress-bar: #00fff7;
   --color-progress-bar-bg: #222222;
   --color-toggle-bg: #222222;
@@ -312,6 +332,7 @@ body.amoled-mode {
 /* OneDark Theme */
 body.onedark-mode {
   --color-background: #282c34;
+  --color-background-rgb: 40, 44, 52;
   --color-text: #abb2bf;
   --color-sidebar-bg: #21252b;
   --color-sidebar-text: #abb2bf;
@@ -326,6 +347,7 @@ body.onedark-mode {
   --color-today-border: #3a3f4b;
   --color-today-text: #282c34;
   --color-link: #61afef;
+  --color-link-rgb: 97, 175, 239;
   --color-progress-bar: #98c379;
   --color-progress-bar-bg: #3a3f4b;
   --color-toggle-bg: #3a3f4b;
@@ -338,6 +360,7 @@ body.onedark-mode {
 /* Paper Theme */
 body.paper-mode {
   --color-background: #fffefc;
+  --color-background-rgb: 255, 254, 252;
   --color-text: #22211f;
   --color-sidebar-bg: #f7f6f3;
   --color-sidebar-text: #5a5a5a;
@@ -352,6 +375,7 @@ body.paper-mode {
   --color-today-border: #eae6da;
   --color-today-text: #22211f;
   --color-link: #bfa800;
+  --color-link-rgb: 191, 168, 0;
   --color-progress-bar: #bfa800;
   --color-progress-bar-bg: #eae6da;
   --color-toggle-bg: #eae6da;
