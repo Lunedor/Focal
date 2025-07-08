@@ -206,8 +206,6 @@ const EditModeManager = {
       { icon: 'link', action: 'link', title: 'Wiki Link', md: { prefix: '[[', suffix: ']]' } },
       { icon: 'minus', action: 'hr', title: 'Horizontal Rule', md: { prefix: '\n---\n' } },
       { icon: 'hash', action: 'h1', title: 'Heading 1', md: { prefix: '# ' } },
-      { icon: 'book-open', action: 'books', title: 'Insert Book Tracker', md: null },
-      { icon: 'film', action: 'movies', title: 'Insert Movie Tracker', md: null },
     ];
     if (key && key.startsWith('page-')) {
       buttons = [
