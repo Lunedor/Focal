@@ -255,11 +255,11 @@ window.showDateTimePicker = function({ withTime = false, anchor = null } = {}) {
       const rect = anchor.getBoundingClientRect();
       const toolbarRect = toolbar.getBoundingClientRect();
       popup.style.top = `${rect.bottom - toolbarRect.top + 4}px`;
-      popup.style.left = `${rect.left - toolbarRect.left}px`;
+      popup.style.left = `${rect.left - toolbarRect.left + 80}px`;
       popup.style.transform = '';
     } else {
       popup.style.top = '32px';
-      popup.style.left = '0px';
+      popup.style.left = '80px';
       popup.style.transform = '';
     }
     // Focus first dropdown

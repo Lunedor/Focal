@@ -206,6 +206,7 @@ const EditModeManager = {
       { icon: 'link', action: 'link', title: 'Wiki Link', md: { prefix: '[[', suffix: ']]' } },
       { icon: 'minus', action: 'hr', title: 'Horizontal Rule', md: { prefix: '\n---\n' } },
       { icon: 'hash', action: 'h1', title: 'Heading 1', md: { prefix: '# ' } },
+      { icon: 'book-open', action: 'books', title: 'Insert Book Tracker', md: null },
     ];
     if (key && key.startsWith('page-')) {
       buttons = [
@@ -214,6 +215,7 @@ const EditModeManager = {
         { icon: 'bar-chart-2', action: 'progress', title: 'Insert PROGRESS: []', md: { prefix: 'PROGRESS: []' } },
         { icon: 'dollar-sign', action: 'finance', title: 'Insert Finance Tracker', md: null },
         { icon: 'smile', action: 'mood', title: 'Insert Mood Tracker', md: null },
+        { icon: 'book-open', action: 'books', title: 'Insert Book Tracker', md: null },
         { separator: true },
         { icon: 'clock', action: 'scheduled', title: 'Insert (SCHEDULED: )', md: { prefix: '(SCHEDULED: )' } },
         { icon: 'repeat', action: 'repeat', title: 'Insert (REPEAT: )', md: { prefix: '(REPEAT: )' } },
@@ -314,7 +316,7 @@ const EditModeManager = {
         // Position the dropdown below the button
         const buttonRect = button.getBoundingClientRect();
         dropdown.style.top = (buttonRect.bottom + window.scrollY) + 'px';
-        dropdown.style.left = (buttonRect.left + window.scrollX) - 40 + 'px';
+        dropdown.style.left = (buttonRect.left + window.scrollX - 40) + 'px';
         
         // Add hover effect with CSS
         const style = document.createElement('style');
@@ -474,47 +476,42 @@ const EditModeManager = {
         
         // Function to safely close the dropdown
         const safeCloseDropdown = () => {
-          console.log('Safe close dropdown called');
+          console.log('Safe close mood dropdown called');
           if (isDropdownClosed) {
-            console.log('Dropdown already closed');
+            console.log('Mood dropdown already closed');
             return;
           }
           
           try {
             if (dropdown.parentNode) {
-              document.body.removeChild(dropdown);
-              console.log('Removed dropdown from body');
+              dropdown.parentNode.removeChild(dropdown); // ✅ Remove from actual parent instead of assuming document.body
+              console.log('Removed mood dropdown from parent');
             }
             
             if (style.parentNode) {
               document.head.removeChild(style);
-              console.log('Removed style from head');
+              console.log('Removed mood style from head');
             }
             
-            document.removeEventListener('mousedown', closeDropdown);
             isDropdownClosed = true;
-            console.log('Dropdown closed successfully');
+            console.log('Mood dropdown closed successfully');
           } catch (e) {
-            console.error('Error closing dropdown:', e);
+            console.error('Error closing mood dropdown:', e);
           }
         };
         
         // Close dropdown when clicking outside
         const closeDropdown = (e) => {
-          // Only close if click is outside dropdown AND outside button
-          if (!dropdown.contains(e.target) && e.target !== button) {
+          if (!dropdown.contains(e.target) && e.target !== button && !button.contains(e.target)) {
             safeCloseDropdown();
           }
         };
         
-        // Use setTimeout to avoid immediate triggering
-        setTimeout(() => {
-          document.addEventListener('mousedown', closeDropdown);
-        }, 0);
+        wrapper.addEventListener('mousedown', closeDropdown);
         
         return;
       }
-      
+
       if (action === 'mood') {
         // Show mood tracker dropdown
         const dropdown = document.createElement('div');
@@ -557,7 +554,7 @@ const EditModeManager = {
         // Position the dropdown below the button
         const buttonRect = button.getBoundingClientRect();
         dropdown.style.top = (buttonRect.bottom + window.scrollY) + 'px';
-        dropdown.style.left = (buttonRect.left + window.scrollX) - 40 + 'px';
+        dropdown.style.left = (buttonRect.left + window.scrollX - 40) + 'px';
         
         // Add hover effect with CSS
         const style = document.createElement('style');
@@ -571,7 +568,8 @@ const EditModeManager = {
         `;
         document.head.appendChild(style);
         
-        document.body.appendChild(dropdown);
+        // ✅ FIX: Append to wrapper instead of document.body
+        wrapper.appendChild(dropdown);
         
         // Handle item selection
         let selectedType = 'calendar';
@@ -581,8 +579,8 @@ const EditModeManager = {
           const item = e.target.closest('.dropdown-item');
           if (!item) return;
           
-          // Prevent the event from bubbling up
-          e.stopPropagation();
+          // No need for stopPropagation since it's inside wrapper now
+          e.preventDefault();
           
           if (item.classList.contains('style-item')) {
             // Update style selection
@@ -724,8 +722,8 @@ const EditModeManager = {
           
           try {
             if (dropdown.parentNode) {
-              document.body.removeChild(dropdown);
-              console.log('Removed mood dropdown from body');
+              dropdown.parentNode.removeChild(dropdown); // ✅ Remove from actual parent instead of assuming document.body
+              console.log('Removed mood dropdown from parent');
             }
             
             if (style.parentNode) {
@@ -733,7 +731,6 @@ const EditModeManager = {
               console.log('Removed mood style from head');
             }
             
-            document.removeEventListener('mousedown', closeDropdown);
             isDropdownClosed = true;
             console.log('Mood dropdown closed successfully');
           } catch (e) {
@@ -743,16 +740,160 @@ const EditModeManager = {
         
         // Close dropdown when clicking outside
         const closeDropdown = (e) => {
-          // Only close if click is outside dropdown AND outside button
-          if (!dropdown.contains(e.target) && e.target !== button) {
+          if (!dropdown.contains(e.target) && e.target !== button && !button.contains(e.target)) {
             safeCloseDropdown();
           }
         };
         
-        // Use setTimeout to avoid immediate triggering
-        setTimeout(() => {
-          document.addEventListener('mousedown', closeDropdown);
-        }, 0);
+        wrapper.addEventListener('mousedown', closeDropdown);
+        
+        return;
+      }
+
+      // Fix the books dropdown handler around line 767:
+      if (action === 'books') {
+        // Show books widget dropdown
+        const dropdown = document.createElement('div');
+        dropdown.className = 'books-dropdown';
+        dropdown.style.cssText = 'position:absolute;z-index:1000;background:var(--color-background);border:1px solid var(--color-border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);padding:0;overflow:hidden;max-width:300px;min-width:260px;';
+        
+        const widgetTypes = [
+          { label: 'Full Reading Tracker', value: 'full-tracker', default: true },
+          { label: 'Currently Reading', value: 'currently-reading' },
+          { label: 'To Read List', value: 'to-read' },
+          { label: 'Stats', value: 'stats' },
+          { label: 'Bookshelf View', value: 'bookshelf' }
+        ];
+        
+        // Add check icon for selected items
+        const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="float:right;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+        
+        dropdown.innerHTML = `
+          <div style="padding:10px 15px;font-weight:600;color:var(--color-text);font-size:1.0em;border-bottom:1px solid var(--color-border);background:var(--color-planner-header-bg, rgba(0,0,0,0.03));">Reading Tracker</div>
+          <div style="padding:10px 15px;font-weight:600;color:var(--color-sidebar-text);font-size:0.9em;border-bottom:1px solid var(--color-border);">Widget Type</div>
+          ${widgetTypes.map(type => `
+            <div class="dropdown-item ${type.default ? 'selected' : ''}" data-value="${type.value}" style="padding:8px 15px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
+              <span>${type.label}</span>
+              ${type.default ? `<span class="check-icon">${checkIcon}</span>` : ''}
+            </div>
+          `).join('')}
+        `;
+        
+        // Position the dropdown below the button
+        const buttonRect = button.getBoundingClientRect();
+        dropdown.style.top = (buttonRect.bottom + window.scrollY) + 'px';
+        dropdown.style.left = (buttonRect.left + window.scrollX - 60) + 'px';
+        
+        // Add hover effect
+        const style = document.createElement('style');
+        style.textContent = `
+          .dropdown-item:hover {
+            background-color: var(--color-border);
+          }
+          .dropdown-item.selected {
+            background-color: var(--color-bg-highlight, rgba(0,0,0,0.05));
+          }
+        `;
+        document.head.appendChild(style);
+        
+        // ✅ FIX: Append to wrapper instead of document.body
+        wrapper.appendChild(dropdown);
+        
+        // Handle item selection
+        let selectedType = 'full-tracker';
+        
+        dropdown.addEventListener('click', (e) => {
+          const item = e.target.closest('.dropdown-item');
+          if (!item) return;
+          
+          // No need for stopPropagation since it's inside wrapper now
+          e.preventDefault();
+          
+          // Update selection
+          selectedType = item.dataset.value;
+          
+          // Update check icons
+          dropdown.querySelectorAll('.check-icon').forEach(el => el.remove());
+          const newCheckIcon = document.createElement('span');
+          newCheckIcon.className = 'check-icon';
+          newCheckIcon.innerHTML = checkIcon;
+          item.appendChild(newCheckIcon);
+          
+          // Highlight selected item
+          dropdown.querySelectorAll('.dropdown-item').forEach(el => 
+            el.classList.toggle('selected', el === item));
+        });
+        
+        // Add done button
+        const doneButton = document.createElement('div');
+        doneButton.className = 'dropdown-done-button';
+        doneButton.textContent = 'Insert';
+        doneButton.style.cssText = 'text-align:center;padding:8px;margin-top:8px;font-weight:500;background:var(--color-primary,#007acc);color:white;cursor:pointer;border-radius:0 0 4px 4px;';
+        dropdown.appendChild(doneButton);
+        
+        doneButton.addEventListener('click', (e) => {
+          e.preventDefault();
+          
+          console.log('books widget insert clicked');
+          console.log(`Selected type: ${selectedType}`);
+          
+          // Use correct uppercase format that matches markdown.js
+          const booksString = `BOOKS: ${selectedType}\n`;
+          console.log('Inserting books string:', booksString);
+          
+          // Get current content and selection
+          const originalValue = textarea.value;
+          const selectionStart = textarea.selectionStart;
+          const selectionEnd = textarea.selectionEnd;
+          
+          // Insert the books widget
+          const newContent = originalValue.slice(0, selectionStart) + booksString + originalValue.slice(selectionEnd);
+          
+          // Update textarea
+          textarea.value = newContent;
+          textarea.setSelectionRange(selectionStart + booksString.length, selectionStart + booksString.length);
+          
+          // Update storage
+          if (key) {
+            setStorage(key, newContent);
+            if (typeof debouncedSyncWithCloud === 'function') debouncedSyncWithCloud();
+          }
+          
+          // Close dropdown and return focus to textarea
+          safeCloseDropdown();
+          textarea.focus();
+          
+          // ✅ Do NOT exit edit mode - just close dropdown and continue editing
+        });
+        
+        // Track if dropdown is already closed
+        let isDropdownClosed = false;
+        
+        // Function to safely close dropdown
+        const safeCloseDropdown = () => {
+          if (isDropdownClosed) return;
+          
+          try {
+            if (dropdown.parentNode) {
+              wrapper.removeChild(dropdown);
+            }
+            if (style.parentNode) {
+              document.head.removeChild(style);
+            }
+            isDropdownClosed = true;
+          } catch (e) {
+            console.error('Error closing books dropdown:', e);
+          }
+        };
+        
+        // Close dropdown when clicking outside dropdown but inside wrapper
+        const closeDropdown = (e) => {
+          if (!dropdown.contains(e.target) && e.target !== button && !button.contains(e.target)) {
+            safeCloseDropdown();
+          }
+        };
+        
+        wrapper.addEventListener('mousedown', closeDropdown);
         
         return;
       }
@@ -827,16 +968,21 @@ DOM.contentArea.addEventListener('click', (e) => {
   EditModeManager.enter(wrapper, key, content);
 });
 
+// Replace the checkbox handling section starting around line 970 with this corrected version:
+
 // Handle interactive checkbox clicks globally
 document.addEventListener('click', e => {
   if (e.target.type === 'checkbox') {
     const dataKey = e.target.getAttribute('data-key');
     const dataLineIndex = e.target.getAttribute('data-line-index');
+    
+    // Handle scheduled checkboxes (with data-key and data-line-index)
     if (dataKey && dataLineIndex !== null) {
       const scheduledDate = e.target.getAttribute('data-scheduled-date');
       const scheduledText = e.target.closest('li,div')?.innerText?.split(' (from ')[0]?.replace(/^[-*]\s*\[[x ]\]\s*/, '').trim();
       const fullText = getStorage(dataKey);
       const lines = fullText.split('\n');
+      
       function findScheduledLineIndex(lines, text, normalizedDate) {
         for (let idx = 0; idx < lines.length; idx++) {
           const line = lines[idx];
@@ -847,20 +993,23 @@ document.addEventListener('click', e => {
         }
         return -1;
       }
+      
       const idx = findScheduledLineIndex(lines, scheduledText, scheduledDate);
       if (idx === -1) {
         return;
       }
+      
       lines[idx] = lines[idx].includes('[ ]')
         ? lines[idx].replace('[ ]', '[x]')
         : lines[idx].replace(/\[x\]/i, '[ ]');
+      
       setStorage(dataKey, lines.join('\n'));
-      // --- FIX: TRIGGER SYNC AFTER CHECKING BOX ---
       debouncedSyncWithCloud();
+      
       if (typeof renderLibraryPage === 'function' && dataKey.startsWith('page-')) {
         renderLibraryPage(dataKey.substring(5));
       } else {
-        updatePlannerDay(key);
+        updatePlannerDay(dataKey);
         if (appState.currentView === dataKey.replace(/^page-/, '')) {
           renderApp();
         }
@@ -868,6 +1017,7 @@ document.addEventListener('click', e => {
       return;
     }
 
+    // Handle regular checkboxes (in content wrappers)
     const wrapper = e.target.closest('.content-wrapper');
     let key = wrapper?.dataset.key;
     if (!key && e.target.dataset.key) key = e.target.dataset.key;
@@ -1094,7 +1244,6 @@ document.addEventListener('click', async (e) => {
       case 's':
         e.preventDefault();
         if (DOM.librarySearch) {
-          DOM.librarySearch.focus();
         }
         break;
     }

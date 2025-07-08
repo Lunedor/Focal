@@ -43,7 +43,8 @@
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  grid-gap: .5rem;
+  grid-gap: .25rem;
+  text-align: center;
 }
 
 .calendar-day {
@@ -63,10 +64,13 @@
 }
 
 .calendar-day .day-number {
-  font-size: 1.2rem;
+  font-size: 1.2rem !important;
   font-weight: 600;
   margin-bottom: 0.5rem;
   color: var(--color-text);
+  justify-content: center;
+  display: flex;
+  padding: 0 !important;
 }
 
 .calendar-day.other-month .day-number {

@@ -661,19 +661,19 @@ const financeTracker = (() => {
         return '';
     }
 
-    function init(container, command, transactionsStr, options = {}) {
-        containerEl = container;
+    function init(options) {
+        const { placeholder, command, transactions, onCommandChange } = options;
+        containerEl = placeholder;
+        let transactionsStr = transactions;
 
         console.log(`[Focal Finance] Init called with command length: ${command.length}, transactions length: ${transactionsStr ? transactionsStr.length : 0}`);
-        
-        // Save reference to the command node if provided
-        if (options.commandNode) {
-            state.commandNode = options.commandNode;
-        }
+
+        // The placeholder is the command node
+        state.commandNode = placeholder;
         
         // Set up command change callback if provided
-        if (typeof options.onCommandChange === 'function') {
-            state.onCommandChange = options.onCommandChange;
+        if (typeof onCommandChange === 'function') {
+            state.onCommandChange = onCommandChange;
         }
         
         // Set up event listener to handle clicks outside of any filter dropdown
@@ -789,7 +789,7 @@ const financeTracker = (() => {
         }
         
         // Restore the original container
-        containerEl = container;
+        containerEl = placeholder;
         
         // If we have unknown widget types, show an error
         if (unknownTypes.length > 0) {

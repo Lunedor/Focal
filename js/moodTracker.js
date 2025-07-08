@@ -603,10 +603,11 @@ const moodTracker = (() => {
         }
     }
 
-    function init(container, initialCommand, commandChangeCallback) {
-        containerEl = container;
-        state.command = initialCommand;
-        state.onCommandChange = commandChangeCallback;
+    function init(options) {
+        const { placeholder, command, onCommandChange } = options;
+        containerEl = placeholder;
+        state.command = command;
+        state.onCommandChange = onCommandChange;
 
         // Create the DOM structure for the widget inside the container
         containerEl.innerHTML = `

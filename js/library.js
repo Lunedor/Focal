@@ -6,83 +6,8 @@ function renderLibraryPage(pageTitle) {
   DOM.pageContentWrapper.innerHTML = `<div class="rendered-content">${parseMarkdown(content)}</div>`;
   DOM.pageContentWrapper.dataset.key = key;
 
-  // --- Initialize Mood Tracker if placeholder exists ---
-  const moodTrackerPlaceholder = DOM.pageContentWrapper.querySelector('.mood-tracker-placeholder');
-  if (moodTrackerPlaceholder) {
-    const command = moodTrackerPlaceholder.dataset.command;
-    const onCommandChange = (newCommand) => {
-        // Update the page content in the background without re-rendering the whole page
-        const currentPageKey = DOM.pageContentWrapper.dataset.key;
-        if (currentPageKey) {
-            // Get the current content
-            const content = getStorage(currentPageKey);
-            if (!content) return;
-            
-            // Replace the MOOD command with the new one
-            const oldCommand = moodTrackerPlaceholder.dataset.command;
-            const updatedContent = content.replace(oldCommand, newCommand);
-            
-            // Update the storage
-            setStorage(currentPageKey, updatedContent);
-            
-            // Update the placeholder's command attribute
-            moodTrackerPlaceholder.dataset.command = newCommand;
-            
-            // Trigger sync to cloud if available
-            if (typeof debouncedSyncWithCloud === 'function') {
-              debouncedSyncWithCloud();
-            }
-        }
-    };
-    moodTracker.init(moodTrackerPlaceholder, command, onCommandChange);
-  }
-
-  // --- Initialize Finance Tracker if placeholder exists ---
-  const financeTrackerPlaceholder = DOM.pageContentWrapper.querySelector('.finance-widget-placeholder');
-  if (financeTrackerPlaceholder) {
-    const command = financeTrackerPlaceholder.dataset.command;
-    const transactions = financeTrackerPlaceholder.dataset.transactions;
-    // Ensure financeTracker is available
-    if (typeof financeTracker !== 'undefined' && financeTracker.init) {
-      // Create a callback to update the command in the document when filter changes
-      const onCommandChange = (newCommand) => {
-        // Get the current page content
-        const currentPageKey = DOM.pageContentWrapper.dataset.key;
-        if (!currentPageKey) return;
-        
-        // Get the current content
-        const content = getStorage(currentPageKey);
-        if (!content) return;
-        
-        // Replace the FINANCE command with the new one
-        const oldCommand = command;
-        const updatedContent = content.replace(oldCommand, newCommand);
-        
-        // Update the storage
-        setStorage(currentPageKey, updatedContent);
-        
-        // Update the placeholder's command attribute
-        financeTrackerPlaceholder.dataset.command = newCommand;
-        
-        // Trigger sync to cloud
-        if (typeof debouncedSyncWithCloud === 'function') {
-          debouncedSyncWithCloud();
-        }
-        
-        // Re-render the current page to reflect the command changes
-        if (currentPageKey.startsWith('page-')) {
-          const pageTitle = currentPageKey.substring(5);
-          renderLibraryPage(pageTitle);
-        }
-      };
-      
-      // Initialize the finance tracker with the command change callback
-      financeTracker.init(financeTrackerPlaceholder, command, transactions, {
-        onCommandChange,
-        commandNode: financeTrackerPlaceholder
-      });
-    }
-  }
+  // --- Initialize all widgets in the container ---
+  initializeWidgetsInContainer(DOM.pageContentWrapper);
 
   // --- Backlinks (Linked Mentions) ---
   const backlinks = findBacklinks(pageTitle);

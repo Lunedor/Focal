@@ -236,12 +236,6 @@
     margin-bottom: 0.5rem;
 }
 
-.calendar-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 0.25rem;
-}
-
 .day-cell {
     height: 40px;
     width: 40px;

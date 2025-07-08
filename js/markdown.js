@@ -75,7 +75,7 @@ const goalExtension = {
         }
     },
     renderer(token) {
-        return `<div class="goal-placeholder" data-label="${token.label}"></div>`;
+        return `<div class="widget-placeholder goal-placeholder" data-widget-type="goal" data-label="${token.label}"></div>`;
     }
 };
 
@@ -116,7 +116,7 @@ const financeExtension = {
         }
         
         // Use single quotes for data attributes to handle potential double quotes in content
-        return `<div class="finance-widget-placeholder" data-command='${fullCommand}' data-transactions='${token.transactions}'></div>`;
+        return `<div class="widget-placeholder finance-widget-placeholder" data-widget-type="finance" data-command='${fullCommand}' data-transactions='${token.transactions}'></div>`;
     }
 };
 
@@ -136,7 +136,32 @@ const moodTrackerExtension = {
         }
     },
     renderer(token) {
-        return `<div class="mood-tracker-placeholder" data-command='${token.text}'></div>`;
+        return `<div class="widget-placeholder mood-tracker-placeholder" data-widget-type="mood" data-command='${token.text}'></div>`;
+    }
+};
+
+// Make sure the booksExtension is working correctly by updating it:
+const booksExtension = {
+    name: 'books',
+    level: 'block',
+    start(src) { 
+        const match = src.match(/^BOOKS:/i);
+        return match?.index; 
+    },
+    tokenizer(src, tokens) {
+        const rule = /^BOOKS:\s*(.*)(?:\n|$)/i;
+        const match = rule.exec(src);
+        if (match) {
+            return {
+                type: 'books',
+                raw: match[0],
+                config: match[1].trim()
+            };
+        }
+        return false;
+    },
+    renderer(token) {
+        return `<div class="widget-placeholder books-widget-placeholder" data-widget-type="books" data-config='${token.config}'></div>`;
     }
 };
 
@@ -156,7 +181,7 @@ const taskSummaryExtension = {
         }
     },
     renderer(token) {
-        return `<div class="task-summary-placeholder" data-label="${token.label}"></div>`;
+        return `<div class="widget-placeholder task-summary-placeholder" data-widget-type="task" data-label="${token.label}"></div>`;
     }
 };
 
@@ -422,7 +447,7 @@ renderer.listitem = (text, task, checked) => {
 };
 
 marked.use({
-    extensions: [wikiLinkExtension, tableCheckboxExtension, taskSummaryExtension, goalExtension, moodTrackerExtension, financeExtension],
+    extensions: [wikiLinkExtension, tableCheckboxExtension, taskSummaryExtension, goalExtension, moodTrackerExtension, financeExtension, booksExtension],
     gfm: true,
     breaks: true,
     renderer: renderer
@@ -489,10 +514,10 @@ const parseMarkdown = (text, options = {}) => {
   if (html.includes('[object Object]')) {
     html = html.replace(/\[object Object\]/g, '');
   }
-  html = html.replace(/<div class="task-summary-placeholder" data-label="([^"]*)">/g, (match, label) => {
+  html = html.replace(/<div class="widget-placeholder task-summary-placeholder" data-widget-type="task" data-label="([^"]*)">/g, (match, label) => {
     const taskStats = calculateTaskStats(text, label);
     const allCompleted = taskStats.total > 0 && taskStats.completed === taskStats.total;
-    const taskIcon = allCompleted ? '✅' : '📋';
+    const taskIcon = allCompleted ? '✅' : '📝';
     return `<div class="task-summary">
       <div class="task-summary-header">
         <span class="task-summary-icon">${taskIcon}</span>
@@ -501,66 +526,6 @@ const parseMarkdown = (text, options = {}) => {
       <span class="task-summary-stats">${taskStats.completed}/${taskStats.total} completed</span>
       <div class="task-progress-bar">
         <div style="width: ${taskStats.percentage}%;"></div>
-      </div>
-    </div>`;
-  });
-  // --- Multi-goal fix: track call count for each label ---
-  const goalCallCounts = {};
-  html = html.replace(/<div class="goal-placeholder" data-label="([^"]*)">/g, (match, label) => {
-    goalCallCounts[label] = (goalCallCounts[label] || 0) + 1;
-    const goalAnalysis = analyzeGoalProgress(text, label, goalCallCounts[label]);
-    if (!goalAnalysis) {
-      return `<div class="goal-tracker basic">
-        <div class="goal-header">
-          <span class="goal-icon">🎯</span>
-          <span class="goal-title">${label}</span>
-        </div>
-      </div>`;
-    }
-    const statusClass = goalAnalysis.status === 'completed' ? 'completed' :
-                       goalAnalysis.status === 'deadline-passed' ? 'overdue' : 'in-progress';
-    const statusIcon = goalAnalysis.status === 'completed' ? '✅' :
-                      goalAnalysis.status === 'deadline-passed' ? '⚠️' : '🎯';
-    // If manual progress and completed, don't show progress bar
-    if (goalAnalysis.type === 'manual' && goalAnalysis.status === 'completed') {
-      return `<div class="goal-tracker ${goalAnalysis.type} ${statusClass}">
-        <div class="goal-header">
-          <span class="goal-icon">${statusIcon}</span>
-          <span class="goal-title">${label}</span>
-        </div>
-        <div class="goal-progress">
-          <div class="goal-stats">${goalAnalysis.details}</div>
-          <span class="goal-percentage">${goalAnalysis.percentage}%</span>
-        </div>
-      </div>`;
-    }
-    // If manual progress, show stats, percentage, and a progress bar
-    if (goalAnalysis.type === 'manual') {
-      return `<div class="goal-tracker ${goalAnalysis.type} ${statusClass}">
-        <div class="goal-header">
-          <span class="goal-icon">${statusIcon}</span>
-          <span class="goal-title">${label}</span>
-        </div>
-        <div class="goal-progress">
-          <div class="goal-stats">${goalAnalysis.details}</div>
-          <div class="goal-progress-bar">
-            <div style="width: ${Math.min(100, goalAnalysis.percentage)}%;"></div>
-          </div>
-          <span class="goal-percentage">${goalAnalysis.percentage}%</span>
-        </div>
-      </div>`;
-    }
-    return `<div class="goal-tracker ${goalAnalysis.type} ${statusClass}">
-      <div class="goal-header">
-        <span class="goal-icon">${statusIcon}</span>
-        <span class="goal-title">${label}</span>
-      </div>
-      <div class="goal-progress">
-        <div class="goal-stats">${goalAnalysis.details}</div>
-        <div class="goal-progress-bar">
-          <div style="width: ${Math.min(100, goalAnalysis.percentage)}%;"></div>
-        </div>
-        <span class="goal-percentage">${goalAnalysis.percentage}%</span>
       </div>
     </div>`;
   });
@@ -993,3 +958,6 @@ function analyzeGoalProgress(text, goalLabel) {
   
   return null;
 }
+
+// Expose for use in widget registry
+window.analyzeGoalProgress = analyzeGoalProgress;
