@@ -13,6 +13,8 @@ A minimalist, local-first digital bullet journal designed for clarity and focus.
 *   **Advanced Goal Tracking**: Define goals with `GOAL:` and track them automatically via checklists, counters, or manual `PROGRESS: [x%]` bars.
 *   **Visual Mood Tracking**: Log your daily moods with an interactive widget. Choose between calendar, circular, or chart views and customize the display with colors or emojis to visualize your emotional patterns over time. Easy-to-use interface lets you record your mood with a simple click.
 *   **Comprehensive Finance Tracking**: Monitor your income, expenses, and spending patterns with powerful finance widgets. Features include transaction categorization, multiple currency support, flexible time period filtering (daily, weekly, monthly, yearly, or custom date ranges), and various visualization options (summary tables, bar charts for trends, and pie charts for category breakdowns).
+*   **Book Tracking**: Manage your reading library with integrated Google Books API search. Track reading progress, set book statuses (to-read, reading, finished, DNF, on-hold), and visualize your reading statistics. Features include multiple widget views (full tracker, to-read list, currently reading, bookshelf, stats), progress tracking with visual sliders, and seamless integration with goal tracking for reading challenges.
+*   **Movie Tracking**: Build and manage your movie watchlist using The Movie Database (TMDB) API. Track movie statuses (to-watch, watched, favorites, dropped), add personal ratings, and organize your viewing history. Includes comprehensive search functionality, detailed movie information with posters and metadata, and various widget displays for different viewing preferences.
 *   **Smart Scheduling**: Schedule tasks for specific dates with `(SCHEDULED: YYYY-MM-DD)` and create recurring events with `(REPEAT: ...)` syntax. These automatically appear in your weekly planner. Also can be set reminders with `(NOTIFY: YYYY-MM-DD HH:mm)` syntax for push notifications.
 *   **Push Notifications**: Set reminders with `(NOTIFY: YYYY-MM-DD HH:mm)` syntax to receive push notifications for important tasks and events, even when the app is closed.
 *   **Local-First & Private**: Your data lives in your browser's `localStorage` by default. No account is needed to get started.
@@ -51,6 +53,10 @@ Focal extends standard Markdown to create a rich, interconnected planning system
     - 2025-01-01, Coffee, -4.50, Food
     - 2025-01-02, Freelance Payment, +500.00, Income
     ```
+
+*   `BOOKS: full-tracker`: Creates a book tracking widget. Available widget types include `to-read` (shows books marked to read with checkboxes), `currently-reading` (displays books in progress with progress bars), `finished` (shows completed books), `bookshelf` (visual grid of all books organized by status), `stats` (reading statistics), and `full-tracker` (comprehensive management interface with search, pagination, and all features).
+
+*   `MOVIES: watchlist`: Creates a movie tracking widget using TMDB API. Available widget types include `watchlist` (to-watch movies with checkboxes), `watched` (recently watched movies with ratings), `favorites` (favorite movies), `stats` (viewing statistics), and `full-tracker` (complete movie management with search, filtering, and detailed information).
 
 *   `MOOD: calendar, color, 2025-01-01:happy`: Creates a mood tracking widget with the specified display type (calendar, circular, chart) and style (color, emoji, all). Optionally add mood data directly in the format `date:mood_state`. Available mood states include: happy, excited, content, calm, neutral, tired, anxious, sad, angry.
 *   `(SCHEDULED: 2025-12-25)`: Attaches a date to a task, making it appear in the weekly planner on that day.

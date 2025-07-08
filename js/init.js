@@ -220,6 +220,8 @@ Welcome to your new personal dashboard. Focal is a minimalist, local-first plann
 - **Goal Tracking**: Set and monitor goals with progress bars
 - **Mood Tracking**: Log and visualize your daily moods ([[Daily Journal]])
 - **Finance Tracking**: Monitor income, expenses, and spending patterns ([[Finances]])
+- **Book Tracking**: Manage your reading library and track progress ([[Reading List]])
+- **Movie Tracking**: Build your watchlist and track viewing history ([[Movies]])
 - **Wiki Links**: Create connected notes with [[Feature Showcase|wiki-style links]]
 
 TASKS: Getting Started
@@ -228,6 +230,8 @@ TASKS: Getting Started
 - [ ] Create your first custom page
 - [ ] Try the mood tracking in the [[Daily Journal]]
 - [ ] Set up your finances in the [[Finances]] page
+- [ ] Add books to your [[Reading List]]
+- [ ] Create a movie watchlist in [[Movies]]
     `.trim();
     setStorage('page-Welcome to Focal', welcomeContent);
     setPinnedPages(['Welcome to Focal']); // Pin this page
@@ -293,6 +297,24 @@ Track your finances and visualize spending patterns on the [[Finances]] page.
 Use the FINANCE: syntax with different view types (summary, chart, chartpie) and time filters.
 
 Each transaction follows this format: Date, Description, Amount, Category
+
+---
+
+## Book Tracking
+Manage your reading library and track progress on the [[Reading List]] page.
+
+Use the BOOKS: syntax with different widget types (to-read, currently-reading, finished, bookshelf, stats, full-tracker).
+
+Search and add books using the Google Books API integration.
+
+---
+
+## Movie Tracking
+Build your watchlist and track viewing history on the [[Movies]] page.
+
+Use the MOVIES: syntax with different widget types (watchlist, watched, favorites, stats, full-tracker).
+
+Search and add movies using The Movie Database (TMDB) API integration.
 
 ---
 
@@ -449,7 +471,244 @@ You can customize finance widgets with the following options:
     `.trim();
     setStorage('page-Finances', financesContent);
 
-    // 8. Set the visited flag
+    // 8. Create a "Reading List" page to showcase the books tracker
+    const readingListContent = `
+# My Reading List 📚
+
+Welcome to your personal library! Track your reading progress, discover new books, and organize your literary journey with Focal's integrated book tracking system.
+
+## How to Use
+1. Use the search feature to find books from Google Books API
+2. Track reading progress with visual progress bars
+3. Organize books by status: To Read, Reading, Finished, DNF, On Hold
+4. Set reading goals and track your progress
+
+---
+
+## Current Reading Progress
+
+BOOKS: currently-reading
+
+---
+
+## Books To Read
+
+BOOKS: to-read
+
+---
+
+## Reading Statistics
+
+BOOKS: stats
+
+---
+
+## Complete Library
+
+BOOKS: full-tracker
+
+---
+
+## Reading Goals Integration
+
+Your reading progress automatically integrates with goal tracking. Try creating goals like:
+
+- **GOAL: Read 12 books in 2025**
+- **GOAL: Finish the Harry Potter series**
+- **GOAL: Read one non-fiction book per month**
+
+Books marked as "Finished" will automatically count towards your reading goals when you use the checkbox interface.
+
+## Tips for Success
+
+- Set realistic reading goals based on your schedule
+- Use the progress tracker to maintain momentum
+- Explore different genres to keep reading interesting
+- Join the [[Daily Journal]] to reflect on what you've read
+    `.trim();
+    setStorage('page-Reading List', readingListContent);
+
+    // 9. Create a "Movies" page to showcase the movie tracker
+    const moviesContent = `
+# My Movie Watchlist 🎬
+
+Discover, track, and organize your movie viewing experience with Focal's integrated movie tracking system powered by The Movie Database (TMDB).
+
+## How to Use
+1. Search for movies using the TMDB database integration
+2. Track viewing status: To Watch, Watched, Favorites, Dropped
+3. Rate movies and add personal notes
+4. Filter and organize your collection
+
+---
+
+## Movies To Watch
+
+MOVIES: watchlist
+
+---
+
+## Recently Watched
+
+MOVIES: watched
+
+---
+
+## My Favorites
+
+MOVIES: favorites
+
+---
+
+## Viewing Statistics
+
+MOVIES: stats
+
+---
+
+## Complete Movie Library
+
+MOVIES: full-tracker
+
+---
+
+## Movie Night Ideas
+
+### By Genre
+- **Action**: Check out the latest blockbusters
+- **Drama**: Explore critically acclaimed films
+- **Comedy**: Find something light and fun
+- **Documentary**: Learn something new
+
+### By Mood
+- **Feel Good**: Uplifting stories and comedies
+- **Thought Provoking**: Complex narratives and deep themes
+- **Adventure**: Exciting journeys and escapism
+- **Classic**: Timeless films everyone should see
+
+## Integration with Goals
+
+Create movie-watching goals and track your progress:
+
+- **GOAL: Watch 50 movies in 2025**
+- **GOAL: Explore international cinema**
+- **GOAL: Watch all Marvel movies in order**
+
+Use the checkbox interface in the watchlist to mark movies as watched - they'll automatically count towards your viewing goals!
+
+## Notes
+- All movie data is sourced from The Movie Database (TMDB)
+- Ratings and personal notes are stored locally
+- Use the [[Daily Journal]] to record thoughts about movies you've watched
+    `.trim();
+    setStorage('page-Movies', moviesContent);
+
+    // 11. Add sample books data to demonstrate the book tracker
+    const sampleBooksData = {
+      'gbooks_abc123': {
+        id: 'gbooks_abc123',
+        title: 'The Pragmatic Programmer',
+        author: 'David Thomas, Andrew Hunt',
+        cover: 'https://books.google.com/books/content?id=5wBQEp6ruIAC&printsec=frontcover&img=1&zoom=1&source=gbs_api',
+        publishedDate: '1999',
+        description: 'A classic guide to programming practices and principles.',
+        status: 'reading',
+        progress: 45,
+        dateAdded: todayDateStr
+      },
+      'gbooks_def456': {
+        id: 'gbooks_def456',
+        title: 'Clean Code',
+        author: 'Robert C. Martin',
+        cover: 'https://books.google.com/books/content?id=hjEFCAAAQBAJ&printsec=frontcover&img=1&zoom=1&source=gbs_api',
+        publishedDate: '2008',
+        description: 'A handbook of agile software craftsmanship.',
+        status: 'to-read',
+        progress: 0,
+        dateAdded: yesterdayStr
+      },
+      'gbooks_ghi789': {
+        id: 'gbooks_ghi789',
+        title: 'Atomic Habits',
+        author: 'James Clear',
+        cover: 'https://books.google.com/books/content?id=XfFvDwAAQBAJ&printsec=frontcover&img=1&zoom=1&source=gbs_api',
+        publishedDate: '2018',
+        description: 'Tiny changes, remarkable results - an easy & proven way to build good habits & break bad ones.',
+        status: 'finished',
+        progress: 100,
+        dateAdded: twoDaysAgoStr,
+        dateFinished: yesterdayStr
+      }
+    };
+    setStorage('books-data', JSON.stringify(sampleBooksData));
+
+    // 12. Add sample movies data to demonstrate the movie tracker
+    const sampleMoviesData = {
+      '550': {
+        id: '550',
+        title: 'Fight Club',
+        releaseDate: '1999-10-15',
+        poster: 'https://image.tmdb.org/t/p/w500/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg',
+        overview: 'A ticking-time-bomb insomniac and a slippery soap salesman channel primal male aggression.',
+        rating: 8.4,
+        genres: 'Drama',
+        runtime: 139,
+        status: 'watched',
+        addedDate: threeDaysAgoStr,
+        personalRating: 5,
+        watchedDate: twoDaysAgoStr,
+        notes: 'Incredible film with amazing plot twists!'
+      },
+      '13': {
+        id: '13',
+        title: 'Forrest Gump',
+        releaseDate: '1994-06-23',
+        poster: 'https://image.tmdb.org/t/p/w500/arw2vcBveWOVZr6pxd9XTd1TdQa.jpg',
+        overview: 'A man with a low IQ has accomplished great things in his life and been present during significant historic events.',
+        rating: 8.5,
+        genres: 'Comedy, Drama, Romance',
+        runtime: 142,
+        status: 'favorites',
+        addedDate: threeDaysAgoStr,
+        personalRating: 5,
+        watchedDate: threeDaysAgoStr,
+        notes: 'Life is like a box of chocolates...'
+      },
+      '680': {
+        id: '680',
+        title: 'Pulp Fiction',
+        releaseDate: '1994-09-10',
+        poster: 'https://image.tmdb.org/t/p/w500/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg',
+        overview: 'A burger-loving hit man, his philosophical partner, and a drug-addled gangster embark on three interconnected stories.',
+        rating: 8.9,
+        genres: 'Crime, Drama',
+        runtime: 154,
+        status: 'to-watch',
+        addedDate: todayDateStr,
+        personalRating: null,
+        watchedDate: null,
+        notes: ''
+      },
+      '155': {
+        id: '155',
+        title: 'The Dark Knight',
+        releaseDate: '2008-07-16',
+        poster: 'https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg',
+        overview: 'Batman raises the stakes in his war on crime with the help of Lt. Jim Gordon and District Attorney Harvey Dent.',
+        rating: 9.0,
+        genres: 'Action, Crime, Drama',
+        runtime: 152,
+        status: 'to-watch',
+        addedDate: yesterdayStr,
+        personalRating: null,
+        watchedDate: null,
+        notes: ''
+      }
+    };
+    setStorage('movies-data', JSON.stringify(sampleMoviesData));
+
+    // 13. Set the visited flag
+    // 13. Set the visited flag
     localStorage.setItem('focal-journal-visited', 'true');
   }
   

@@ -207,6 +207,7 @@ const EditModeManager = {
       { icon: 'minus', action: 'hr', title: 'Horizontal Rule', md: { prefix: '\n---\n' } },
       { icon: 'hash', action: 'h1', title: 'Heading 1', md: { prefix: '# ' } },
       { icon: 'book-open', action: 'books', title: 'Insert Book Tracker', md: null },
+      { icon: 'film', action: 'movies', title: 'Insert Movie Tracker', md: null },
     ];
     if (key && key.startsWith('page-')) {
       buttons = [
@@ -216,6 +217,7 @@ const EditModeManager = {
         { icon: 'dollar-sign', action: 'finance', title: 'Insert Finance Tracker', md: null },
         { icon: 'smile', action: 'mood', title: 'Insert Mood Tracker', md: null },
         { icon: 'book-open', action: 'books', title: 'Insert Book Tracker', md: null },
+        { icon: 'film', action: 'movies', title: 'Insert Movie Tracker', md: null },
         { separator: true },
         { icon: 'clock', action: 'scheduled', title: 'Insert (SCHEDULED: )', md: { prefix: '(SCHEDULED: )' } },
         { icon: 'repeat', action: 'repeat', title: 'Insert (REPEAT: )', md: { prefix: '(REPEAT: )' } },
@@ -895,6 +897,154 @@ const EditModeManager = {
         
         wrapper.addEventListener('mousedown', closeDropdown);
         
+        return;
+      }
+
+      // Movie dropdown handler with exact same logic as books
+      if (action === 'movies') {
+        // Show movies widget dropdown
+        const dropdown = document.createElement('div');
+        dropdown.className = 'movies-dropdown';
+        dropdown.style.cssText = 'position:absolute;z-index:1000;background:var(--color-background);border:1px solid var(--color-border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);padding:0;overflow:hidden;max-width:300px;min-width:260px;';
+        
+        const widgetTypes = [
+          { label: 'Full Movie Tracker', value: 'full-tracker', default: true },
+          { label: 'Watchlist', value: 'watchlist' },
+          { label: 'Recently Watched', value: 'watched' },
+          { label: 'Favorites', value: 'favorites' },
+          { label: 'Stats', value: 'stats' }
+        ];
+        
+        // Add check icon for selected items
+        const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="float:right;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+        
+        dropdown.innerHTML = `
+          <div style="padding:10px 15px;font-weight:600;color:var(--color-text);font-size:1.0em;border-bottom:1px solid var(--color-border);background:var(--color-planner-header-bg, rgba(0,0,0,0.03));">Movie Tracker</div>
+          <div style="padding:10px 15px;font-weight:600;color:var(--color-sidebar-text);font-size:0.9em;border-bottom:1px solid var(--color-border);">Widget Type</div>
+          ${widgetTypes.map(type => `
+            <div class="dropdown-item ${type.default ? 'selected' : ''}" data-value="${type.value}" style="padding:8px 15px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
+              <span>${type.label}</span>
+              ${type.default ? `<span class="check-icon">${checkIcon}</span>` : ''}
+            </div>
+          `).join('')}
+        `;
+        
+        // Position the dropdown below the button
+        const buttonRect = button.getBoundingClientRect();
+        dropdown.style.top = (buttonRect.bottom + window.scrollY) + 'px';
+        dropdown.style.left = (buttonRect.left + window.scrollX - 60) + 'px';
+        
+        // Add hover effect
+        const style = document.createElement('style');
+        style.textContent = `
+          .dropdown-item:hover {
+            background-color: var(--color-border);
+          }
+          .dropdown-item.selected {
+            background-color: var(--color-bg-highlight, rgba(0,0,0,0.05));
+          }
+        `;
+        document.head.appendChild(style);
+        
+        // ✅ FIX: Append to wrapper instead of document.body
+        wrapper.appendChild(dropdown);
+        
+        // Handle item selection
+        let selectedType = 'full-tracker';
+        
+        dropdown.addEventListener('click', (e) => {
+          const item = e.target.closest('.dropdown-item');
+          if (!item) return;
+          
+          // No need for stopPropagation since it's inside wrapper now
+          e.preventDefault();
+          
+          // Update selection
+          selectedType = item.dataset.value;
+          
+          // Update check icons
+          dropdown.querySelectorAll('.check-icon').forEach(el => el.remove());
+          const newCheckIcon = document.createElement('span');
+          newCheckIcon.className = 'check-icon';
+          newCheckIcon.innerHTML = checkIcon;
+          item.appendChild(newCheckIcon);
+          
+          // Highlight selected item
+          dropdown.querySelectorAll('.dropdown-item').forEach(el => 
+            el.classList.toggle('selected', el === item));
+        });
+        
+        // Add done button
+        const doneButton = document.createElement('div');
+        doneButton.className = 'dropdown-done-button';
+        doneButton.textContent = 'Insert';
+        doneButton.style.cssText = 'text-align:center;padding:8px;margin-top:8px;font-weight:500;background:var(--color-primary,#007acc);color:white;cursor:pointer;border-radius:0 0 4px 4px;';
+        dropdown.appendChild(doneButton);
+        
+        doneButton.addEventListener('click', (e) => {
+          e.preventDefault();
+          
+          console.log('movies widget insert clicked');
+          console.log(`Selected type: ${selectedType}`);
+          
+          // Use correct uppercase format that matches markdown.js
+          const moviesString = `MOVIES: ${selectedType}\n`;
+          console.log('Inserting movies string:', moviesString);
+          
+          // Get current content and selection
+          const originalValue = textarea.value;
+          const selectionStart = textarea.selectionStart;
+          const selectionEnd = textarea.selectionEnd;
+          
+          // Insert the movies widget
+          const newContent = originalValue.slice(0, selectionStart) + moviesString + originalValue.slice(selectionEnd);
+          
+          // Update textarea
+          textarea.value = newContent;
+          textarea.setSelectionRange(selectionStart + moviesString.length, selectionStart + moviesString.length);
+          
+          // Update storage
+          if (key) {
+            setStorage(key, newContent);
+            if (typeof debouncedSyncWithCloud === 'function') debouncedSyncWithCloud();
+          }
+          
+          // Close dropdown and return focus to textarea
+          safeCloseDropdown();
+          textarea.focus();
+          
+          // ✅ Do NOT exit edit mode - just close dropdown and continue editing
+        });
+        
+        // Track if dropdown is already closed
+        let isDropdownClosed = false;
+        
+        // Function to safely close dropdown
+        const safeCloseDropdown = () => {
+          if (isDropdownClosed) return;
+          
+          try {
+            if (dropdown.parentNode) {
+              wrapper.removeChild(dropdown);
+            }
+            if (style.parentNode) {
+              document.head.removeChild(style);
+            }
+            isDropdownClosed = true;
+          } catch (e) {
+            console.error('Error closing movies dropdown:', e);
+          }
+        };
+        
+        // Close dropdown when clicking outside dropdown but inside wrapper
+        const closeDropdown = (e) => {
+          if (!dropdown.contains(e.target) && e.target !== button && !button.contains(e.target)) {
+            safeCloseDropdown();
+          }
+        };
+        
+        wrapper.addEventListener('mousedown', closeDropdown);
+
         return;
       }
       
