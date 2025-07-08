@@ -413,11 +413,12 @@ const moodTracker = (() => {
                     let cellStyle = 'pixel-cell-default';
                     let cellContent = '';
                     
-                    if (moodInfo) {
+                    if (moodInfo && (state.widgetStyle === 'color' || state.widgetStyle === 'all')) {
                         cellStyle = moodInfo.color;
-                        if (state.widgetStyle === 'emoji' || state.widgetStyle === 'all') {
-                            cellContent = `<span class="pixel-cell-emoji">${moodInfo.emoji}</span>`;
-                        }
+                    }
+                    
+                    if (moodInfo && (state.widgetStyle === 'emoji' || state.widgetStyle === 'all')) {
+                        cellContent = `<span class="pixel-cell-emoji">${moodInfo.emoji}</span>`;
                     }
                     
                     dayRow += `
