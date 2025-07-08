@@ -210,6 +210,134 @@ const taskSummaryExtension = {
     }
 };
 
+const futurelogExtension = {
+    name: 'futurelog',
+    level: 'block',
+    start(src) { return src.match(/^FUTURELOG:/)?.index; },
+    tokenizer(src, tokens) {
+        console.log('[FUTURELOG Extension] Tokenizing source:', src.substring(0, 200) + '...');
+        
+        const lines = src.split('\n');
+        const firstLine = lines[0];
+        const futurelogMatch = /^FUTURELOG:\s*(.*)/.exec(firstLine);
+        
+        if (!futurelogMatch) return false;
+        
+        console.log('[FUTURELOG Extension] Found FUTURELOG line:', firstLine);
+        console.log('[FUTURELOG Extension] Total lines to process:', lines.length);
+        
+        let currentLineIndex = 1;
+        const items = [];
+        let hasFoundContent = false;
+        
+        // Collect all lines until we hit a meaningful delimiter
+        while (currentLineIndex < lines.length) {
+            const line = lines[currentLineIndex].trim();
+            console.log(`[FUTURELOG Extension] Processing line ${currentLineIndex}: "${line}"`);
+            
+            // Skip initial blank lines, but stop at blank line after we've found content
+            if (!line) {
+                if (hasFoundContent) {
+                    console.log(`[FUTURELOG Extension] Stopping at blank line ${currentLineIndex} after finding content`);
+                    break;
+                } else {
+                    console.log(`[FUTURELOG Extension] Skipping initial blank line ${currentLineIndex}`);
+                    currentLineIndex++;
+                    continue;
+                }
+            }
+            
+            // Stop at new heading, horizontal rule, or another widget
+            if (line.match(/^#{1,6}\s/) || 
+                line.match(/^---+$/) ||
+                line.match(/^(TASKS|GOAL|FINANCE|MOOD|BOOKS|MOVIES|FUTURELOG):/)) {
+                console.log(`[FUTURELOG Extension] Stopping at line ${currentLineIndex}: "${line}"`);
+                break;
+            }
+            
+            hasFoundContent = true;
+            
+            // Look for lines with SCHEDULED dates
+            const scheduledMatch = line.match(/\(SCHEDULED:\s*([^)]+)\)/i);
+            const repeatMatch = line.match(/\(REPEAT:\s*([^)]+)\)/i);
+            
+            console.log(`[FUTURELOG Extension] SCHEDULED match for "${line}":`, scheduledMatch);
+            console.log(`[FUTURELOG Extension] REPEAT match for "${line}":`, repeatMatch);
+            
+            if (scheduledMatch || repeatMatch) {
+                // Extract the text without the SCHEDULED/REPEAT part
+                const itemText = line.replace(/\(SCHEDULED:\s*[^)]+\)/i, '').replace(/\(REPEAT:\s*[^)]+\)/i, '').trim();
+                // Remove leading list markers
+                const cleanText = itemText.replace(/^[-*+]\s*/, '').replace(/^\[\s*[xX]?\s*\]\s*/, '');
+                
+                if (scheduledMatch) {
+                    console.log('[FUTURELOG Extension] Adding scheduled item:', { text: cleanText, dateStr: scheduledMatch[1].trim() });
+                    items.push({
+                        text: cleanText,
+                        dateStr: scheduledMatch[1].trim(),
+                        fullLine: line,
+                        type: 'scheduled'
+                    });
+                }
+                
+                if (repeatMatch) {
+                    console.log('[FUTURELOG Extension] Adding repeat item:', { text: cleanText, repeatRule: repeatMatch[1].trim() });
+                    items.push({
+                        text: cleanText,
+                        repeatRule: repeatMatch[1].trim(),
+                        fullLine: line,
+                        type: 'repeat'
+                    });
+                }
+            }
+            
+            currentLineIndex++;
+        }
+        
+        console.log('[FUTURELOG Extension] Final items found:', items);
+        
+        const consumedLines = currentLineIndex;
+        const raw = lines.slice(0, consumedLines).join('\n');
+        
+        return {
+            type: 'futurelog',
+            raw: raw,
+            options: futurelogMatch[1].trim(),
+            items: items
+        };
+    },
+    renderer(token) {
+        console.log('[FUTURELOG Extension] Rendering token:', token);
+        
+        // Clean the items to only include necessary data for the widget
+        const cleanItems = token.items.map(item => {
+            if (item.type === 'scheduled') {
+                return {
+                    text: item.text,
+                    dateStr: item.dateStr,
+                    type: 'scheduled'
+                };
+            } else if (item.type === 'repeat') {
+                return {
+                    text: item.text,
+                    repeatRule: item.repeatRule,
+                    type: 'repeat'
+                };
+            }
+            // Fallback for legacy format
+            return {
+                text: item.text,
+                dateStr: item.dateStr,
+                type: 'scheduled'
+            };
+        });
+        
+        const optionsStr = JSON.stringify(token.options).replace(/"/g, '&quot;');
+        const itemsStr = JSON.stringify(cleanItems).replace(/"/g, '&quot;');
+        return `<div class="widget-placeholder futurelog-placeholder" data-widget-type="futurelog" data-options="${optionsStr}" data-items="${itemsStr}"></div>`;
+    }
+};
+
 // Add this function before the DOMContentLoaded event listener
 // Update the setupTableCheckboxes function to be independent for table vs list checkboxes
 const setupTableCheckboxes = () => {
@@ -472,7 +600,7 @@ renderer.listitem = (text, task, checked) => {
 };
 
 marked.use({
-    extensions: [wikiLinkExtension, tableCheckboxExtension, taskSummaryExtension, goalExtension, moodTrackerExtension, financeExtension, booksExtension, moviesExtension],
+    extensions: [wikiLinkExtension, tableCheckboxExtension, taskSummaryExtension, goalExtension, moodTrackerExtension, financeExtension, booksExtension, moviesExtension, futurelogExtension],
     gfm: true,
     breaks: true,
     renderer: renderer
@@ -567,13 +695,150 @@ const parseMarkdown = (text, options = {}) => {
     return `<span class="scheduled-link" data-planner-date="${normalizedDate || dateStr}">${displayMatch}</span>`;
   });
 
+  // Helper function to calculate next occurrence of REPEAT items
+  function calculateNextRepeatOccurrence(repeatRule) {
+    if (!repeatRule || typeof repeatRule !== 'string') return null;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Handle "every <weekday> from <start> to <end>" syntax
+    const rangeMatch = repeatRule.match(/^every (monday|tuesday|wednesday|thursday|friday|saturday|sunday) from ([^ ]+) to ([^ )]+)/i);
+    if (rangeMatch) {
+      const weekdayName = rangeMatch[1].toLowerCase();
+      const startDateStr = rangeMatch[2];
+      const endDateStr = rangeMatch[3];
+      
+      // Parse start and end dates
+      let startDate = parseDate(startDateStr);
+      let endDate = parseDate(endDateStr);
+      
+      if (!startDate || !endDate) return null;
+      
+      const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const targetWeekday = weekdays.indexOf(weekdayName);
+      if (targetWeekday === -1) return null;
+      
+      // Find the first occurrence of the target weekday on or after the start date
+      let nextOccurrence = new Date(startDate);
+      while (nextOccurrence.getDay() !== targetWeekday) {
+        nextOccurrence.setDate(nextOccurrence.getDate() + 1);
+      }
+      
+      // If we're past today, find the next occurrence within the range
+      if (nextOccurrence <= today) {
+        while (nextOccurrence <= today && nextOccurrence <= endDate) {
+          nextOccurrence.setDate(nextOccurrence.getDate() + 7);
+        }
+      }
+      
+      // Return the next occurrence if it's within the range
+      return (nextOccurrence <= endDate) ? nextOccurrence : null;
+    }
+    
+    // Handle "every <weekday>" syntax (weekly recurring)
+    const weekdayMatch = repeatRule.match(/^every (monday|tuesday|wednesday|thursday|friday|saturday|sunday)$/i);
+    if (weekdayMatch) {
+      const weekdayName = weekdayMatch[1].toLowerCase();
+      const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const targetWeekday = weekdays.indexOf(weekdayName);
+      if (targetWeekday === -1) return null;
+      
+      // Find the next occurrence of this weekday
+      let nextOccurrence = new Date(today);
+      let daysUntilTarget = (targetWeekday - today.getDay() + 7) % 7;
+      if (daysUntilTarget === 0) {
+        daysUntilTarget = 7; // If today is the target day, show next week
+      }
+      nextOccurrence.setDate(today.getDate() + daysUntilTarget);
+      
+      return nextOccurrence;
+    }
+    
+    // Handle "everyday" syntax (daily recurring)
+    if (repeatRule.toLowerCase() === 'everyday') {
+      const tomorrow = new Date(today);
+      tomorrow.setDate(today.getDate() + 1);
+      return tomorrow;
+    }
+    
+    // Handle annual repeats (birthdays, anniversaries)
+    let dateStr = repeatRule.trim();
+    let parsedDate = parseDate(dateStr);
+    
+    // Also handle DD-MM format specifically
+    if (!parsedDate) {
+      const ddmmMatch = dateStr.match(/^(\d{1,2})-(\d{1,2})$/);
+      if (ddmmMatch) {
+        const day = parseInt(ddmmMatch[1]);
+        const month = parseInt(ddmmMatch[2]) - 1; // JavaScript months are 0-based
+        parsedDate = new Date(2000, month, day); // Use any year for reference
+      }
+    }
+    
+    if (parsedDate) {
+      // Calculate next occurrence of this date
+      const thisYear = today.getFullYear();
+      const nextYear = thisYear + 1;
+      
+      // Try this year first
+      let thisYearDate = new Date(thisYear, parsedDate.getMonth(), parsedDate.getDate());
+      if (thisYearDate > today) {
+        return thisYearDate;
+      }
+      
+      // Otherwise next year
+      return new Date(nextYear, parsedDate.getMonth(), parsedDate.getDate());
+    }
+    
+    return null;
+  }
+  
+  // Helper function to parse various date formats
+  function parseDate(dateStr) {
+    if (!dateStr) return null;
+    
+    // Try DD.MM.YYYY or DD.MM.YY
+    let match = dateStr.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2,4})$/);
+    if (match) {
+      let day = parseInt(match[1]);
+      let month = parseInt(match[2]) - 1; // JavaScript months are 0-based
+      let year = parseInt(match[3]);
+      if (year < 100) year += (year < 50 ? 2000 : 1900);
+      return new Date(year, month, day);
+    }
+    
+    // Try DD/MM/YYYY or DD/MM/YY
+    match = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+    if (match) {
+      let day = parseInt(match[1]);
+      let month = parseInt(match[2]) - 1;
+      let year = parseInt(match[3]);
+      if (year < 100) year += (year < 50 ? 2000 : 1900);
+      return new Date(year, month, day);
+    }
+    
+    // Try DD-MM-YYYY or DD-MM-YY
+    match = dateStr.match(/^(\d{1,2})-(\d{1,2})-(\d{2,4})$/);
+    if (match) {
+      let day = parseInt(match[1]);
+      let month = parseInt(match[2]) - 1;
+      let year = parseInt(match[3]);
+      if (year < 100) year += (year < 50 ? 2000 : 1900);
+      return new Date(year, month, day);
+    }
+    
+    return null;
+  }
+
   // Make (REPEAT: ...) clickable and normalized for recurring events, including new syntax
   // Support: (REPEAT: 03.07.1995), (REPEAT: every monday from 30.06.2025 to 30.06.2026), etc.
   const repeatRegex = /\(REPEAT: ([^)]+)\)/gi;
   html = html.replace(repeatRegex, (match, repeatRule) => {
     let tooltip = '';
-    let normalized = '';
+    let nextOccurrenceDate = calculateNextRepeatOccurrence(repeatRule);
     let recurringIcon = '🔁';
+    
     // Try to parse new syntax: every <weekday> from <start> to <end>
     const rangeMatch = repeatRule.match(/^every (monday|tuesday|wednesday|thursday|friday|saturday|sunday) from ([^ ]+) to ([^ )]+)/i);
     if (rangeMatch) {
@@ -581,24 +846,38 @@ const parseMarkdown = (text, options = {}) => {
       const from = rangeMatch[2];
       const to = rangeMatch[3];
       tooltip = `Repeats every ${weekday} from ${from} to ${to}`;
-      normalized = `${weekday} from ${from} to ${to}`;
     } else {
-      // Fallback: try to normalize as a date or MM-DD
-      let dateStr = repeatRule.trim();
-      let norm = window.normalizeDateStringToYyyyMmDd(dateStr);
-      if (!norm) {
-        const dm = dateStr.match(/^(\d{2})[./-](\d{2})$/);
-        if (dm) {
-          norm = `${dm[2]}-${dm[1]}`;
-        } else {
-          norm = dateStr;
+      // Check for simple weekday format (e.g., "every monday")
+      const weekdayMatch = repeatRule.match(/^every (monday|tuesday|wednesday|thursday|friday|saturday|sunday)$/i);
+      if (weekdayMatch) {
+        const weekday = weekdayMatch[1];
+        tooltip = `Repeats every ${weekday}`;
+      } else if (repeatRule.toLowerCase() === 'everyday') {
+        tooltip = `Repeats every day`;
+      } else {
+        // Fallback: try to normalize as a date or MM-DD
+        let dateStr = repeatRule.trim();
+        let norm = window.normalizeDateStringToYyyyMmDd(dateStr);
+        if (!norm) {
+          const dm = dateStr.match(/^(\d{2})[./-](\d{2})$/);
+          if (dm) {
+            norm = `${dm[2]}-${dm[1]}`;
+          } else {
+            norm = dateStr;
+          }
         }
+        tooltip = `Repeats on ${norm}`;
       }
-      normalized = norm;
-      tooltip = `Repeats on ${norm}`;
     }
-    // Add recurring icon, highlight, and tooltip for better visibility
-    return `<span class="repeat-link" data-repeat="${normalized}" title="${tooltip}" style="background:rgba(255, 242, 59, 0.2);border-radius:4px;padding:0 3px;">${recurringIcon} ${match}</span>`;
+    
+    // Make REPEAT items clickable like SCHEDULED items
+    if (nextOccurrenceDate) {
+      const formattedDate = dateFns.format(nextOccurrenceDate, 'yyyy-MM-dd');
+      return `<span class="repeat-link scheduled-link" data-planner-date="${formattedDate}" title="${tooltip} (next: ${dateFns.format(nextOccurrenceDate, 'MMM d, yyyy')})" style="background:rgba(255, 242, 59, 0.2);border-radius:4px;padding:0 3px;">${recurringIcon} ${match}</span>`;
+    } else {
+      // Fallback for items without a calculable next occurrence
+      return `<span class="repeat-link" title="${tooltip}" style="background:rgba(255, 242, 59, 0.2);border-radius:4px;padding:0 3px;">${recurringIcon} ${match}</span>`;
+    }
   });
   return html;
 };

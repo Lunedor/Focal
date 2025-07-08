@@ -182,8 +182,9 @@
   position: absolute;
   bottom: 0.5rem;
   right: 0.5rem;
-  background: var(--color-sidebar-active-bg);
+  background: var(--color-button);
   border: 1px solid var(--color-border);
+  color: white;
   border-radius: 3px;
   padding: 0.2rem 0.5rem;
   font-size: 0.8rem;
@@ -194,7 +195,7 @@
 
 .content-wrapper pre .copy-button:hover {
   opacity: 1;
-  background: var(--color-focus);
+  background: var(--color-button-hover);
 }
 
 /* Enhanced styling for lists */

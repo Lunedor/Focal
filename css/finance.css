@@ -193,7 +193,7 @@ body.dark-mode .finance-card {
 .finance-transaction-list thead, 
 .finance-transaction-list tbody tr {
     display: table;
-    width: 100%;
+    width: 90%;
     table-layout: fixed;
 }
 
@@ -573,7 +573,7 @@ body.dark-mode .finance-card {
     color: var(--color-text);
 }
 
-/* Date picker styling */
+/* Date picker styling - now handled by centralizedDatePicker.css */
 .date-picker-container {
     display: flex;
     position: relative;
@@ -583,137 +583,6 @@ body.dark-mode .finance-card {
     flex: 1;
     padding-right: 36px; /* Make room for the button */
     cursor: pointer;
-}
-
-.date-picker-button {
-    position: absolute;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    width: 36px;
-    background: var(--color-accent, #0277bd);
-    color: white;
-    border: none;
-    border-top-right-radius: 4px;
-    border-bottom-right-radius: 4px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 0.2s ease;
-}
-
-.date-picker-button:hover {
-    background-color: var(--color-accent-darker, #0056b3);
-}
-
-.date-picker-button svg {
-    stroke: white;
-}
-
-/* Custom finance date picker styles */
-.finance-date-picker-dropdown {
-    background-color: var(--color-background);
-    border: 1px solid var(--color-border);
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    padding: 12px;
-    width: 280px;
-    -webkit-user-select: none;
-    user-select: none;
-    max-width: 90vw; /* Prevent overflow on mobile */
-}
-
-.finance-date-picker-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--color-border);
-}
-
-.month-year-display {
-    font-weight: 500;
-    color: var(--color-text);
-}
-
-.date-nav-btn {
-    background: none;
-    border: 1px solid var(--color-border);
-    border-radius: 4px;
-    width: 30px;
-    height: 30px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--color-text);
-}
-
-.date-nav-btn:hover {
-    background-color: var(--color-hover-bg, rgba(0,0,0,0.05));
-}
-
-.finance-date-picker-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 4px;
-    margin-bottom: 10px;
-}
-
-.day-header {
-    text-align: center;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--color-sidebar-text);
-    padding: 4px 0;
-}
-
-.finance-date-picker-dropdown .calendar-day {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 32px;
-    width: 32px;
-    border-radius: 50%;
-    font-size: 0.9rem;
-    min-height: 0;
-}
-
-.finance-date-picker-dropdown .calendar-day:hover {
-    background-color: var(--color-hover-bg, rgba(0,0,0,0.05));
-}
-
-.finance-date-picker-dropdown .calendar-day.selected {
-    background-color: var(--color-accent, #0277bd);
-    color: white;
-}
-
-.finance-date-picker-dropdown .calendar-day.empty {
-    cursor: default;
-}
-
-.calendar-day.empty:hover {
-    background-color: transparent;
-}
-
-.today-button {
-    display: block;
-    width: 100%;
-    padding: 8px;
-    text-align: center;
-    background-color: var(--color-accent, #0277bd);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: 500;
-    margin-top: 8px;
-}
-
-.today-button:hover {
-    background-color: var(--color-accent-darker, #0056b3);
 }
 
 .finance-form-row {
@@ -763,15 +632,15 @@ body.dark-mode .finance-card {
     padding: 4px 8px;
     border: 1px solid var(--color-border);
     border-radius: 4px;
-    background: var(--color-planner-bg);
-    color: var(--color-text);
+    background: var(--color-button);
+    color: white;
     font-size: 0.85em;
     cursor: pointer;
     transition: all 0.15s ease;
 }
 
 .finance-filter-button:hover, .finance-add-button:hover {
-    background: var(--color-hover-bg, rgba(0,0,0,0.05));
+    background: var(--color-button-hover, rgba(0,0,0,0.05));
 }
 
 .finance-filter-menu {
@@ -803,7 +672,7 @@ body.dark-mode .finance-card {
 }
 
 .finance-filter-item:hover {
-    background-color: var(--color-hover-bg, rgba(0,0,0,0.05));
+    background-color: var(--color-button-hover, rgba(0,0,0,0.05));
 }
 
 .finance-filter-item.selected {

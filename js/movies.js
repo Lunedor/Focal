@@ -167,7 +167,7 @@ window.MovieTracker = (() => {
             genres: tmdbMovie.genres ? tmdbMovie.genres.map(g => g.name).join(', ') : '',
             runtime: tmdbMovie.runtime,
             status: 'to-watch',
-            addedDate: new Date().toISOString().split('T')[0],
+            addedDate: new Date().toISOString(), // Use full timestamp instead of just date
             personalRating: null,
             notes: '',
             watchedDate: null
@@ -220,7 +220,8 @@ window.MovieTracker = (() => {
 
     // --- WIDGET RENDERING ---
     function renderFullTracker(state) {
-        const allMovies = Object.entries(state.movies);
+        const allMovies = Object.entries(state.movies)
+            .sort(([_, a], [__, b]) => new Date(b.addedDate) - new Date(a.addedDate));
         
         // Apply current filter
         let filteredMovies = allMovies;
@@ -303,8 +304,10 @@ window.MovieTracker = (() => {
     }
 
     function renderWatchlistWidget(state) {
-        const toWatchMovies = Object.entries(state.movies).filter(([_, movie]) => movie.status === 'to-watch');
-        const displayMovies = toWatchMovies.slice(0, 5);
+        const toWatchMovies = Object.entries(state.movies)
+            .filter(([_, movie]) => movie.status === 'to-watch')
+            .sort(([_, a], [__, b]) => new Date(b.addedDate) - new Date(a.addedDate));
+        const pagination = paginateMovies(toWatchMovies, state.currentPage, 10);
         
         return `
             <div class="movie-tracker watchlist">
@@ -313,9 +316,9 @@ window.MovieTracker = (() => {
                     <span class="movie-count">${toWatchMovies.length}</span>
                 </div>
                 <div class="movie-simple-list">
-                    ${displayMovies.length === 0 ? 
+                    ${pagination.movies.length === 0 ? 
                         '<div class="movie-empty">No movies in watchlist</div>' :
-                        displayMovies.map(([movieId, movie]) => `
+                        pagination.movies.map(([movieId, movie]) => `
                             <div class="movie-simple-item" data-movie-id="${movieId}">
                                 <input type="checkbox" class="movie-checkbox" data-movie-id="${movieId}" ${movie.status === 'watched' ? 'checked' : ''}>
                                 <div class="movie-info-simple">
@@ -325,8 +328,8 @@ window.MovieTracker = (() => {
                             </div>
                         `).join('')
                     }
-                    ${toWatchMovies.length > 5 ? `<div class="movie-more">+${toWatchMovies.length - 5} more</div>` : ''}
                 </div>
+                ${renderPagination(pagination, 'watchlist')}
             </div>
         `;
     }
@@ -334,8 +337,8 @@ window.MovieTracker = (() => {
     function renderWatchedWidget(state) {
         const watchedMovies = Object.entries(state.movies)
             .filter(([_, movie]) => movie.status === 'watched')
-            .sort(([_, a], [__, b]) => new Date(b.watchedDate || b.addedDate) - new Date(a.watchedDate || a.addedDate));
-        const displayMovies = watchedMovies.slice(0, 5);
+            .sort(([_, a], [__, b]) => new Date(b.addedDate) - new Date(a.addedDate));
+        const pagination = paginateMovies(watchedMovies, state.currentPage, 10);
         
         return `
             <div class="movie-tracker watched">
@@ -344,24 +347,26 @@ window.MovieTracker = (() => {
                     <span class="movie-count">${watchedMovies.length}</span>
                 </div>
                 <div class="movie-simple-list">
-                    ${displayMovies.length === 0 ? 
+                    ${pagination.movies.length === 0 ? 
                         '<div class="movie-empty">No watched movies</div>' :
-                        displayMovies.map(([movieId, movie]) => `
+                        pagination.movies.map(([movieId, movie]) => `
                             <div class="movie-simple-item" data-movie-id="${movieId}">
                                 <span class="movie-title">${escapeHtml(movie.title)}</span>
                                 <span class="movie-rating">${movie.personalRating ? '★'.repeat(movie.personalRating) : ''}</span>
                             </div>
                         `).join('')
                     }
-                    ${watchedMovies.length > 5 ? `<div class="movie-more">+${watchedMovies.length - 5} more</div>` : ''}
                 </div>
+                ${renderPagination(pagination, 'watched')}
             </div>
         `;
     }
 
     function renderFavoritesWidget(state) {
-        const favoriteMovies = Object.entries(state.movies).filter(([_, movie]) => movie.status === 'favorites');
-        const displayMovies = favoriteMovies.slice(0, 5);
+        const favoriteMovies = Object.entries(state.movies)
+            .filter(([_, movie]) => movie.status === 'favorites')
+            .sort(([_, a], [__, b]) => new Date(b.addedDate) - new Date(a.addedDate));
+        const pagination = paginateMovies(favoriteMovies, state.currentPage, 10);
         
         return `
             <div class="movie-tracker favorites">
@@ -370,17 +375,17 @@ window.MovieTracker = (() => {
                     <span class="movie-count">${favoriteMovies.length}</span>
                 </div>
                 <div class="movie-simple-list">
-                    ${displayMovies.length === 0 ? 
+                    ${pagination.movies.length === 0 ? 
                         '<div class="movie-empty">No favorite movies</div>' :
-                        displayMovies.map(([movieId, movie]) => `
+                        pagination.movies.map(([movieId, movie]) => `
                             <div class="movie-simple-item" data-movie-id="${movieId}">
                                 <span class="movie-title">${escapeHtml(movie.title)}</span>
                                 <span class="movie-year">${movie.releaseDate ? `(${new Date(movie.releaseDate).getFullYear()})` : ''}</span>
                             </div>
                         `).join('')
                     }
-                    ${favoriteMovies.length > 5 ? `<div class="movie-more">+${favoriteMovies.length - 5} more</div>` : ''}
                 </div>
+                ${renderPagination(pagination, 'favorites')}
             </div>
         `;
     }
@@ -521,6 +526,26 @@ window.MovieTracker = (() => {
             });
         });
 
+        // Pagination buttons - individual listeners
+        container.querySelectorAll('.pagination-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const page = parseInt(e.target.dataset.page);
+                if (page && page !== state.currentPage) {
+                    state.currentPage = page;
+                    
+                    // Re-render the entire app to show the updated page
+                    if (typeof renderApp === 'function') {
+                        renderApp();
+                    } else if (currentContainer) {
+                        render(currentContainer, currentConfig);
+                    }
+                }
+            });
+        });
+
         // Movie watchlist checkboxes - using books widget pattern
         container.querySelectorAll('.movie-checkbox').forEach(checkbox => {
             // Remove any existing listeners first
@@ -656,6 +681,9 @@ window.MovieTracker = (() => {
             state.movies[movieId].watchedDate = new Date().toISOString().split('T')[0];
         }
         
+        // Update addedDate to current date so it appears at the top
+        state.movies[movieId].addedDate = new Date().toISOString(); // Use full timestamp instead of just date
+        
         saveMoviesToStorage();
         
         // Re-render the entire app to show the updated widget
@@ -688,6 +716,10 @@ window.MovieTracker = (() => {
         if (!state.movies[movieId]) return;
         
         state.movies[movieId][field] = value;
+        
+        // Update addedDate to current date so it appears at the top when edited
+        state.movies[movieId].addedDate = new Date().toISOString(); // Use full timestamp instead of just date
+        
         saveMoviesToStorage();
         
         // Re-render the entire app to show the updated widget

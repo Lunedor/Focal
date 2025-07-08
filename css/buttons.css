@@ -43,8 +43,7 @@
   border-color: var(--color-link);
 }
 .modal-btn.primary:hover {
-  background: #0051d5;
-  border-color: #0051d5;
+  background: var(--color-button-hover);
 }
 .modal-btn.secondary {
   background: var(--color-background);

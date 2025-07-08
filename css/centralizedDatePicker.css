@@ -1,0 +1,345 @@
+/* Centralized Date Picker Styles for Focal Journal */
+/* This file consolidates all date picker styles from finance.css, futurelog.css, and layout.css */
+
+/* === UNIFIED DATE PICKER STYLES === */
+
+/* Common date picker container styles */
+.unified-date-picker {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2000;
+    background: var(--color-background, #fff);
+    border: 1px solid var(--color-border, #ccc);
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    padding: 16px;
+    width: 280px;
+    font-family: var(--font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif);
+}
+
+/* Date picker header with navigation */
+.unified-date-picker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--color-border, #e0e0e0);
+}
+
+.unified-date-picker-header .month-year-display {
+    font-weight: 600;
+    font-size: 1.1em;
+    color: var(--color-text, #333);
+    flex: 1;
+    text-align: center;
+}
+
+.unified-date-picker-header .date-nav-btn {
+    background: none;
+    border: none;
+    font-size: 1.2em;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    color: var(--color-text, #666);
+    transition: all 0.2s ease;
+    min-width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.unified-date-picker-header .date-nav-btn:hover {
+    background: var(--color-button-hover, #f0f0f0);
+    color: var(--color-text, #333);
+}
+
+/* Calendar grid */
+.unified-date-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+    margin-bottom: 12px;
+}
+
+.unified-date-picker-grid .day-header {
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.85em;
+    color: var(--color-text, #666);
+    padding: 8px 2px;
+    background: var(--color-sidebar-active-bg, #f8f9fa);
+    border-radius: 4px;
+}
+
+/* Calendar day cells */
+.unified-date-picker .calendar-day {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.9em;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    color: var(--color-text, #333);
+    background: transparent;
+    border: 1px solid transparent;
+    min-height: 32px;
+}
+
+.unified-date-picker .calendar-day:hover {
+    background: var(--color-button-hover, #e3f2fd);
+    border-color: var(--color-border, #ddd);
+}
+
+.unified-date-picker .calendar-day.selected {
+    background: var(--color-button, #2196F3);
+    color: white;
+    font-weight: 600;
+}
+
+.unified-date-picker .calendar-day.empty {
+    color: transparent;
+    cursor: default;
+    background: transparent;
+}
+
+.unified-date-picker .calendar-day.empty:hover {
+    background: transparent;
+    border-color: transparent;
+}
+
+/* Today button */
+.unified-date-picker .today-button {
+    width: 100%;
+    padding: 8px 16px;
+    background: var(--color-button);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: 500;
+    color: white;
+    transition: all 0.2s ease;
+}
+
+.unified-date-picker .today-button:hover {
+    background: var(--color-button-hover, #e8e8e8);
+    border-color: var(--color-border-hover, #bbb);
+}
+
+/* === TOOLBAR DATE PICKER STYLES === */
+
+/* Toolbar-specific date picker popup */
+.unified-date-picker-toolbar {
+    position: absolute;
+    top: 40px;
+    left: 0;
+    z-index: 10000;
+    background: var(--color-background, #fff);
+    border: 1px solid var(--color-border, #ccc);
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    padding: 16px;
+    width: 240px;
+    font-family: var(--font-family, system-ui, sans-serif);
+}
+
+/* Date picker popup from toolbar */
+.fj-date-picker-popup {
+    position: absolute;
+    top: 40px;
+    left: 0;
+    z-index: 10000;
+    background: var(--color-background, #fff);
+    border: 1px solid var(--color-border, #ccc);
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    padding: 16px;
+    width: 240px;
+    font-family: var(--font-family, system-ui, sans-serif);
+}
+
+/* Custom dropdown styles for toolbar date picker */
+.fj-custom-dropdown {
+    position: relative;
+    display: inline-block;
+    margin: 0 2px;
+}
+
+.fj-custom-dropdown-selected {
+    cursor: pointer;
+    user-select: none;
+    padding: 5px 10px;
+    border: 1px solid var(--color-border, #ccc);
+    border-radius: 6px;
+    background: var(--color-select-bg, var(--color-background, #f7f7f7));
+    color: var(--color-select-text, var(--color-text, #222));
+    text-align: center;
+    font-size: 0.95em;
+    min-width: 48px;
+    position: relative;
+    z-index: 1;
+}
+
+.fj-custom-dropdown-list {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 110%;
+    background: var(--color-background, #fff);
+    border: 1px solid var(--color-border, #ccc);
+    border-radius: 6px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.10);
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+    z-index: 10001;
+}
+
+.fj-custom-dropdown-item {
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 0.95em;
+    transition: background-color 0.2s ease;
+}
+
+.fj-custom-dropdown-item:hover {
+    background: var(--color-button-hover, #e6f0ff);
+}
+
+/* Time toggle styles */
+.fj-date-picker-time-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0;
+    cursor: pointer;
+    user-select: none;
+}
+
+.fj-date-picker-time-toggle input[type="checkbox"] {
+    margin: 0;
+    width: 16px;
+    height: 16px;
+}
+
+.fj-date-picker-time-icon {
+    color: var(--color-sidebar-active-bg, #666);
+    display: flex;
+    align-items: center;
+}
+
+/* OK button for toolbar date picker */
+.fj-date-picker-ok {
+    width: 100%;
+    padding: 8px 16px;
+    background: var(--color-button, #2196F3);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: 500;
+    margin-top: 12px;
+    transition: all 0.2s ease;
+}
+
+.fj-date-picker-ok:hover {
+    background: var(--color-button-hover, #1976D2);
+}
+
+/* Date and time row layouts */
+.fj-date-picker-date-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.fj-date-picker-time-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+/* === DATE PICKER BUTTON STYLES === */
+
+/* Common styles for date picker trigger buttons */
+.date-picker-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.date-picker-container input[type="text"] {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--color-border, #ccc);
+    border-radius: 6px;
+    font-size: 0.9em;
+    background: var(--color-input-bg, #fff);
+    color: var(--color-text, #333);
+}
+
+.date-picker-button {
+    padding: 8px;
+    color: white;
+    background-color: var(--color-link);
+    border: 1px solid var(--color-border, #ddd);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 30px;
+    height: 30px;
+}
+
+.date-picker-button:hover {
+    background: var(--color-button-hover, #e8e8e8);
+    border-color: var(--color-border-hover, #bbb);
+}
+
+.date-picker-button svg {
+    width: 16px;
+    height: 16px;
+    color: white;
+}
+
+/* === RESPONSIVE STYLES === */
+
+@media (max-width: 480px) {
+    .unified-date-picker {
+        width: 90vw;
+        max-width: 300px;
+    }
+    
+    .fj-date-picker-popup {
+        width: 90vw;
+        max-width: 280px;
+    }
+    
+    .unified-date-picker-grid {
+        gap: 2px;
+    }
+    
+    .unified-date-picker .calendar-day {
+        width: 28px;
+        height: 28px;
+        font-size: 0.85em;
+    }
+}
+
+

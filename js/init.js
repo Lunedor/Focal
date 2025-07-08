@@ -107,10 +107,22 @@ function renderSidebar() {
 function setupDragAndDrop(itemType, itemsArray, getData, setData) {
   let dragSrcIdx = null;
   let dragType = null;
+  
+  // Touch drag state
+  let touchDragState = {
+    isDragging: false,
+    startY: 0,
+    currentY: 0,
+    currentX: 0,
+    dragItem: null,
+    placeholder: null,
+    initialIndex: null
+  };
 
   const items = DOM.libraryNavList.querySelectorAll(`.library-page-item.${itemType}`);
 
   items.forEach(item => {
+    // HTML5 Drag and Drop (Desktop)
     item.addEventListener('dragstart', (e) => {
       dragSrcIdx = Number(item.dataset.index);
       dragType = itemType;
@@ -149,7 +161,173 @@ function setupDragAndDrop(itemType, itemsArray, getData, setData) {
       setData(currentItems);
       renderSidebar();
     });
+
+    // Touch Events for Mobile
+    item.addEventListener('touchstart', (e) => {
+      const touch = e.touches[0];
+      touchDragState.startY = touch.clientY;
+      touchDragState.currentX = touch.clientX;
+      touchDragState.dragItem = item;
+      touchDragState.initialIndex = Number(item.dataset.index);
+      
+      // Start drag detection timer
+      touchDragState.dragTimer = setTimeout(() => {
+        if (!touchDragState.isDragging) {
+          startTouchDrag(item, itemType);
+        }
+      }, 200); // 200ms delay to distinguish from tap
+    }, { passive: false });
+
+    item.addEventListener('touchmove', (e) => {
+      if (!touchDragState.isDragging && touchDragState.dragTimer) {
+        const touch = e.touches[0];
+        const deltaY = Math.abs(touch.clientY - touchDragState.startY);
+        
+        // Cancel drag if moved too much during initial delay
+        if (deltaY > 10) {
+          clearTimeout(touchDragState.dragTimer);
+          touchDragState.dragTimer = null;
+          return;
+        }
+      }
+      
+      if (touchDragState.isDragging) {
+        e.preventDefault();
+        const touch = e.touches[0];
+        touchDragState.currentY = touch.clientY;
+        touchDragState.currentX = touch.clientX;
+        
+        // Update visual feedback
+        updateTouchDragVisual(touch.clientY);
+        
+        // Find drop target
+        const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+        const dropTarget = elementBelow?.closest(`.library-page-item.${itemType}`);
+        
+        // Update drag over states
+        document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        if (dropTarget && dropTarget !== touchDragState.dragItem) {
+          dropTarget.classList.add('drag-over');
+        }
+      }
+    }, { passive: false });
+
+    item.addEventListener('touchend', (e) => {
+      if (touchDragState.dragTimer) {
+        clearTimeout(touchDragState.dragTimer);
+        touchDragState.dragTimer = null;
+      }
+      
+      if (touchDragState.isDragging) {
+        e.preventDefault();
+        finishTouchDrag(itemType, getData, setData);
+      }
+    }, { passive: false });
+
+    item.addEventListener('touchcancel', (e) => {
+      if (touchDragState.dragTimer) {
+        clearTimeout(touchDragState.dragTimer);
+        touchDragState.dragTimer = null;
+      }
+      
+      if (touchDragState.isDragging) {
+        cancelTouchDrag();
+      }
+    });
   });
+
+  function startTouchDrag(item, type) {
+    touchDragState.isDragging = true;
+    dragType = type;
+    
+    // Visual feedback
+    item.classList.add('dragging');
+    document.body.style.userSelect = 'none';
+    
+    // Create placeholder
+    const placeholder = item.cloneNode(true);
+    placeholder.classList.add('drag-placeholder');
+    placeholder.style.opacity = '0.5';
+    item.parentNode.insertBefore(placeholder, item.nextSibling);
+    touchDragState.placeholder = placeholder;
+    
+    // Make original item semi-transparent
+    item.style.opacity = '0.8';
+    item.style.transform = 'scale(1.02)';
+    item.style.zIndex = '1000';
+    item.style.pointerEvents = 'none';
+  }
+
+  function updateTouchDragVisual(currentY) {
+    // This function can be enhanced to show visual feedback during drag
+    // For now, it just maintains the drag state
+  }
+
+  function finishTouchDrag(type, getData, setData) {
+    const dragItem = touchDragState.dragItem;
+    const placeholder = touchDragState.placeholder;
+    
+    // Find drop target
+    const elementBelow = document.elementFromPoint(touchDragState.currentX, touchDragState.currentY);
+    const dropTarget = elementBelow?.closest(`.library-page-item.${type}`);
+    
+    if (dropTarget && dropTarget !== dragItem) {
+      const srcIdx = touchDragState.initialIndex;
+      const targetIdx = Number(dropTarget.dataset.index);
+      
+      if (srcIdx !== null && srcIdx !== targetIdx) {
+        let currentItems = (type === 'unpinned') ? itemsArray.slice() : getData();
+        
+        const [moved] = currentItems.splice(srcIdx, 1);
+        currentItems.splice(targetIdx, 0, moved);
+        
+        setData(currentItems);
+        renderSidebar();
+      }
+    }
+    
+    // Cleanup
+    cleanupTouchDrag();
+  }
+
+  function cancelTouchDrag() {
+    cleanupTouchDrag();
+  }
+
+  function cleanupTouchDrag() {
+    // Remove visual feedback
+    if (touchDragState.dragItem) {
+      touchDragState.dragItem.classList.remove('dragging');
+      touchDragState.dragItem.style.opacity = '';
+      touchDragState.dragItem.style.transform = '';
+      touchDragState.dragItem.style.zIndex = '';
+      touchDragState.dragItem.style.pointerEvents = '';
+    }
+    
+    if (touchDragState.placeholder) {
+      touchDragState.placeholder.remove();
+    }
+    
+    // Remove drag-over classes
+    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    
+    // Reset body styles
+    document.body.style.userSelect = '';
+    
+    // Reset state
+    touchDragState = {
+      isDragging: false,
+      startY: 0,
+      currentY: 0,
+      currentX: 0,
+      dragItem: null,
+      placeholder: null,
+      initialIndex: null
+    };
+    
+    dragSrcIdx = null;
+    dragType = null;
+  }
 }
 
 function updateSidebarActiveState() {
@@ -253,8 +431,19 @@ This page demonstrates all features of Focal.
 - [ ] Task with (SCHEDULED: ${todayDateStr})
 - [ ] Task with a notification (NOTIFY: ${notificationTimeStr})
 
+Weekly team meeting (REPEAT: every monday)
+Daily standup (REPEAT: everyday)
 Events with (REPEAT: every friday from ${todayDateStr} to ${dayAfterTomorrowDateStr})
-Events like anniversary (REPEAT: ${dateFns.format(today, 'dd-MM')})
+Events like anniversary (REPEAT: ${dateFns.format(today, 'dd.MM')})
+
+### REPEAT Syntax Options
+- **Weekly**: \`(REPEAT: every monday)\` - Repeats every Monday
+- **Daily**: \`(REPEAT: everyday)\` - Repeats every day (great for habits)
+- **Date Range**: \`(REPEAT: every friday from 2025-01-01 to 2025-12-31)\` - Repeats weekly within a specific range
+- **Annual**: \`(REPEAT: 15.06)\` - Repeats annually on June 15th
+- **Full Date**: \`(REPEAT: 2025-06-15)\` - Repeats annually on this date
+
+All REPEAT items become clickable links that navigate to the next occurrence date in the planner.
 
 ---
 

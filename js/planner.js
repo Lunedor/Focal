@@ -414,7 +414,7 @@ function getAllScheduledItems() {
                         endDate = window.normalizeDateStringToYyyyMmDd(rangeMatch[3]);
                     }
                     if (!weekday) {
-                        const everyMatch = repeatRule.match(/^every (monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i);
+                        const everyMatch = repeatRule.match(/^every (monday|tuesday|wednesday|thursday|friday|saturday|sunday)$/i);
                         if (everyMatch) {
                             weekday = everyMatch[1].toLowerCase();
                         }
@@ -426,10 +426,13 @@ function getAllScheduledItems() {
                                 startDate = window.normalizeDateStringToYyyyMmDd(scheduledMatches[0][1]);
                             }
                         }
-                        if (!startDate) return;
+                        if (!startDate) {
+                            // Default to current date if no start date specified
+                            startDate = dateFns.format(new Date(), 'yyyy-MM-dd');
+                        }
                         if (!endDate) {
                             const now = new Date();
-                            endDate = new Date(now.getFullYear() + 10, 11, 31);
+                            endDate = new Date(now.getFullYear() + 1, 11, 31); // 1 year ahead
                         }
                         const targetIndex = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].indexOf(weekday);
                         let first = dateFns.parseISO(startDate);
@@ -447,6 +450,35 @@ function getAllScheduledItems() {
                                 displayName: pageTitle,
                                 recurring: true,
                                 recurringKey: weekday,
+                                originalDate: startDate,
+                                notify: false
+                            });
+                        }
+                    } else if (repeatRule.toLowerCase() === 'everyday') {
+                        // Handle daily recurring events
+                        let startDate = null;
+                        const scheduledMatches = [...line.matchAll(/\(SCHEDULED: ([^)]+)\)/g)];
+                        if (scheduledMatches.length > 0) {
+                            startDate = window.normalizeDateStringToYyyyMmDd(scheduledMatches[0][1]);
+                        }
+                        if (!startDate) {
+                            // Default to current date if no start date specified
+                            startDate = dateFns.format(new Date(), 'yyyy-MM-dd');
+                        }
+                        
+                        const now = new Date();
+                        const endDate = new Date(now.getFullYear() + 1, 11, 31); // 1 year ahead
+                        let d = dateFns.parseISO(startDate);
+                        
+                        for (; !dateFns.isAfter(d, endDate); d = dateFns.addDays(d, 1)) {
+                            const dayStr = dateFns.format(d, 'yyyy-MM-dd');
+                            if (!scheduledItems.has(dayStr)) scheduledItems.set(dayStr, []);
+                            scheduledItems.get(dayStr).push({
+                                text: line.replace(/\(REPEAT:[^)]+\)/, '').replace(/\(SCHEDULED:[^)]+\)/, '').trim(),
+                                pageKey: key,
+                                displayName: pageTitle,
+                                recurring: true,
+                                recurringKey: 'everyday',
                                 originalDate: startDate,
                                 notify: false
                             });

@@ -20,6 +20,8 @@
   <link rel="stylesheet" href="css/mood-tracker.css">
   <link rel="stylesheet" href="css/finance.css">
   <link rel="stylesheet" href="css/movie-tracker.css">
+  <link rel="stylesheet" href="css/futurelog.css">
+  <link rel="stylesheet" href="css/centralizedDatePicker.css">
   <!-- Feather Icons for minimalist icons -->
   <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 </head>
@@ -242,16 +244,120 @@
       </div>
       <div class="modal-footer">
         <button id="finance-modal-cancel" class="modal-btn secondary">Cancel</button>
-        <button id="finance-modal-confirm" class="modal-btn primary">Add Entry</button>
+        <button id="finance-modal-confirm" class="modal-btn primary">New Entry</button>
       </div>
     </div>
   </div>
+
+  <!-- Future Log Entry Modal -->
+  <div id="futurelog-entry-modal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="futurelog-modal-title">Add Future Log Entry</h3>
+        <button id="futurelog-modal-close" class="modal-close">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="futurelog-entry-form" class="futurelog-entry-form">
+          <div class="futurelog-form-group">
+            <label>Entry Type</label>
+            <div class="futurelog-entry-type">
+              <input type="radio" id="scheduled-type" name="entryType" value="scheduled" checked>
+              <label for="scheduled-type" class="scheduled">Scheduled</label>
+              <input type="radio" id="repeat-type" name="entryType" value="repeat">
+              <label for="repeat-type" class="repeat">Repeat</label>
+            </div>
+          </div>
+          <div class="futurelog-form-group">
+            <label for="futurelog-entry-text">Description</label>
+            <input type="text" id="futurelog-entry-text" placeholder="e.g., Meeting with client, Doctor appointment" required>
+          </div>
+          <div class="futurelog-form-group" id="scheduled-date-group">
+            <label for="futurelog-entry-date">Date</label>
+            <div class="date-picker-container">
+              <input type="text" id="futurelog-entry-date-display" placeholder="dd/MM/yyyy" required>
+              <button type="button" id="futurelog-entry-date-picker-btn" class="date-picker-button" aria-label="Select date" title="Select date">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              </button>
+              <input type="hidden" id="futurelog-entry-date">
+            </div>
+          </div>
+          <div class="futurelog-form-group" id="repeat-rule-group" style="display: none;">
+            <label for="futurelog-entry-repeat">Repeat Rule</label>
+            <select id="futurelog-entry-repeat-type">
+              <option value="weekly">Weekly on a specific day</option>
+              <option value="weekly-range">Weekly with date range</option>
+              <option value="annual">Annual (specific date)</option>
+            </select>
+            <div id="weekly-options" class="repeat-options">
+              <select id="futurelog-entry-weekday">
+                <option value="monday">Every Monday</option>
+                <option value="tuesday">Every Tuesday</option>
+                <option value="wednesday">Every Wednesday</option>
+                <option value="thursday">Every Thursday</option>
+                <option value="friday">Every Friday</option>
+                <option value="saturday">Every Saturday</option>
+                <option value="sunday">Every Sunday</option>
+              </select>
+            </div>
+            <div id="weekly-range-options" class="repeat-options" style="display: none;">
+              <select id="futurelog-entry-weekday-range">
+                <option value="monday">Every Monday</option>
+                <option value="tuesday">Every Tuesday</option>
+                <option value="wednesday">Every Wednesday</option>
+                <option value="thursday">Every Thursday</option>
+                <option value="friday">Every Friday</option>
+                <option value="saturday">Every Saturday</option>
+                <option value="sunday">Every Sunday</option>
+              </select>
+              <div class="date-range-container">
+                <div class="date-input-group">
+                  <label>From:</label>
+                  <div class="date-picker-container">
+                    <input type="text" id="futurelog-entry-from-date-display" placeholder="dd/MM/yyyy">
+                    <button type="button" id="futurelog-entry-from-date-picker-btn" class="date-picker-button" aria-label="Select from date" title="Select from date">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    </button>
+                    <input type="hidden" id="futurelog-entry-from-date">
+                  </div>
+                </div>
+                <div class="date-input-group">
+                  <label>To:</label>
+                  <div class="date-picker-container">
+                    <input type="text" id="futurelog-entry-to-date-display" placeholder="dd/MM/yyyy">
+                    <button type="button" id="futurelog-entry-to-date-picker-btn" class="date-picker-button" aria-label="Select to date" title="Select to date">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    </button>
+                    <input type="hidden" id="futurelog-entry-to-date">
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div id="annual-options" class="repeat-options" style="display: none;">
+              <div class="date-picker-container">
+                <input type="text" id="futurelog-entry-annual-date-display" placeholder="dd/MM (annual)">
+                <button type="button" id="futurelog-entry-annual-date-picker-btn" class="date-picker-button" aria-label="Select annual date" title="Select annual date">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                </button>
+                <input type="hidden" id="futurelog-entry-annual-date">
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button id="futurelog-modal-cancel" class="modal-btn secondary">Cancel</button>
+        <button id="futurelog-modal-confirm" class="modal-btn primary">New Entry</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Firebase v8 CDN (namespaced) -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script> <!-- ADD THIS LINE -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-messaging.js"></script>
   <script src="js/firebase.js"></script>
+  <script src="js/cloud.js"></script>
   <script src="js/state.js"></script>
   <script src="js/dom.js"></script>
   <script src="js/utils.js"></script>
@@ -262,13 +368,20 @@
   <script src="js/planner-ui.js"></script>
   <script src="js/library.js"></script>
   <script src="js/calendar.js"></script>
-  <script src="js/cloud.js"></script>
   <script src="js/datePicker.js"></script>
+  <script src="js/centralizedDatePicker.js"></script>
   <script src="js/init.js"></script>
+  <!-- Event handling modules -->
+  <script src="js/toolbar.js"></script>
+  <script src="js/widgetDropdowns.js"></script>
+  <script src="js/checkboxHandler.js"></script>
+  <script src="js/navigation.js"></script>
+  <script src="js/eventHandlers.js"></script>
   <script src="js/events.js"></script>
   <script src="js/settings.js"></script>
   <script src="js/moodTracker.js"></script>
   <script src="js/finance.js"></script>
+  <script src="js/futurelog.js"></script>
   <script src="js/books.js"></script>
   <script src="js/movies.js"></script>
 </body>

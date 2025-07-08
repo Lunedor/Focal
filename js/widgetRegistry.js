@@ -200,6 +200,45 @@ const widgetRegistry = {
       placeholder.innerHTML = '<div class="widget-error">MovieTracker not loaded</div>';
     }
   },
+  // Register the futurelog widget
+  'futurelog': (placeholder) => {
+    if (typeof futurelogWidget !== 'undefined' && futurelogWidget.init) {
+      const options = placeholder.dataset.options;
+      const items = placeholder.dataset.items;
+      const command = placeholder.dataset.command;
+      const onCommandChange = (newCommand) => {
+        const pageWrapper = placeholder.closest('[data-key]');
+        const currentPageKey = pageWrapper ? pageWrapper.dataset.key : null;
+        if (!currentPageKey) return;
+
+        const currentContent = getStorage(currentPageKey);
+        if (!currentContent) return;
+
+        // Use the placeholder's current command attribute as the "old" command
+        const oldCommand = placeholder.dataset.command;
+        const updatedContent = currentContent.replace(oldCommand, newCommand);
+        setStorage(currentPageKey, updatedContent);
+        placeholder.dataset.command = newCommand;
+        if (typeof debouncedSyncWithCloud === 'function') debouncedSyncWithCloud();
+        
+        // Re-render the page to show updated widget
+        if (currentPageKey.startsWith('page-')) {
+          renderLibraryPage(currentPageKey.substring(5));
+        }
+      };
+      
+      // Call with standardized options object
+      futurelogWidget.init({ 
+        placeholder, 
+        options, 
+        items, 
+        command,
+        onCommandChange 
+      });
+    } else {
+      placeholder.innerHTML = '<div class="widget-error">FutureLog widget not loaded</div>';
+    }
+  },
 };
 
 function initializeWidgetsInContainer(container) {

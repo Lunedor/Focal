@@ -300,7 +300,7 @@ window.BookTracker = (() => {
                                 `<option value="${key}" ${bookData.status === key ? 'selected' : ''}>${value.label}</option>`
                             ).join('')}
                         </select>
-                        <button class="book-remove-btn" data-book-id="${bookId}" title="Remove book">×</button>
+                        <button class="remove-item-btn" data-book-id="${bookId}" title="Remove book">×</button>
                     </div>
                     ${progressHtml}
                 </div>
@@ -635,7 +635,7 @@ window.BookTracker = (() => {
         });
 
         // Book removal
-        container.querySelectorAll('.book-remove-btn').forEach(btn => {
+        container.querySelectorAll('.remove-item-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();

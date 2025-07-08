@@ -2,6 +2,9 @@
 
 const financeTracker = (() => {
     // --- STATE & CONSTANTS ---
+    const getStorage = window.getStorage || ((key) => localStorage.getItem(key) || '');
+    const setStorage = window.setStorage || ((key, value) => localStorage.setItem(key, value));
+    
     let state = {
         command: '',
         transactions: [],
@@ -355,6 +358,9 @@ const financeTracker = (() => {
                     <td>${t.description}</td>
                     <td>${t.category}</td>
                     <td class="${amountClass}">${state.currency}${t.amount.toFixed(2)}</td>
+                    <td class="remove-column">
+                        <button class="remove-item-btn" data-transaction-id="${t.id}" title="Remove this transaction">×</button>
+                    </td>
                 </tr>
             `;
         }).join('');
@@ -399,6 +405,7 @@ const financeTracker = (() => {
                                     <th>Description</th>
                                     <th>Category</th>
                                     <th>Amount</th>
+                                    <th></th>
                                 </tr>
                             </thead>
                             <tbody>${transactionsHtml}</tbody>
@@ -962,8 +969,13 @@ const financeTracker = (() => {
         DOM.financeEntryDatePickerBtn.addEventListener('click', function(e) {
             e.preventDefault();
             
-            // Create a custom date selection instead of using the existing picker
-            openFinanceDatePicker(this);
+            // Use centralized date picker
+            if (typeof CentralizedDatePicker !== 'undefined') {
+                CentralizedDatePicker.showFinanceDatePicker(this, 'finance-entry-date', 'finance-entry-date-display');
+            } else {
+                // Fallback to old method if centralized picker not available
+                openFinanceDatePicker(this, 'finance-entry-date', 'finance-entry-date-display');
+            }
         });
         
         // Make the date input field editable and handle date validation
@@ -971,7 +983,7 @@ const financeTracker = (() => {
             const inputValue = e.target.value;
             
             // Update the hidden field on valid date input
-            updateDateFromInput(inputValue);
+            updateDateFromInput(inputValue, 'finance-entry-date');
         });
         
         // Handle confirm button click
@@ -1053,7 +1065,117 @@ const financeTracker = (() => {
         }
     }
 
-    // Attach event listeners to filter dropdowns and add entry button
+    // Remove a transaction from the command
+    function removeTransactionFromCommand(transactionId) {
+        console.log(`[Focal Finance] Removing transaction: ${transactionId}`);
+        
+        // Show confirmation modal first
+        showRemoveConfirmation(transactionId);
+    }
+
+    // Show confirmation modal for transaction removal
+    function showRemoveConfirmation(transactionId) {
+        // Find the transaction to show details in confirmation
+        const transaction = state.transactions.find(t => t.id === transactionId);
+        const transactionText = transaction 
+            ? `${transaction.description} (${state.currency}${transaction.amount.toFixed(2)})`
+            : transactionId;
+
+        // Create confirmation modal
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.style.zIndex = '2100'; // Higher than date picker
+        
+        modal.innerHTML = `
+            <div class="modal">
+                <div class="modal-header">
+                    <h3>Confirm Removal</h3>
+                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to remove this transaction?</p>
+                    <p><strong>Transaction:</strong> ${transactionText}</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="modal-btn secondary" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+                    <button class="modal-btn primary confirm-remove">Remove</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Add confirm handler
+        modal.querySelector('.confirm-remove').addEventListener('click', () => {
+            modal.remove();
+            performRemoveTransaction(transactionId);
+        });
+        
+        // Add class for active state
+        modal.classList.add('active');
+    }
+
+    // Perform the actual transaction removal
+    function performRemoveTransaction(transactionId) {
+        console.log(`[Focal Finance] Removing transaction: ${transactionId}`);
+        
+        // Get the current page content from localStorage
+        const pageWrapper = DOM.pageContentWrapper || document.querySelector('[data-key]');
+        if (!pageWrapper || !pageWrapper.dataset.key) {
+            console.error('[Focal Finance] Cannot find page key for removal');
+            return;
+        }
+        
+        const pageKey = pageWrapper.dataset.key;
+        const currentContent = getStorage(pageKey);
+        
+        if (!currentContent) {
+            console.error('[Focal Finance] No content found for page key:', pageKey);
+            return;
+        }
+        
+        // Find the transaction to remove by matching the ID
+        const transaction = state.transactions.find(t => t.id === transactionId);
+        if (!transaction) {
+            console.error('[Focal Finance] Transaction not found:', transactionId);
+            return;
+        }
+        
+        // Split content into lines and find the line to remove
+        const lines = currentContent.split('\n');
+        const updatedLines = lines.filter(line => {
+            if (!line.trim().startsWith('- ')) return true; // Keep non-transaction items
+            
+            // Parse the line to check if it matches the transaction
+            const cleanLine = line.replace(/^[-*]\s+/, '');
+            const parts = cleanLine.split(',').map(p => p.trim());
+            
+            if (parts.length < 3) return true; // Keep malformed lines
+            
+            const lineDate = window.parseDateString(parts[0]);
+            const lineDescription = parts[1];
+            const lineAmount = parseFloat(parts[2]);
+            
+            // Check if this line matches the transaction we want to remove
+            const matches = lineDate && 
+                           lineDate.getTime() === transaction.date.getTime() &&
+                           lineDescription === transaction.description &&
+                           lineAmount === transaction.amount;
+            
+            return !matches;
+        });
+        
+        // Update the content in localStorage
+        const updatedContent = updatedLines.join('\n');
+        setStorage(pageKey, updatedContent);
+        
+        // Re-render the entire app to reflect the changes
+        if (typeof renderApp === 'function') {
+            renderApp();
+        }
+    }
+
+    // Attach event listeners to filter dropdowns and New Entry button
     function attachFilterEventListeners() {
         if (!containerEl) return;
         
@@ -1103,7 +1225,7 @@ const financeTracker = (() => {
             });
         });
         
-        // Add click listeners to "Add Entry" buttons
+        // Add click listeners to "New Entry" buttons
         const addButtons = containerEl.querySelectorAll('.finance-add-button');
         
         addButtons.forEach(button => {
@@ -1112,10 +1234,25 @@ const financeTracker = (() => {
                 showFinanceEntryModal();
             });
         });
+
+        // Add click listeners to remove transaction buttons
+        const removeButtons = containerEl.querySelectorAll('.remove-item-btn');
+        
+        removeButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const transactionId = button.dataset.transactionId;
+                if (transactionId) {
+                    removeTransactionFromCommand(transactionId);
+                }
+            });
+        });
     }
 
     // Parse and validate user-entered date
-    function updateDateFromInput(inputValue) {
+    function updateDateFromInput(inputValue, hiddenFieldId) {
         // Allow various formats: dd/MM/yyyy, d/M/yyyy, etc.
         const datePattern = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/;
         const match = inputValue.match(datePattern);
@@ -1133,7 +1270,7 @@ const financeTracker = (() => {
                 if (date.getFullYear() === year && date.getMonth() === month && date.getDate() === day) {
                     // Format date for the hidden input
                     const isoDate = window.dateFns.format(date, 'yyyy-MM-dd');
-                    DOM.financeEntryDate.value = isoDate;
+                    document.getElementById(hiddenFieldId).value = isoDate;
                     return true;
                 }
             }
@@ -1142,7 +1279,7 @@ const financeTracker = (() => {
     }
 
     // Function to create a simple date picker directly in the modal
-    function openFinanceDatePicker(anchorElement) {
+    function openFinanceDatePicker(anchorElement, hiddenFieldId, displayFieldId) {
         // Remove any existing date picker
         const existingPicker = document.querySelector('.finance-date-picker-dropdown');
         if (existingPicker) {
@@ -1150,10 +1287,10 @@ const financeTracker = (() => {
         }
 
         // Get current date from hidden input or default to today
-        const currentValue = DOM.financeEntryDate.value;
+        const currentValue = document.getElementById(hiddenFieldId).value;
         const selectedDate = currentValue ? new Date(currentValue) : new Date();
-        const currentYear = selectedDate.getFullYear();
-        const currentMonth = selectedDate.getMonth();
+        let currentYear = selectedDate.getFullYear();
+        let currentMonth = selectedDate.getMonth();
         const currentDay = selectedDate.getDate();
 
         // Create date picker container
@@ -1172,8 +1309,12 @@ const financeTracker = (() => {
         prevMonthBtn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            const newDate = new Date(currentYear, currentMonth - 1, 1);
-            updateCalendar(newDate.getFullYear(), newDate.getMonth());
+            currentMonth--;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            updateCalendar(currentYear, currentMonth);
         });
         
         // Month/Year display
@@ -1188,8 +1329,12 @@ const financeTracker = (() => {
         nextMonthBtn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            const newDate = new Date(currentYear, currentMonth + 1, 1);
-            updateCalendar(newDate.getFullYear(), newDate.getMonth());
+            currentMonth++;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            updateCalendar(currentYear, currentMonth);
         });
         
         header.appendChild(prevMonthBtn);
@@ -1252,8 +1397,8 @@ const financeTracker = (() => {
                     const displayDate = window.dateFns.format(selectedDate, 'dd/MM/yyyy');
                     
                     // Update input fields
-                    DOM.financeEntryDate.value = isoDate;
-                    DOM.financeEntryDateDisplay.value = displayDate;
+                    document.getElementById(hiddenFieldId).value = isoDate;
+                    document.getElementById(displayFieldId).value = displayDate;
                     
                     // Remove date picker
                     datePickerContainer.remove();
@@ -1280,8 +1425,8 @@ const financeTracker = (() => {
             const displayDate = window.dateFns.format(today, 'dd/MM/yyyy');
             
             // Update input fields
-            DOM.financeEntryDate.value = isoDate;
-            DOM.financeEntryDateDisplay.value = displayDate;
+            document.getElementById(hiddenFieldId).value = isoDate;
+            document.getElementById(displayFieldId).value = displayDate;
             
             // Remove date picker
             datePickerContainer.remove();
@@ -1297,6 +1442,7 @@ const financeTracker = (() => {
         datePickerContainer.style.left = '50%';
         datePickerContainer.style.transform = 'translate(-50%, -50%)';
         datePickerContainer.style.zIndex = '2000'; // Higher z-index than the modal
+        datePickerContainer.style.height = '420px';
         
         // Initialize the calendar
         updateCalendar(currentYear, currentMonth);
@@ -1304,7 +1450,7 @@ const financeTracker = (() => {
         // Close when clicking outside
         function handleOutsideClick(e) {
             if (!datePickerContainer.contains(e.target) && 
-                e.target !== DOM.financeEntryDatePickerBtn) {
+                e.target !== anchorElement) {
                 datePickerContainer.remove();
                 document.removeEventListener('click', handleOutsideClick);
             }

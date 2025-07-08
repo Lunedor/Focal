@@ -164,3 +164,54 @@ body.dark-mode .library-page-item.pinned:last-of-type {
   border-top: 1px solid var(--color-border);
   text-align: center;
 }
+
+/* --- Drag and Drop Styles --- */
+.library-page-item.dragging {
+  opacity: 0.8;
+  transform: scale(1.02);
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+}
+
+.library-page-item.drag-over {
+  background-color: var(--color-link);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.library-page-item.drag-over a {
+  color: white;
+}
+
+.drag-placeholder {
+  opacity: 0.5;
+  background: var(--color-border);
+  border: 2px dashed var(--color-link);
+  border-radius: 6px;
+}
+
+.drag-placeholder a {
+  color: var(--color-text);
+  opacity: 0.7;
+}
+
+/* Touch-specific improvements */
+@media (hover: none) and (pointer: coarse) {
+  .library-page-item {
+    /* Better touch targets on mobile */
+    min-height: 44px;
+    padding: 0.5rem 0.25rem;
+  }
+  
+  .library-page-item.dragging {
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  }
+  
+  .library-page-item.drag-over {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+  }
+}

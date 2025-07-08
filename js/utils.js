@@ -135,6 +135,12 @@ function deleteStorage(key) {
   window.markLocalDataAsModified();
 }
 
+// Debounced sync function
+const debouncedSyncWithCloud = debounce(() => {
+    if (typeof syncWithCloud === 'function') syncWithCloud();
+    console.log('Debounced syncing with cloud...');
+}, 3000);
+
 // Expose globally for use in other scripts
 window.deleteStorage = deleteStorage;
 
