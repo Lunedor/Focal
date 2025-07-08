@@ -813,6 +813,6 @@
 }
 
 .books-widget.to-read .books-content {
-    height: 590px;
+    max-height: 590px;
     overflow-y: auto;
 }

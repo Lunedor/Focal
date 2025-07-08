@@ -165,6 +165,41 @@ const widgetRegistry = {
       placeholder.innerHTML = '<div class="widget-error">BookTracker not loaded</div>';
     }
   },
+  // Register the movies widget
+  'movies': (placeholder) => {
+    if (typeof MovieTracker !== 'undefined' && MovieTracker.init) {
+      const config = placeholder.dataset.config;
+      const onCommandChange = (newCommand) => {
+        const pageWrapper = placeholder.closest('[data-key]');
+        const currentPageKey = pageWrapper ? pageWrapper.dataset.key : null;
+        if (!currentPageKey) return;
+
+        const currentContent = getStorage(currentPageKey);
+        if (!currentContent) return;
+
+        // Use the placeholder's current command attribute as the "old" command
+        const oldCommand = placeholder.dataset.command;
+        const updatedContent = currentContent.replace(oldCommand, newCommand);
+        setStorage(currentPageKey, updatedContent);
+        placeholder.dataset.command = newCommand;
+        if (typeof debouncedSyncWithCloud === 'function') debouncedSyncWithCloud();
+        
+        // Re-render the page to show updated widget
+        if (currentPageKey.startsWith('page-')) {
+          renderLibraryPage(currentPageKey.substring(5));
+        }
+      };
+      
+      // Call with standardized options object
+      MovieTracker.init({ 
+        placeholder, 
+        config, 
+        onCommandChange 
+      });
+    } else {
+      placeholder.innerHTML = '<div class="widget-error">MovieTracker not loaded</div>';
+    }
+  },
 };
 
 function initializeWidgetsInContainer(container) {

@@ -134,7 +134,7 @@ async function syncWithCloud() {
       const keysToRemove = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key.startsWith('page-') || key.startsWith('pinned-') || key.startsWith('unpinned-') || key.startsWith('books-') || key.match(/^\d{4}-W\d{1,2}/)) {
+        if (key.startsWith('page-') || key.startsWith('pinned-') || key.startsWith('unpinned-') || key.startsWith('books-') || key.startsWith('movies-') || key.match(/^\d{4}-W\d{1,2}/)) {
           keysToRemove.push(key);
         }
       }
@@ -157,7 +157,7 @@ async function syncWithCloud() {
       const localDataToUpload = {};
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key.startsWith('page-') || key.startsWith('pinned-') || key.startsWith('unpinned-') || key.startsWith('books-') || key.match(/^\d{4}-W\d{1,2}/)) {
+        if (key.startsWith('page-') || key.startsWith('pinned-') || key.startsWith('unpinned-') || key.startsWith('books-') || key.startsWith('movies-') || key.match(/^\d{4}-W\d{1,2}/)) {
           localDataToUpload[key] = localStorage.getItem(key);
         }
       }

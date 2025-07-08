@@ -165,6 +165,31 @@ const booksExtension = {
     }
 };
 
+// Movies extension
+const moviesExtension = {
+    name: 'movies',
+    level: 'block',
+    start(src) { 
+        const match = src.match(/^MOVIES:/i);
+        return match?.index; 
+    },
+    tokenizer(src, tokens) {
+        const rule = /^MOVIES:\s*(.*)(?:\n|$)/i;
+        const match = rule.exec(src);
+        if (match) {
+            return {
+                type: 'movies',
+                raw: match[0],
+                config: match[1].trim()
+            };
+        }
+        return false;
+    },
+    renderer(token) {
+        return `<div class="widget-placeholder movies-widget-placeholder" data-widget-type="movies" data-config='${token.config}'></div>`;
+    }
+};
+
 const taskSummaryExtension = {
     name: 'taskSummary',
     level: 'block',
@@ -447,7 +472,7 @@ renderer.listitem = (text, task, checked) => {
 };
 
 marked.use({
-    extensions: [wikiLinkExtension, tableCheckboxExtension, taskSummaryExtension, goalExtension, moodTrackerExtension, financeExtension, booksExtension],
+    extensions: [wikiLinkExtension, tableCheckboxExtension, taskSummaryExtension, goalExtension, moodTrackerExtension, financeExtension, booksExtension, moviesExtension],
     gfm: true,
     breaks: true,
     renderer: renderer
