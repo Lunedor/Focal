@@ -1,0 +1,159 @@
+/* css/dropdownPositioning.css */
+/* Smart dropdown positioning styles */
+
+/* Base dropdown positioning classes - these are used for JavaScript positioning logic */
+/* Additional styling can be added here when needed */
+
+/* Mobile-specific dropdown styles */
+@media (max-width: 768px) {
+    .mobile-full-width {
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+        border-radius: 8px !important;
+        max-height: 70vh !important;
+        overflow-y: auto !important;
+    }
+    
+    /* Ensure dropdowns have appropriate margins on mobile */
+    .finance-dropdown,
+    .mood-dropdown,
+    .books-dropdown,
+    .movies-dropdown,
+    .futurelog-dropdown,
+    .date-dropdown,
+    .unified-date-picker,
+    .unified-date-picker-toolbar,
+    .fj-date-picker-popup {
+        min-width: 240px !important;
+        max-width: calc(100vw - 30px) !important;
+    }
+    
+    /* Improve touch targets on mobile */
+    .dropdown-item {
+        min-height: 44px !important;
+        padding: 12px 15px !important;
+        font-size: 1rem !important;
+    }
+    
+    /* Custom dropdown items for date pickers */
+    .fj-custom-dropdown-item {
+        min-height: 44px !important;
+        padding: 12px 10px !important;
+        font-size: 1rem !important;
+    }
+    
+    /* Ensure dropdown buttons are touch-friendly */
+    .dropdown-done-button {
+        min-height: 44px !important;
+        padding: 12px 8px !important;
+        font-size: 1rem !important;
+    }
+    
+    /* Calendar day cells in date pickers */
+    .calendar-day {
+        min-height: 44px !important;
+        min-width: 44px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 1rem !important;
+    }
+    
+    /* Date picker navigation buttons */
+    .date-nav-btn {
+        min-height: 44px !important;
+        min-width: 44px !important;
+        font-size: 1.2rem !important;
+    }
+    
+    /* Date picker OK button */
+    .fj-date-picker-ok {
+        min-height: 44px !important;
+        padding: 12px 20px !important;
+        font-size: 1rem !important;
+        width: 100% !important;
+        margin-top: 8px !important;
+    }
+    
+    /* Date picker time toggle */
+    .fj-date-picker-time-toggle {
+        min-height: 44px !important;
+        padding: 8px 0 !important;
+        font-size: 1rem !important;
+    }
+    
+    /* Date picker date row */
+    .fj-date-picker-date-row {
+        gap: 8px !important;
+    }
+    
+    /* Date picker time row */
+    .fj-date-picker-time-row {
+        gap: 8px !important;
+    }
+    
+    /* Custom dropdown lists */
+    .fj-custom-dropdown-list {
+        max-height: 200px !important;
+        overflow-y: auto !important;
+    }
+    
+    /* Ensure proper spacing for dropdown sections */
+    .dropdown-section-title {
+        font-size: 0.9rem !important;
+        padding: 8px 15px !important;
+    }
+    
+    .dropdown-header {
+        font-size: 1rem !important;
+        padding: 12px 15px !important;
+    }
+}
+
+/* Tablet-specific adjustments */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .finance-dropdown,
+    .mood-dropdown,
+    .books-dropdown,
+    .movies-dropdown,
+    .futurelog-dropdown,
+    .date-dropdown {
+        min-width: 280px !important;
+        max-width: 400px !important;
+    }
+}
+
+/* Animation for dropdown positioning changes */
+.dropdown-position-transition {
+    transition: top 0.2s ease, left 0.2s ease, transform 0.2s ease;
+}
+
+/* Improved z-index management */
+.dropdown-positioning-container {
+    z-index: 1000;
+}
+
+.dropdown-positioning-container.high-priority {
+    z-index: 1500;
+}
+
+.dropdown-positioning-container.modal-priority {
+    z-index: 2000;
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+    .dropdown-position-transition {
+        transition: none;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .dropdown-item {
+        border-bottom: 1px solid var(--color-border, #ccc);
+    }
+    
+    .dropdown-item:last-child {
+        border-bottom: none;
+    }
+}

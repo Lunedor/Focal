@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dropdown Positioning Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .test-button {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        
+        .test-button:hover {
+            background: #005a9e;
+        }
+        
+        .test-dropdown {
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            min-width: 200px;
+            max-width: 300px;
+            z-index: 1000;
+        }
+        
+        .dropdown-header {
+            padding: 10px 15px;
+            background: #f0f0f0;
+            border-bottom: 1px solid #ddd;
+            font-weight: bold;
+        }
+        
+        .dropdown-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .dropdown-item:hover {
+            background: #f0f0f0;
+        }
+        
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+        
+        .edge-test {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+        
+        .bottom-test {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .mobile-test {
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .mobile-test {
+                display: block;
+            }
+            
+            .test-button {
+                width: 100%;
+                margin: 5px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Dropdown Positioning Test</h1>
+    
+    <div class="test-container">
+        <h2>Normal Positioning</h2>
+        <button class="test-button" onclick="testNormalDropdown(this)">Click me (Center)</button>
+        <button class="test-button" onclick="testNormalDropdown(this)">Another button</button>
+    </div>
+    
+    <div class="test-container">
+        <h2>Date Picker Test</h2>
+        <button class="test-button" onclick="testDatePickerPopup(this)">Show Date Picker (fj-date-picker-popup)</button>
+        <button class="test-button edge-test" onclick="testDatePickerPopup(this)">Date Picker (Edge)</button>
+    </div>
+    
+    <div class="test-container">
+        <h2>Edge Cases</h2>
+        <button class="test-button edge-test" onclick="testEdgeDropdown(this)">Right Edge</button>
+        <button class="test-button bottom-test" onclick="testBottomDropdown(this)">Bottom Edge</button>
+    </div>
+    
+    <div class="test-container mobile-test">
+        <h2>Mobile Test</h2>
+        <p>This section is only visible on mobile (screen width ≤ 768px)</p>
+        <button class="test-button" onclick="testMobileDropdown(this)">Mobile Dropdown</button>
+    </div>
+    
+    <script>
+        // Include the dropdown positioning utility
+        // This would normally be loaded from the separate file
+        // For testing purposes, we'll include a simplified version
+        
+        const DropdownPositioning = {
+            applyMobileOptimizedPosition: function(anchor, dropdown, options = {}) {
+                const { offsetX = 0, offsetY = 0, margin = 10 } = options;
+                const anchorRect = anchor.getBoundingClientRect();
+                const dropdownRect = dropdown.getBoundingClientRect();
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+                
+                let top = anchorRect.bottom + offsetY;
+                let left = anchorRect.left + offsetX;
+                
+                // Prevent going off right edge
+                if (left + dropdownRect.width > viewportWidth - margin) {
+                    left = viewportWidth - dropdownRect.width - margin;
+                }
+                
+                // Prevent going off left edge
+                if (left < margin) {
+                    left = margin;
+                }
+                
+                // Prevent going off bottom edge
+                if (top + dropdownRect.height > viewportHeight - margin) {
+                    top = anchorRect.top - dropdownRect.height - offsetY;
+                }
+                
+                // Prevent going off top edge
+                if (top < margin) {
+                    top = margin;
+                }
+                
+                dropdown.style.position = 'fixed';
+                dropdown.style.top = top + 'px';
+                dropdown.style.left = left + 'px';
+                dropdown.style.zIndex = '1000';
+                
+                return { top, left };
+            }
+        };
+        
+        let currentDropdown = null;
+        
+        function closeCurrentDropdown() {
+            if (currentDropdown) {
+                currentDropdown.remove();
+                currentDropdown = null;
+            }
+        }
+        
+        function createDropdown(content) {
+            const dropdown = document.createElement('div');
+            dropdown.className = 'test-dropdown';
+            dropdown.innerHTML = content;
+            return dropdown;
+        }
+        
+        function testNormalDropdown(button) {
+            closeCurrentDropdown();
+            
+            const dropdown = createDropdown(`
+                <div class="dropdown-header">Normal Dropdown</div>
+                <div class="dropdown-item">Option 1</div>
+                <div class="dropdown-item">Option 2</div>
+                <div class="dropdown-item">Option 3</div>
+                <div class="dropdown-item">Option 4</div>
+            `);
+            
+            document.body.appendChild(dropdown);
+            
+            DropdownPositioning.applyMobileOptimizedPosition(button, dropdown, {
+                offsetX: 0,
+                offsetY: 5,
+                margin: 10
+            });
+            
+            currentDropdown = dropdown;
+        }
+        
+        function testEdgeDropdown(button) {
+            closeCurrentDropdown();
+            
+            const dropdown = createDropdown(`
+                <div class="dropdown-header">Edge Case Dropdown</div>
+                <div class="dropdown-item">This dropdown should reposition</div>
+                <div class="dropdown-item">to stay within viewport</div>
+                <div class="dropdown-item">even when triggered from edge</div>
+            `);
+            
+            document.body.appendChild(dropdown);
+            
+            DropdownPositioning.applyMobileOptimizedPosition(button, dropdown, {
+                offsetX: 0,
+                offsetY: 5,
+                margin: 10
+            });
+            
+            currentDropdown = dropdown;
+        }
+        
+        function testBottomDropdown(button) {
+            closeCurrentDropdown();
+            
+            const dropdown = createDropdown(`
+                <div class="dropdown-header">Bottom Edge Test</div>
+                <div class="dropdown-item">This should appear above</div>
+                <div class="dropdown-item">the button when there's</div>
+                <div class="dropdown-item">no space below</div>
+            `);
+            
+            document.body.appendChild(dropdown);
+            
+            DropdownPositioning.applyMobileOptimizedPosition(button, dropdown, {
+                offsetX: 0,
+                offsetY: 5,
+                margin: 10
+            });
+            
+            currentDropdown = dropdown;
+        }
+        
+        function testDatePickerPopup(button) {
+            closeCurrentDropdown();
+            
+            const popup = document.createElement('div');
+            popup.className = 'fj-date-picker-popup';
+            popup.innerHTML = `
+                <div style="display: flex; flex-direction: column; gap: 8px; align-items: center;">
+                    <div class="fj-date-picker-date-row" style="display: flex; gap: 8px;">
+                        <select style="padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
+                            <option>2025</option>
+                            <option>2024</option>
+                            <option>2023</option>
+                        </select>
+                        <select style="padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
+                            <option>07</option>
+                            <option>06</option>
+                            <option>08</option>
+                        </select>
+                        <select style="padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
+                            <option>09</option>
+                            <option>08</option>
+                            <option>10</option>
+                        </select>
+                    </div>
+                    <label class="fj-date-picker-time-toggle" style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox">
+                        <span>🕐</span>
+                    </label>
+                    <button class="fj-date-picker-ok" style="background: #007acc; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">OK</button>
+                </div>
+            `;
+            
+            document.body.appendChild(popup);
+            
+            DropdownPositioning.applyMobileOptimizedPosition(button, popup, {
+                offsetX: 0,
+                offsetY: 5,
+                margin: 10,
+                zIndex: '10000'
+            });
+            
+            currentDropdown = popup;
+            
+            // Add click handler to OK button
+            popup.querySelector('.fj-date-picker-ok').addEventListener('click', () => {
+                closeCurrentDropdown();
+            });
+        }
+        
+        function testMobileDropdown(button) {
+            closeCurrentDropdown();
+            
+            const dropdown = createDropdown(`
+                <div class="dropdown-header">Mobile Optimized</div>
+                <div class="dropdown-item">This dropdown adapts</div>
+                <div class="dropdown-item">to mobile screens</div>
+                <div class="dropdown-item">with better positioning</div>
+                <div class="dropdown-item">and touch-friendly sizing</div>
+            `);
+            
+            document.body.appendChild(dropdown);
+            
+            DropdownPositioning.applyMobileOptimizedPosition(button, dropdown, {
+                offsetX: 0,
+                offsetY: 5,
+                margin: 15
+            });
+            
+            currentDropdown = dropdown;
+        }
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (currentDropdown && !currentDropdown.contains(e.target)) {
+                closeCurrentDropdown();
+            }
+        });
+        
+        // Update position on window resize
+        window.addEventListener('resize', function() {
+            if (currentDropdown) {
+                closeCurrentDropdown();
+            }
+        });
+    </script>
+</body>
+</html>

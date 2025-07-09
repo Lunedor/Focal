@@ -72,7 +72,6 @@ function handleLinkNavigation(e) {
         if (!pageTitle && pageLink.getAttribute('data-page-link')) {
             pageTitle = pageLink.getAttribute('data-page-link');
         }
-        console.log(`[DEBUG] Link navigation: pageTitle="${pageTitle}", target element:`, e.target);
         if (pageTitle) {
             appState.currentView = pageTitle;
             renderApp();

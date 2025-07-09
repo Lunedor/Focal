@@ -104,28 +104,28 @@ const DropdownConfigs = {
     }
 };
 
-// Utility function to create dropdown with safe cleanup
+// Utility function to create dropdown with safe cleanup and smart positioning
 function createDropdownBase(button, className, content) {
     const dropdown = document.createElement('div');
     dropdown.className = className;
-    
-    // Position the dropdown below the button
-    const buttonRect = button.getBoundingClientRect();
-    dropdown.style.position = 'absolute';
-    dropdown.style.top = (buttonRect.bottom + window.scrollY) + 'px';
-    dropdown.style.left = (buttonRect.left + window.scrollX - 40) + 'px';
-    dropdown.style.zIndex = '1000';
     
     dropdown.innerHTML = content;
     
     // Track if dropdown is already closed to avoid DOM errors
     let isDropdownClosed = false;
+    let positionCleanup = null;
     
     // Function to safely close the dropdown
     const safeCloseDropdown = () => {
         if (isDropdownClosed) return;
         
         try {
+            // Clean up position listeners
+            if (positionCleanup) {
+                positionCleanup();
+                positionCleanup = null;
+            }
+            
             if (dropdown.parentNode) {
                 dropdown.parentNode.removeChild(dropdown);
             }
@@ -135,7 +135,35 @@ function createDropdownBase(button, className, content) {
         }
     };
     
-    return { dropdown, safeCloseDropdown };
+    // Apply smart positioning after adding to DOM
+    const applySmartPositioning = () => {
+        if (window.DropdownPositioning) {
+            // Use mobile-optimized positioning for better mobile experience
+            window.DropdownPositioning.applyMobileOptimizedPosition(button, dropdown, {
+                offsetX: -40,
+                offsetY: 0,
+                margin: 10,
+                zIndex: '1000'
+            });
+            
+            // Enable auto-repositioning on resize/scroll
+            positionCleanup = window.DropdownPositioning.enableAutoReposition(button, dropdown, {
+                offsetX: -40,
+                offsetY: 0,
+                margin: 10,
+                zIndex: '1000'
+            });
+        } else {
+            // Fallback to old positioning if smart positioning is not available
+            const buttonRect = button.getBoundingClientRect();
+            dropdown.style.position = 'absolute';
+            dropdown.style.top = (buttonRect.bottom + window.scrollY) + 'px';
+            dropdown.style.left = (buttonRect.left + window.scrollX - 40) + 'px';
+            dropdown.style.zIndex = '1000';
+        }
+    };
+    
+    return { dropdown, safeCloseDropdown, applySmartPositioning };
 }
 
 // Centralized dropdown creator
@@ -169,8 +197,11 @@ function createCentralizedDropdown(button, textarea, wrapper, widgetType) {
         });
     });
     
-    const { dropdown, safeCloseDropdown } = createDropdownBase(button, `${widgetType}-dropdown`, contentHtml);
+    const { dropdown, safeCloseDropdown, applySmartPositioning } = createDropdownBase(button, `${widgetType}-dropdown`, contentHtml);
     document.body.appendChild(dropdown);
+    
+    // Apply smart positioning after adding to DOM
+    applySmartPositioning();
     
     // Track selections
     const selections = {};
@@ -291,8 +322,11 @@ function createCustomDateDropdown(button, textarea, wrapper) {
         <div class="dropdown-item" data-value="custom">Custom Date...</div>
     `;
     
-    const { dropdown, safeCloseDropdown } = createDropdownBase(button, 'date-dropdown', content);
+    const { dropdown, safeCloseDropdown, applySmartPositioning } = createDropdownBase(button, 'date-dropdown', content);
     document.body.appendChild(dropdown);
+    
+    // Apply smart positioning after adding to DOM
+    applySmartPositioning();
     
     // Handle date selection (single click handler)
     dropdown.addEventListener('click', (e) => {

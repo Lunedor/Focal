@@ -73,7 +73,19 @@ function createCustomDropdown({options, value, onChange, id, width = 60, maxHeig
 
   selected.addEventListener('click', (e) => {
     e.stopPropagation();
-    list.style.display = list.style.display === 'block' ? 'none' : 'block';
+    const wasVisible = list.style.display === 'block';
+    list.style.display = wasVisible ? 'none' : 'block';
+    
+    // Apply smart positioning when showing the dropdown
+    if (!wasVisible && window.DropdownPositioning) {
+        // Use relative positioning to the wrapper element
+        window.DropdownPositioning.applyMobileOptimizedPosition(wrapper, list, {
+            offsetX: 0,
+            offsetY: wrapper.offsetHeight + 2,
+            margin: 5,
+            zIndex: '10001'
+        });
+    }
   });
   wrapper.addEventListener('blur', () => {
     setTimeout(() => { list.style.display = 'none'; }, 100);
@@ -249,18 +261,30 @@ window.showDateTimePicker = function({ withTime = false, anchor = null } = {}) {
     popup.addEventListener('mousedown', e => e.stopPropagation());
     popup.addEventListener('click', e => e.stopPropagation());
 
-    // Add to toolbar and position below the anchor button
-    toolbar.appendChild(popup);
-    if (anchor) {
-      const rect = anchor.getBoundingClientRect();
-      const toolbarRect = toolbar.getBoundingClientRect();
-      popup.style.top = `${rect.bottom - toolbarRect.top + 4}px`;
-      popup.style.left = `${rect.left - toolbarRect.left + 80}px`;
-      popup.style.transform = '';
+    // Position and add popup with smart positioning
+    if (window.DropdownPositioning && anchor) {
+        // For toolbar popups, we need to position relative to document body for smart positioning
+        document.body.appendChild(popup);
+        window.DropdownPositioning.applyMobileOptimizedPosition(anchor, popup, {
+            offsetX: 0,
+            offsetY: 4,
+            margin: 10,
+            zIndex: '10000'
+        });
     } else {
-      popup.style.top = '32px';
-      popup.style.left = '80px';
-      popup.style.transform = '';
+        // Fallback positioning - add to toolbar with relative positioning
+        toolbar.appendChild(popup);
+        if (anchor) {
+            const rect = anchor.getBoundingClientRect();
+            const toolbarRect = toolbar.getBoundingClientRect();
+            popup.style.top = `${rect.bottom - toolbarRect.top + 4}px`;
+            popup.style.left = `${rect.left - toolbarRect.left + 80}px`;
+            popup.style.transform = '';
+        } else {
+            popup.style.top = '32px';
+            popup.style.left = '80px';
+            popup.style.transform = '';
+        }
     }
     // Focus first dropdown
     const firstDropdown = popup.querySelector('.fj-custom-dropdown');

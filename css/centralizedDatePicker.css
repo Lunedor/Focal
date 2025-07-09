@@ -154,8 +154,6 @@
 /* Date picker popup from toolbar */
 .fj-date-picker-popup {
     position: absolute;
-    top: 40px;
-    left: 0;
     z-index: 10000;
     background: var(--color-background, #fff);
     border: 1px solid var(--color-border, #ccc);
@@ -164,6 +162,7 @@
     padding: 16px;
     width: 240px;
     font-family: var(--font-family, system-ui, sans-serif);
+    /* Remove hardcoded top and left positioning to allow smart positioning */
 }
 
 /* Custom dropdown styles for toolbar date picker */
@@ -329,6 +328,7 @@
     .fj-date-picker-popup {
         width: 90vw;
         max-width: 280px;
+        min-width: 260px;
     }
     
     .unified-date-picker-grid {
