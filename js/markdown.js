@@ -267,26 +267,33 @@ const futurelogExtension = {
             if (scheduledMatch || repeatMatch) {
                 // Extract the text without the SCHEDULED/REPEAT part
                 const itemText = line.replace(/\(SCHEDULED:\s*[^)]+\)/i, '').replace(/\(REPEAT:\s*[^)]+\)/i, '').trim();
-                // Remove leading list markers
+                // Check if it's a checkbox item before removing the checkbox syntax
+                const hasCheckbox = /^[-*+]\s*\[\s*[xX]?\s*\]/.test(itemText);
+                const isChecked = /^[-*+]\s*\[\s*[xX]\s*\]/.test(itemText);
+                // Remove leading list markers and checkbox syntax
                 const cleanText = itemText.replace(/^[-*+]\s*/, '').replace(/^\[\s*[xX]?\s*\]\s*/, '');
                 
                 if (scheduledMatch) {
-                    console.log('[FUTURELOG Extension] Adding scheduled item:', { text: cleanText, dateStr: scheduledMatch[1].trim() });
+                    console.log('[FUTURELOG Extension] Adding scheduled item:', { text: cleanText, dateStr: scheduledMatch[1].trim(), hasCheckbox, isChecked });
                     items.push({
                         text: cleanText,
                         dateStr: scheduledMatch[1].trim(),
                         fullLine: line,
-                        type: 'scheduled'
+                        type: 'scheduled',
+                        hasCheckbox: hasCheckbox,
+                        isChecked: isChecked
                     });
                 }
                 
                 if (repeatMatch) {
-                    console.log('[FUTURELOG Extension] Adding repeat item:', { text: cleanText, repeatRule: repeatMatch[1].trim() });
+                    console.log('[FUTURELOG Extension] Adding repeat item:', { text: cleanText, repeatRule: repeatMatch[1].trim(), hasCheckbox, isChecked });
                     items.push({
                         text: cleanText,
                         repeatRule: repeatMatch[1].trim(),
                         fullLine: line,
-                        type: 'repeat'
+                        type: 'repeat',
+                        hasCheckbox: hasCheckbox,
+                        isChecked: isChecked
                     });
                 }
             }
@@ -315,20 +322,26 @@ const futurelogExtension = {
                 return {
                     text: item.text,
                     dateStr: item.dateStr,
-                    type: 'scheduled'
+                    type: 'scheduled',
+                    hasCheckbox: item.hasCheckbox || false,
+                    isChecked: item.isChecked || false
                 };
             } else if (item.type === 'repeat') {
                 return {
                     text: item.text,
                     repeatRule: item.repeatRule,
-                    type: 'repeat'
+                    type: 'repeat',
+                    hasCheckbox: item.hasCheckbox || false,
+                    isChecked: item.isChecked || false
                 };
             }
             // Fallback for legacy format
             return {
                 text: item.text,
                 dateStr: item.dateStr,
-                type: 'scheduled'
+                type: 'scheduled',
+                hasCheckbox: false,
+                isChecked: false
             };
         });
         
@@ -702,6 +715,25 @@ const parseMarkdown = (text, options = {}) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
+    // Handle "everyday from <start> to <end>" syntax
+    const everydayRangeMatch = repeatRule.match(/^everyday from ([^ ]+) to ([^ )]+)/i);
+    if (everydayRangeMatch) {
+      const startDateStr = everydayRangeMatch[1];
+      const endDateStr = everydayRangeMatch[2];
+      
+      // Parse start and end dates
+      let startDate = parseDate(startDateStr);
+      let endDate = parseDate(endDateStr);
+      
+      if (!startDate || !endDate) return null;
+      
+      // Find the next occurrence (tomorrow or start date, whichever is later)
+      let nextOccurrence = new Date(Math.max(today.getTime() + 24 * 60 * 60 * 1000, startDate.getTime()));
+      
+      // Return the next occurrence if it's within the range
+      return (nextOccurrence <= endDate) ? nextOccurrence : null;
+    }
+
     // Handle "every <weekday> from <start> to <end>" syntax
     const rangeMatch = repeatRule.match(/^every (monday|tuesday|wednesday|thursday|friday|saturday|sunday) from ([^ ]+) to ([^ )]+)/i);
     if (rangeMatch) {
@@ -839,34 +871,42 @@ const parseMarkdown = (text, options = {}) => {
     let nextOccurrenceDate = calculateNextRepeatOccurrence(repeatRule);
     let recurringIcon = '🔁';
     
-    // Try to parse new syntax: every <weekday> from <start> to <end>
-    const rangeMatch = repeatRule.match(/^every (monday|tuesday|wednesday|thursday|friday|saturday|sunday) from ([^ ]+) to ([^ )]+)/i);
-    if (rangeMatch) {
-      const weekday = rangeMatch[1];
-      const from = rangeMatch[2];
-      const to = rangeMatch[3];
-      tooltip = `Repeats every ${weekday} from ${from} to ${to}`;
+    // Try to parse new syntax: everyday from <start> to <end>
+    const everydayRangeMatch = repeatRule.match(/^everyday from ([^ ]+) to ([^ )]+)/i);
+    if (everydayRangeMatch) {
+      const from = everydayRangeMatch[1];
+      const to = everydayRangeMatch[2];
+      tooltip = `Repeats every day from ${from} to ${to}`;
     } else {
-      // Check for simple weekday format (e.g., "every monday")
-      const weekdayMatch = repeatRule.match(/^every (monday|tuesday|wednesday|thursday|friday|saturday|sunday)$/i);
-      if (weekdayMatch) {
-        const weekday = weekdayMatch[1];
-        tooltip = `Repeats every ${weekday}`;
-      } else if (repeatRule.toLowerCase() === 'everyday') {
-        tooltip = `Repeats every day`;
+      // Try to parse new syntax: every <weekday> from <start> to <end>
+      const rangeMatch = repeatRule.match(/^every (monday|tuesday|wednesday|thursday|friday|saturday|sunday) from ([^ ]+) to ([^ )]+)/i);
+      if (rangeMatch) {
+        const weekday = rangeMatch[1];
+        const from = rangeMatch[2];
+        const to = rangeMatch[3];
+        tooltip = `Repeats every ${weekday} from ${from} to ${to}`;
       } else {
-        // Fallback: try to normalize as a date or MM-DD
-        let dateStr = repeatRule.trim();
-        let norm = window.normalizeDateStringToYyyyMmDd(dateStr);
-        if (!norm) {
-          const dm = dateStr.match(/^(\d{2})[./-](\d{2})$/);
-          if (dm) {
-            norm = `${dm[2]}-${dm[1]}`;
-          } else {
-            norm = dateStr;
+        // Check for simple weekday format (e.g., "every monday")
+        const weekdayMatch = repeatRule.match(/^every (monday|tuesday|wednesday|thursday|friday|saturday|sunday)$/i);
+        if (weekdayMatch) {
+          const weekday = weekdayMatch[1];
+          tooltip = `Repeats every ${weekday}`;
+        } else if (repeatRule.toLowerCase() === 'everyday') {
+          tooltip = `Repeats every day`;
+        } else {
+          // Fallback: try to normalize as a date or MM-DD
+          let dateStr = repeatRule.trim();
+          let norm = window.normalizeDateStringToYyyyMmDd(dateStr);
+          if (!norm) {
+            const dm = dateStr.match(/^(\d{2})[./-](\d{2})$/);
+            if (dm) {
+              norm = `${dm[2]}-${dm[1]}`;
+            } else {
+              norm = dateStr;
+            }
           }
+          tooltip = `Repeats on ${norm}`;
         }
-        tooltip = `Repeats on ${norm}`;
       }
     }
     

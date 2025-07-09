@@ -758,27 +758,6 @@
     background-color: var(--color-button, #3B82F6);
 }
 
-/* Dropdown styles for toolbar */
-.books-widget-dropdown .dropdown-item {
-    padding: 8px 12px;
-    cursor: pointer;
-    border-bottom: 1px solid var(--color-border);
-    transition: background-color 0.2s;
-}
-
-.books-widget-dropdown .dropdown-item:hover {
-    background: var(--color-button-hover, rgba(0, 0, 0, 0.05));
-}
-
-.books-widget-dropdown .dropdown-item.selected {
-    background: var(--color-button, #3B82F6);
-    color: white;
-}
-
-.books-widget-dropdown .dropdown-item:last-child {
-    border-bottom: none;
-}
-
 /* Enhanced to-read widget styling */
 .book-item-simple.finished {
     background: var(--color-button-hover, rgba(0, 0, 0, 0.02));

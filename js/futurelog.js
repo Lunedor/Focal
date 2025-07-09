@@ -54,11 +54,11 @@ const futurelogWidget = (() => {
             }
             
             // Extract type and content from markdown line format
-            // Expected format: "- Task name (SCHEDULED: 2025-07-08)" or "- Task name (REPEAT: every monday)"
+            // Expected format: "- Task name (SCHEDULED: 2025-07-08)" or "- [ ] Task name (SCHEDULED: 2025-07-08)" or "- Task name (REPEAT: every monday)"
             if (line.includes('(SCHEDULED:')) {
                 type = 'scheduled';
-                // Extract the task text and date from "- Task name (SCHEDULED: 2025-07-08)"
-                const match = line.match(/^-\s*(.+?)\s*\(SCHEDULED:\s*(.+?)\)$/);
+                // Extract the task text and date from "- Task name (SCHEDULED: 2025-07-08)" or "- [ ] Task name (SCHEDULED: 2025-07-08)"
+                const match = line.match(/^-\s*(?:\[[ x]\]\s*)?(.+?)\s*\(SCHEDULED:\s*(.+?)\)$/);
                 if (match) {
                     const taskText = match[1].trim();
                     const dateStr = match[2].trim();
@@ -68,8 +68,8 @@ const futurelogWidget = (() => {
                 }
             } else if (line.includes('(REPEAT:')) {
                 type = 'repeat';
-                // Extract the task text and repeat rule from "- Task name (REPEAT: every monday)"
-                const match = line.match(/^-\s*(.+?)\s*\(REPEAT:\s*(.+?)\)$/);
+                // Extract the task text and repeat rule from "- Task name (REPEAT: every monday)" or "- [ ] Task name (REPEAT: every monday)"
+                const match = line.match(/^-\s*(?:\[[ x]\]\s*)?(.+?)\s*\(REPEAT:\s*(.+?)\)$/);
                 if (match) {
                     let taskText = match[1].trim();
                     const repeatRule = match[2].trim();
@@ -98,16 +98,20 @@ const futurelogWidget = (() => {
     function generateFallbackId(item, linkDate) {
         let fallbackId;
         if (item.type === 'repeat') {
-            // For repeat items, remove the 🔁 prefix from the text and use the repeatRule
+            // For repeat items, remove the 🔁 prefix and checkbox symbols from the text and use the repeatRule
             let cleanText = item.text;
             if (cleanText.startsWith('🔁 ')) {
                 cleanText = cleanText.substring(2).trim();
             }
+            // Remove checkbox symbols
+            cleanText = cleanText.replace(/^[☐☑]\s*/, '');
             // Generate ID consistent with how generateItemId works for repeat items
             fallbackId = `repeat-${item.repeatRule} ${cleanText}`;
         } else {
-            // For scheduled items, generate ID consistent with generateItemId
-            fallbackId = `scheduled-${dateFns.format(new Date(linkDate), 'yyyy-MM-dd')} ${item.text}`;
+            // For scheduled items, remove checkbox symbols from the text
+            let cleanText = item.text.replace(/^[☐☑]\s*/, '');
+            // Generate ID consistent with generateItemId
+            fallbackId = `scheduled-${dateFns.format(new Date(linkDate), 'yyyy-MM-dd')} ${cleanText}`;
         }
         console.log(`[FUTURELOG] Generated fallback ID: "${fallbackId}" for item:`, item);
         return fallbackId;
@@ -124,13 +128,22 @@ const futurelogWidget = (() => {
                 console.log('[FUTURELOG] Parsed scheduled date for', item.dateStr, ':', date);
                 
                 if (date) {
+                    // Format the text with checkbox if it's a checkbox item
+                    let displayText = item.text;
+                    if (item.hasCheckbox) {
+                        const checkboxSymbol = item.isChecked ? '☑' : '☐';
+                        displayText = `${checkboxSymbol} ${item.text}`;
+                    }
+                    
                     result.push({
-                        text: item.text,
+                        text: displayText,
                         dateStr: item.dateStr,
                         date: date,
                         fullLine: item.fullLine,
                         valid: true,
                         type: 'scheduled',
+                        hasCheckbox: item.hasCheckbox || false,
+                        isChecked: item.isChecked || false,
                         id: generateItemId('scheduled', item.fullLine || `SCHEDULED: ${item.dateStr} ${item.text}`)
                     });
                 }
@@ -143,14 +156,23 @@ const futurelogWidget = (() => {
                 const firstOccurrenceDate = expandedDates.firstOccurrence;
                 
                 expandedDates.forEach(expandedItem => {
+                    // Format the text with checkbox if it's a checkbox item
+                    let displayText = `🔁 ${item.text}`;
+                    if (item.hasCheckbox) {
+                        const checkboxSymbol = item.isChecked ? '☑' : '☐';
+                        displayText = `🔁 ${checkboxSymbol} ${item.text}`;
+                    }
+                    
                     result.push({
-                        text: `🔁 ${item.text}`,
+                        text: displayText,
                         dateStr: dateFns.format(expandedItem.date, 'yyyy-MM-dd'),
                         date: expandedItem.date,
                         fullLine: item.fullLine,
                         valid: true,
                         type: 'repeat',
                         repeatRule: item.repeatRule,
+                        hasCheckbox: item.hasCheckbox || false,
+                        isChecked: item.isChecked || false,
                         firstOccurrenceDate: firstOccurrenceDate, // Store for linking
                         id: generateItemId('repeat', item.fullLine || `REPEAT: ${item.repeatRule} ${item.text}`)
                     });
@@ -168,6 +190,8 @@ const futurelogWidget = (() => {
                         fullLine: item.fullLine,
                         valid: true,
                         type: 'scheduled',
+                        hasCheckbox: false,
+                        isChecked: false,
                         id: generateItemId('scheduled', item.fullLine || `SCHEDULED: ${item.dateStr} ${item.text}`)
                     });
                 }
@@ -183,6 +207,56 @@ const futurelogWidget = (() => {
         const today = new Date();
         const endDate = dateFns.addMonths(today, state.monthsToShow);
         let firstOccurrenceAfterToday = null;
+        
+        // Handle "everyday" format
+        if (repeatRule.toLowerCase() === 'everyday') {
+            let currentDate = dateFns.startOfDay(today);
+            
+            // Set first occurrence for linking
+            firstOccurrenceAfterToday = new Date(currentDate);
+            
+            // Generate daily occurrences within the display period
+            while (!dateFns.isAfter(currentDate, endDate)) {
+                result.push({ date: new Date(currentDate) });
+                currentDate = dateFns.addDays(currentDate, 1);
+            }
+            
+            result.firstOccurrence = firstOccurrenceAfterToday;
+            return result;
+        }
+        
+        // Handle "everyday from <date> to <date>" format
+        const everydayRangeMatch = repeatRule.match(/^everyday from ([^ ]+) to ([^ )]+)/i);
+        if (everydayRangeMatch) {
+            const startDate = window.parseDateString(everydayRangeMatch[1]);
+            const ruleEndDate = window.parseDateString(everydayRangeMatch[2]);
+            
+            if (startDate && ruleEndDate) {
+                const actualEndDate = dateFns.min([ruleEndDate, endDate]);
+                
+                let currentDate = dateFns.startOfDay(startDate);
+                
+                // Generate daily occurrences within the specified range
+                while (!dateFns.isAfter(currentDate, actualEndDate)) {
+                    if (!dateFns.isBefore(currentDate, today) || dateFns.isSameDay(currentDate, today)) {
+                        const occurrence = { date: new Date(currentDate) };
+                        result.push(occurrence);
+                        
+                        // Track first occurrence after today for linking
+                        if (!firstOccurrenceAfterToday && (dateFns.isAfter(currentDate, today) || dateFns.isSameDay(currentDate, today))) {
+                            firstOccurrenceAfterToday = new Date(currentDate);
+                        }
+                    }
+                    currentDate = dateFns.addDays(currentDate, 1);
+                }
+            }
+            
+            // Store the first occurrence for linking
+            if (firstOccurrenceAfterToday) {
+                result.firstOccurrence = firstOccurrenceAfterToday;
+            }
+            return result;
+        }
         
         // Handle "every <weekday> from <date> to <date>" format
         const rangeMatch = repeatRule.match(/^every (monday|tuesday|wednesday|thursday|friday|saturday|sunday) from ([^ ]+) to ([^ )]+)/i);
@@ -716,6 +790,7 @@ const futurelogWidget = (() => {
         DOM.futurelogEntryDate.value = dateValue;
         DOM.futurelogEntryDateDisplay.value = displayValue;
         DOM.futurelogEntryText.value = '';
+        DOM.futurelogEntryCheckbox.checked = false;
         
         // Check the scheduled radio button by default
         document.getElementById('scheduled-type').checked = true;
@@ -770,12 +845,18 @@ const futurelogWidget = (() => {
         const repeatType = DOM.futurelogEntryRepeatType.value;
         
         // Hide all repeat options first
+        document.getElementById('daily-options').style.display = 'none';
+        document.getElementById('daily-range-options').style.display = 'none';
         document.getElementById('weekly-options').style.display = 'none';
         document.getElementById('weekly-range-options').style.display = 'none';
         document.getElementById('annual-options').style.display = 'none';
         
         // Show the appropriate option
-        if (repeatType === 'weekly') {
+        if (repeatType === 'daily') {
+            document.getElementById('daily-options').style.display = 'block';
+        } else if (repeatType === 'daily-range') {
+            document.getElementById('daily-range-options').style.display = 'block';
+        } else if (repeatType === 'weekly') {
             document.getElementById('weekly-options').style.display = 'flex';
         } else if (repeatType === 'weekly-range') {
             document.getElementById('weekly-range-options').style.display = 'flex';
@@ -829,6 +910,24 @@ const futurelogWidget = (() => {
             }
         });
         
+        DOM.futurelogEntryDailyFromDatePickerBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (typeof CentralizedDatePicker !== 'undefined') {
+                CentralizedDatePicker.showFuturelogDatePicker(this, 'futurelog-entry-daily-from-date', 'futurelog-entry-daily-from-date-display');
+            } else {
+                openFuturelogDatePicker(this, 'futurelog-entry-daily-from-date', 'futurelog-entry-daily-from-date-display');
+            }
+        });
+        
+        DOM.futurelogEntryDailyToDatePickerBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (typeof CentralizedDatePicker !== 'undefined') {
+                CentralizedDatePicker.showFuturelogDatePicker(this, 'futurelog-entry-daily-to-date', 'futurelog-entry-daily-to-date-display');
+            } else {
+                openFuturelogDatePicker(this, 'futurelog-entry-daily-to-date', 'futurelog-entry-daily-to-date-display');
+            }
+        });
+        
         // Handle date input validation
         DOM.futurelogEntryDateDisplay.addEventListener('input', function(e) {
             updateDateFromInput(e.target.value, 'futurelog-entry-date');
@@ -846,6 +945,14 @@ const futurelogWidget = (() => {
             updateAnnualDateFromInput(e.target.value);
         });
         
+        DOM.futurelogEntryDailyFromDateDisplay.addEventListener('input', function(e) {
+            updateDateFromInput(e.target.value, 'futurelog-entry-daily-from-date');
+        });
+        
+        DOM.futurelogEntryDailyToDateDisplay.addEventListener('input', function(e) {
+            updateDateFromInput(e.target.value, 'futurelog-entry-daily-to-date');
+        });
+        
         // Handle confirm button click
         DOM.futurelogModalConfirm.onclick = function() {
             // Validate the form
@@ -857,18 +964,19 @@ const futurelogWidget = (() => {
             // Get form values
             const text = DOM.futurelogEntryText.value.trim();
             const isScheduled = document.getElementById('scheduled-type').checked;
+            const isCheckbox = DOM.futurelogEntryCheckbox.checked;
             
             if (isScheduled) {
                 // Handle scheduled entry
                 const date = DOM.futurelogEntryDate.value; // This is in YYYY-MM-DD format
                 const entry = `SCHEDULED: ${date} ${text}`;
-                addEntryToCommand(entry);
+                addEntryToCommand(entry, isCheckbox);
             } else {
                 // Handle repeat entry
                 const repeatRule = buildRepeatRule();
                 if (repeatRule) {
                     const entry = `REPEAT: ${repeatRule} ${text}`;
-                    addEntryToCommand(entry);
+                    addEntryToCommand(entry, isCheckbox);
                 }
             }
             
@@ -884,7 +992,19 @@ const futurelogWidget = (() => {
     function buildRepeatRule() {
         const repeatType = DOM.futurelogEntryRepeatType.value;
         
-        if (repeatType === 'weekly') {
+        if (repeatType === 'daily') {
+            return 'everyday';
+        } else if (repeatType === 'daily-range') {
+            const fromDate = DOM.futurelogEntryDailyFromDate.value;
+            const toDate = DOM.futurelogEntryDailyToDate.value;
+            
+            if (!fromDate || !toDate) {
+                alert('Please select both from and to dates for the daily date range.');
+                return null;
+            }
+            
+            return `everyday from ${fromDate} to ${toDate}`;
+        } else if (repeatType === 'weekly') {
             const weekday = DOM.futurelogEntryWeekday.value;
             return `every ${weekday}`;
         } else if (repeatType === 'weekly-range') {
@@ -1170,8 +1290,8 @@ const futurelogWidget = (() => {
         }, 10);
     }
     
-    function addEntryToCommand(entry) {
-        console.log(`[FUTURELOG] Adding entry: ${entry}`);
+    function addEntryToCommand(entry, isCheckbox = false) {
+        console.log(`[FUTURELOG] Adding entry: ${entry}, checkbox: ${isCheckbox}`);
         
         if (!state.onCommandChange) {
             console.error('[FUTURELOG] Cannot add entry: onCommandChange callback is not set');
@@ -1180,20 +1300,35 @@ const futurelogWidget = (() => {
 
         // Convert the entry format to match the markdown list format
         let markdownEntry;
+        const checkboxPrefix = isCheckbox ? '[ ] ' : '';
+        
         if (entry.startsWith('SCHEDULED:')) {
-            // Convert "SCHEDULED: 2025-08-15 Meeting" to "- Meeting (SCHEDULED: 2025-08-15)"
+            // Convert "SCHEDULED: 2025-08-15 Meeting" to "- Meeting (SCHEDULED: 2025-08-15)" or "- [ ] Meeting (SCHEDULED: 2025-08-15)"
             const parts = entry.replace('SCHEDULED:', '').trim().split(' ');
             const date = parts[0];
             const text = parts.slice(1).join(' ');
-            markdownEntry = `- ${text} (SCHEDULED: ${date})`;
+            markdownEntry = `- ${checkboxPrefix}${text} (SCHEDULED: ${date})`;
         } else if (entry.startsWith('REPEAT:')) {
-            // Convert "REPEAT: every monday Meeting" to "- Meeting (REPEAT: every monday)"
+            // Convert "REPEAT: every monday Meeting" to "- Meeting (REPEAT: every monday)" or "- [ ] Meeting (REPEAT: every monday)"
             const parts = entry.replace('REPEAT:', '').trim();
             // Find the last word(s) as the text (everything after the repeat rule)
             const ruleParts = parts.split(' ');
             let text, repeatRule;
             
-            if (parts.includes('every')) {
+            if (parts.toLowerCase().startsWith('everyday')) {
+                // Handle "everyday Meeting text" or "everyday from date to date Meeting text"
+                if (parts.includes('from') && parts.includes('to')) {
+                    // "everyday from 2025-01-01 to 2025-12-31 Meeting text"
+                    const toIndex = ruleParts.indexOf('to');
+                    const repeatRuleParts = ruleParts.slice(0, toIndex + 2); // Include "to" and the date after it
+                    repeatRule = repeatRuleParts.join(' ');
+                    text = ruleParts.slice(toIndex + 2).join(' ');
+                } else {
+                    // "everyday Meeting text"
+                    repeatRule = 'everyday';
+                    text = ruleParts.slice(1).join(' ');
+                }
+            } else if (parts.includes('every')) {
                 // Handle "every monday" or "every monday from date to date" patterns
                 if (parts.includes('from') && parts.includes('to')) {
                     // "every monday from 2025-01-01 to 2025-12-31 Meeting text"
@@ -1212,7 +1347,7 @@ const futurelogWidget = (() => {
                 text = ruleParts.slice(1).join(' ');
             }
             
-            markdownEntry = `- ${text} (REPEAT: ${repeatRule})`;
+            markdownEntry = `- ${checkboxPrefix}${text} (REPEAT: ${repeatRule})`;
         } else {
             console.error('[FUTURELOG] Unknown entry format:', entry);
             return;

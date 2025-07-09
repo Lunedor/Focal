@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Everyday Range</title>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.3/index.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/markdown.js"></script>
+    <style>
+        .repeat-link {
+            background: rgba(255, 242, 59, 0.2);
+            border-radius: 4px;
+            padding: 0 3px;
+            cursor: pointer;
+        }
+        .scheduled-link {
+            text-decoration: underline;
+            color: #0066cc;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Everyday Range Clickable Links</h1>
+    
+    <div id="test-content">
+        <p>Testing different REPEAT formats:</p>
+        <p>(REPEAT: everyday from 09.07.2025 to 15.07.2025) - Should be clickable and link to nearest date</p>
+        <p>(REPEAT: every monday from 09.07.2025 to 15.07.2025) - Should be clickable</p>
+        <p>(REPEAT: everyday) - Should be clickable</p>
+        <p>(REPEAT: every tuesday) - Should be clickable</p>
+    </div>
+    
+    <script>
+        // Initialize date normalization function
+        window.normalizeDateStringToYyyyMmDd = function(dateStr) {
+            if (!dateStr) return null;
+            
+            // Handle YYYY-MM-DD format
+            if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+                return dateStr;
+            }
+            
+            // Handle DD.MM.YYYY format
+            const ddmmyyyy = dateStr.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+            if (ddmmyyyy) {
+                const day = ddmmyyyy[1].padStart(2, '0');
+                const month = ddmmyyyy[2].padStart(2, '0');
+                const year = ddmmyyyy[3];
+                return `${year}-${month}-${day}`;
+            }
+            
+            return null;
+        };
+        
+        // Test the markdown parsing
+        const testContent = document.getElementById('test-content');
+        testContent.innerHTML = parseMarkdown(testContent.innerHTML);
+        
+        // Add click handlers
+        document.addEventListener('click', function(e) {
+            const link = e.target.closest('.scheduled-link');
+            if (link) {
+                const date = link.dataset.plannerDate;
+                alert(`Would navigate to date: ${date}`);
+            }
+        });
+    </script>
+</body>
+</html>

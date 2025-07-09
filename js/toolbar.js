@@ -106,6 +106,7 @@ const EditModeManager = {
                 { icon: 'list', action: 'tasks', title: 'Insert TASKS:', md: { prefix: 'TASKS:\n' } },
                 { icon: 'target', action: 'goal', title: 'Insert GOAL:', md: { prefix: 'GOAL: ' } },
                 { icon: 'bar-chart-2', action: 'progress', title: 'Insert PROGRESS: []', md: { prefix: 'PROGRESS: []' } },
+                { icon: 'bookmark', action: 'futurelog', title: 'Insert Future Log', md: null },
                 { icon: 'dollar-sign', action: 'finance', title: 'Insert Finance Tracker', md: null },
                 { icon: 'smile', action: 'mood', title: 'Insert Mood Tracker', md: null },
                 { icon: 'book-open', action: 'books', title: 'Insert Book Tracker', md: null },
@@ -207,6 +208,12 @@ const EditModeManager = {
         if (wrapper.contains(ev.target)) return;
         const toolbar = wrapper.querySelector('.markdown-toolbar');
         if (toolbar && toolbar.contains(ev.target)) return;
+        
+        // Don't close edit mode if clicking on a dropdown
+        if (ev.target.closest('.finance-dropdown, .mood-dropdown, .books-dropdown, .movies-dropdown, .futurelog-dropdown, .date-dropdown')) {
+            return;
+        }
+        
         this.exit(wrapper);
     },
     
@@ -238,6 +245,11 @@ const EditModeManager = {
             
             if (action === 'movies') {
                 this.handleMoviesDropdown(button, textarea, wrapper);
+                return;
+            }
+            
+            if (action === 'futurelog') {
+                this.handleFuturelogDropdown(button, textarea, wrapper);
                 return;
             }
             
@@ -278,6 +290,13 @@ const EditModeManager = {
         // Import from widgetDropdowns.js
         if (typeof createMoviesDropdown === 'function') {
             createMoviesDropdown(button, textarea, wrapper);
+        }
+    },
+    
+    handleFuturelogDropdown(button, textarea, wrapper) {
+        // Import from widgetDropdowns.js
+        if (typeof createFuturelogDropdown === 'function') {
+            createFuturelogDropdown(button, textarea, wrapper);
         }
     },
     

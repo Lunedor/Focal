@@ -231,7 +231,7 @@
 }
 
 .fj-date-picker-time-icon {
-    color: var(--color-sidebar-active-bg, #666);
+    color: var(--color-text, #666);
     display: flex;
     align-items: center;
 }

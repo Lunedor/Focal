@@ -271,6 +271,12 @@
             <label for="futurelog-entry-text">Description</label>
             <input type="text" id="futurelog-entry-text" placeholder="e.g., Meeting with client, Doctor appointment" required>
           </div>
+          <div class="futurelog-form-group">
+            <label>
+              <input type="checkbox" id="futurelog-entry-checkbox" value="checkbox">
+              Create as checkbox item
+            </label>
+          </div>
           <div class="futurelog-form-group" id="scheduled-date-group">
             <label for="futurelog-entry-date">Date</label>
             <div class="date-picker-container">
@@ -287,7 +293,41 @@
               <option value="weekly">Weekly on a specific day</option>
               <option value="weekly-range">Weekly with date range</option>
               <option value="annual">Annual (specific date)</option>
+              <option value="daily">Daily (everyday)</option>
+              <option value="daily-range">Daily with date range</option>
             </select>
+            <div id="daily-options" class="repeat-options">
+              <p style="font-size: 0.875rem; color: var(--color-sidebar-text); margin: 0.5rem 0;">
+                This will create a daily recurring event starting from today.
+              </p>
+            </div>
+            <div id="daily-range-options" class="repeat-options" style="display: none;">
+              <p style="font-size: 0.875rem; color: var(--color-sidebar-text); margin: 0.5rem 0;">
+                Daily recurring event with specific date range.
+              </p>
+              <div class="date-range-container">
+                <div class="date-input-group">
+                  <label>From:</label>
+                  <div class="date-picker-container">
+                    <input type="text" id="futurelog-entry-daily-from-date-display" placeholder="dd/MM/yyyy">
+                    <button type="button" id="futurelog-entry-daily-from-date-picker-btn" class="date-picker-button" aria-label="Select from date" title="Select from date">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    </button>
+                    <input type="hidden" id="futurelog-entry-daily-from-date">
+                  </div>
+                </div>
+                <div class="date-input-group">
+                  <label>To:</label>
+                  <div class="date-picker-container">
+                    <input type="text" id="futurelog-entry-daily-to-date-display" placeholder="dd/MM/yyyy">
+                    <button type="button" id="futurelog-entry-daily-to-date-picker-btn" class="date-picker-button" aria-label="Select to date" title="Select to date">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    </button>
+                    <input type="hidden" id="futurelog-entry-daily-to-date">
+                  </div>
+                </div>
+              </div>
+            </div>
             <div id="weekly-options" class="repeat-options">
               <select id="futurelog-entry-weekday">
                 <option value="monday">Every Monday</option>
@@ -369,6 +409,7 @@
   <script src="js/library.js"></script>
   <script src="js/calendar.js"></script>
   <script src="js/datePicker.js"></script>
+  <script src="js/centralizedModal.js"></script>
   <script src="js/centralizedDatePicker.js"></script>
   <script src="js/init.js"></script>
   <!-- Event handling modules -->

@@ -406,6 +406,46 @@ function getAllScheduledItems() {
                 const repeatMatch = line.match(repeatRegex);
                 if (repeatMatch) {
                     const repeatRule = repeatMatch[1];
+                    
+                    // Check for checkbox prefix in repeat items
+                    const checkboxMatch = line.match(/^([-*]\s*\[([x ])\]\s*)?/);
+                    const checkboxPrefix = checkboxMatch ? checkboxMatch[1] || '' : '';
+                    const checkboxState = checkboxMatch ? checkboxMatch[2] || '' : '';
+                    const isCheckbox = !!checkboxPrefix;
+                    const checkboxChecked = checkboxState === 'x';
+                    
+                    // Extract the clean text without REPEAT and SCHEDULED tags
+                    let cleanText = line.replace(/\(REPEAT:[^)]+\)/, '').replace(/\(SCHEDULED:[^)]+\)/, '').trim();
+                    
+                    // Handle "everyday from date to date" format
+                    const everydayRangeMatch = repeatRule.match(/^everyday from ([^ ]+) to ([^ )]+)/i);
+                    if (everydayRangeMatch) {
+                        const startDate = window.normalizeDateStringToYyyyMmDd(everydayRangeMatch[1]);
+                        const endDate = window.normalizeDateStringToYyyyMmDd(everydayRangeMatch[2]);
+                        
+                        if (startDate && endDate) {
+                            let d = dateFns.parseISO(startDate);
+                            const endDateObj = dateFns.parseISO(endDate);
+                            
+                            for (; !dateFns.isAfter(d, endDateObj); d = dateFns.addDays(d, 1)) {
+                                const dayStr = dateFns.format(d, 'yyyy-MM-dd');
+                                if (!scheduledItems.has(dayStr)) scheduledItems.set(dayStr, []);
+                                scheduledItems.get(dayStr).push({
+                                    text: cleanText,
+                                    isCheckbox: isCheckbox,
+                                    checkboxState: checkboxChecked,
+                                    pageKey: key,
+                                    displayName: pageTitle,
+                                    recurring: true,
+                                    recurringKey: 'everyday-range',
+                                    originalDate: startDate,
+                                    notify: false
+                                });
+                            }
+                        }
+                        return;
+                    }
+                    
                     const rangeMatch = repeatRule.match(/^every (monday|tuesday|wednesday|thursday|friday|saturday|sunday) from ([^ ]+) to ([^ )]+)/i);
                     let weekday = null, startDate = null, endDate = null;
                     if (rangeMatch) {
@@ -445,7 +485,9 @@ function getAllScheduledItems() {
                             const dayStr = dateFns.format(d, 'yyyy-MM-dd');
                             if (!scheduledItems.has(dayStr)) scheduledItems.set(dayStr, []);
                             scheduledItems.get(dayStr).push({
-                                text: line.replace(/\(REPEAT:[^)]+\)/, '').replace(/\(SCHEDULED:[^)]+\)/, '').trim(),
+                                text: cleanText,
+                                isCheckbox: isCheckbox,
+                                checkboxState: checkboxChecked,
                                 pageKey: key,
                                 displayName: pageTitle,
                                 recurring: true,
@@ -474,7 +516,9 @@ function getAllScheduledItems() {
                             const dayStr = dateFns.format(d, 'yyyy-MM-dd');
                             if (!scheduledItems.has(dayStr)) scheduledItems.set(dayStr, []);
                             scheduledItems.get(dayStr).push({
-                                text: line.replace(/\(REPEAT:[^)]+\)/, '').replace(/\(SCHEDULED:[^)]+\)/, '').trim(),
+                                text: cleanText,
+                                isCheckbox: isCheckbox,
+                                checkboxState: checkboxChecked,
                                 pageKey: key,
                                 displayName: pageTitle,
                                 recurring: true,

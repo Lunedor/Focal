@@ -1,27 +1,120 @@
 // --- WIDGET DROPDOWNS ---
 
+// Centralized dropdown configuration system
+const DropdownConfigs = {
+    finance: {
+        title: 'Finance Widget Settings',
+        sections: [
+            {
+                title: 'Time Period',
+                options: [
+                    { label: 'All Time', value: 'all' },
+                    { label: 'This Month', value: 'this-month' },
+                    { label: 'This Year', value: 'this-year', default: true },
+                    { label: 'Last 3 Months', value: 'last-3-months' },
+                    { label: 'Last 6 Months', value: 'last-6-months' },
+                    { label: 'Last 12 Months', value: 'last-12-months' }
+                ]
+            },
+            {
+                title: 'Layout',
+                options: [
+                    { label: 'All Widgets', value: 'summary+chart+chartpie', default: true },
+                    { label: 'Summary Only', value: 'summary' },
+                    { label: 'Bar Chart Only', value: 'chart' },
+                    { label: 'Pie Chart Only', value: 'chartpie' },
+                    { label: 'Summary + Bar Chart', value: 'summary+chart' },
+                    { label: 'Summary + Pie Chart', value: 'summary+chartpie' }
+                ]
+            }
+        ],
+        buildResult: (selections) => `FINANCE: ${selections.layout || 'summary+chart+chartpie'}, USD, ${selections['time-period'] || 'this-year'}\n- `
+    },
+    
+    mood: {
+        title: 'Mood Tracker Settings',
+        sections: [
+            {
+                title: 'Display Type',
+                options: [
+                    { label: 'Calendar View', value: 'calendar', default: true },
+                    { label: 'Circular View', value: 'circular' },
+                    { label: 'Chart View', value: 'chart' }
+                ]
+            },
+            {
+                title: 'Style',
+                options: [
+                    { label: 'Color Only', value: 'color', default: true },
+                    { label: 'Emoji Only', value: 'emoji' },
+                    { label: 'Color + Emoji', value: 'all' }
+                ]
+            }
+        ],
+        buildResult: (selections) => `MOOD: ${selections['display-type'] || 'calendar'}, ${selections.style || 'color'}\n`
+    },
+    
+    books: {
+        title: 'Books Widget Settings',
+        sections: [
+            {
+                title: 'Widget Type',
+                options: [
+                    { label: 'Full Reading Tracker', value: 'full-tracker', default: true },
+                    { label: 'Currently Reading', value: 'currently-reading' },
+                    { label: 'To Read List', value: 'to-read' },
+                    { label: 'Stats', value: 'stats' },
+                    { label: 'Bookshelf View', value: 'bookshelf' }
+                ]
+            }
+        ],
+        buildResult: (selections) => `BOOKS: ${selections['widget-type'] || 'full-tracker'}\n`
+    },
+    
+    movies: {
+        title: 'Movies Widget Settings',
+        sections: [
+            {
+                title: 'Widget Type',
+                options: [
+                    { label: 'Full Movie Tracker', value: 'full-tracker', default: true },
+                    { label: 'Watchlist', value: 'watchlist' },
+                    { label: 'Watched Movies', value: 'watched' },
+                    { label: 'Favorites', value: 'favorites' },
+                    { label: 'Stats', value: 'stats' }
+                ]
+            }
+        ],
+        buildResult: (selections) => `MOVIES: ${selections['widget-type'] || 'full-tracker'}\n`
+    },
+    
+    futurelog: {
+        title: 'Future Log Settings',
+        sections: [
+            {
+                title: 'Time Period',
+                options: [
+                    { label: '3 Months', value: '3-months' },
+                    { label: '6 Months', value: '6-months', default: true },
+                    { label: '12 Months', value: '12-months' }
+                ]
+            }
+        ],
+        buildResult: (selections) => `FUTURELOG: ${selections['time-period'] || '6-months'}\n`
+    }
+};
+
 // Utility function to create dropdown with safe cleanup
-function createDropdownBase(button, className, content, onApply) {
+function createDropdownBase(button, className, content) {
     const dropdown = document.createElement('div');
     dropdown.className = className;
-    dropdown.style.cssText = 'position:absolute;z-index:1000;background:var(--color-background);border:1px solid var(--color-border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);padding:0;overflow:hidden;max-width:300px;min-width:240px;';
     
     // Position the dropdown below the button
     const buttonRect = button.getBoundingClientRect();
+    dropdown.style.position = 'absolute';
     dropdown.style.top = (buttonRect.bottom + window.scrollY) + 'px';
     dropdown.style.left = (buttonRect.left + window.scrollX - 40) + 'px';
-    
-    // Add hover effect with CSS
-    const style = document.createElement('style');
-    style.textContent = `
-        .dropdown-item:hover {
-            background-color: var(--color-border);
-        }
-        .dropdown-item.selected {
-            background-color: var(--color-bg-highlight, rgba(0,0,0,0.05));
-        }
-    `;
-    document.head.appendChild(style);
+    dropdown.style.zIndex = '1000';
     
     dropdown.innerHTML = content;
     
@@ -36,106 +129,118 @@ function createDropdownBase(button, className, content, onApply) {
             if (dropdown.parentNode) {
                 dropdown.parentNode.removeChild(dropdown);
             }
-            if (style.parentNode) {
-                document.head.removeChild(style);
-            }
             isDropdownClosed = true;
         } catch (e) {
             console.error('Error closing dropdown:', e);
         }
     };
     
-    return { dropdown, safeCloseDropdown, style };
+    return { dropdown, safeCloseDropdown };
 }
 
-// Finance dropdown
-function createFinanceDropdown(button, textarea, wrapper) {
-    const filters = [
-        { label: 'All Time', value: 'all' },
-        { label: 'This Month', value: 'this-month' },
-        { label: 'This Year', value: 'this-year', default: true },
-        { label: 'Last 3 Months', value: 'last-3-months' },
-        { label: 'Last 6 Months', value: 'last-6-months' },
-        { label: 'Last 12 Months', value: 'last-12-months' }
-    ];
-    
-    const layouts = [
-        { label: 'All Widgets', value: 'summary+chart+chartpie', default: true },
-        { label: 'Summary Only', value: 'summary' },
-        { label: 'Bar Chart Only', value: 'chart' },
-        { label: 'Pie Chart Only', value: 'chartpie' },
-        { label: 'Summary + Bar Chart', value: 'summary+chart' },
-        { label: 'Summary + Pie Chart', value: 'summary+chartpie' }
-    ];
+// Centralized dropdown creator
+function createCentralizedDropdown(button, textarea, wrapper, widgetType) {
+    const config = DropdownConfigs[widgetType];
+    if (!config) {
+        console.error(`Unknown widget type: ${widgetType}`);
+        return;
+    }
     
     const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="float:right;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
     
-    const content = `
-        <div style="padding:10px 15px;font-weight:600;color:var(--color-text);font-size:1.0em;border-bottom:1px solid var(--color-border);background:var(--color-planner-header-bg, rgba(0,0,0,0.03));">Finance Widget Settings</div>
-        <div style="padding:10px 15px;font-weight:600;color:var(--color-sidebar-text);font-size:0.9em;border-bottom:1px solid var(--color-border);">Time Period</div>
-        ${filters.map(filter => `
-            <div class="dropdown-item ${filter.default ? 'selected' : ''}" data-value="${filter.value}" style="padding:8px 15px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
-                <span>${filter.label}</span>
-                ${filter.default ? `<span class="check-icon">${checkIcon}</span>` : ''}
-            </div>
-        `).join('')}
-        <div style="padding:10px 15px;font-weight:600;color:var(--color-sidebar-text);font-size:0.9em;border-bottom:1px solid var(--color-border);margin-top:5px;">Layout</div>
-        ${layouts.map(layout => `
-            <div class="dropdown-item layout-item ${layout.default ? 'selected' : ''}" data-layout="${layout.value}" style="padding:8px 15px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
-                <span>${layout.label}</span>
-                ${layout.default ? `<span class="check-icon">${checkIcon}</span>` : ''}
-            </div>
-        `).join('')}
+    // Build content HTML
+    let contentHtml = `
+        <div class="dropdown-header">${config.title}</div>
     `;
     
-    const { dropdown, safeCloseDropdown } = createDropdownBase(button, 'finance-filter-dropdown', content);
+    config.sections.forEach(section => {
+        contentHtml += `
+            <div class="dropdown-section-title">${section.title}</div>
+        `;
+        
+        section.options.forEach(option => {
+            const sectionKey = section.title.toLowerCase().replace(/\s+/g, '-');
+            contentHtml += `
+                <div class="dropdown-item ${option.default ? 'selected' : ''}" data-section="${sectionKey}" data-value="${option.value}">
+                    <span>${option.label}</span>
+                    ${option.default ? `<span class="check-icon">${checkIcon}</span>` : ''}
+                </div>
+            `;
+        });
+    });
+    
+    const { dropdown, safeCloseDropdown } = createDropdownBase(button, `${widgetType}-dropdown`, contentHtml);
     document.body.appendChild(dropdown);
     
-    // Handle item selection
-    let selectedFilter = 'this-year';
-    let selectedLayout = 'summary+chart+chartpie';
+    // Track selections
+    const selections = {};
     
+    // Initialize with defaults
+    config.sections.forEach(section => {
+        const sectionKey = section.title.toLowerCase().replace(/\s+/g, '-');
+        const defaultOption = section.options.find(opt => opt.default);
+        if (defaultOption) {
+            selections[sectionKey] = defaultOption.value;
+        }
+    });
+    
+    // Handle item selection (single click handler)
     dropdown.addEventListener('click', (e) => {
-        const item = e.target.closest('.dropdown-item');
-        if (!item) return;
-        
+        // Stop all event propagation
+        e.preventDefault();
         e.stopPropagation();
+        e.stopImmediatePropagation();
         
-        if (item.classList.contains('layout-item')) {
-            selectedLayout = item.dataset.layout;
-            // Update check icons for layouts
-            dropdown.querySelectorAll('.layout-item .check-icon').forEach(el => el.remove());
+        const item = e.target.closest('.dropdown-item');
+        if (!item) return;
+        
+        const section = item.dataset.section;
+        const value = item.dataset.value;
+        
+        if (section && value) {
+            selections[section] = value;
+            
+            // Update check icons for this section
+            const sectionItems = dropdown.querySelectorAll(`[data-section="${section}"]`);
+            sectionItems.forEach(sectionItem => {
+                const existingCheck = sectionItem.querySelector('.check-icon');
+                if (existingCheck) existingCheck.remove();
+                sectionItem.classList.remove('selected');
+            });
+            
+            // Add check to selected item
             const checkIcon = document.createElement('span');
             checkIcon.className = 'check-icon';
             checkIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="float:right;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
             item.appendChild(checkIcon);
-            
-            dropdown.querySelectorAll('.layout-item').forEach(el => 
-                el.classList.toggle('selected', el === item));
-        } else if (item.dataset.value) {
-            selectedFilter = item.dataset.value;
-            // Update check icons for filters
-            dropdown.querySelectorAll('.dropdown-item:not(.layout-item) .check-icon').forEach(el => el.remove());
-            const checkIcon = document.createElement('span');
-            checkIcon.className = 'check-icon';
-            checkIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="float:right;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
-            item.appendChild(checkIcon);
-            
-            dropdown.querySelectorAll('.dropdown-item:not(.layout-item)').forEach(el => 
-                el.classList.toggle('selected', el === item));
+            item.classList.add('selected');
         }
     });
     
-    // Add done button at the bottom
+    // Prevent event bubbling on mouse events
+    dropdown.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+    });
+    dropdown.addEventListener('mouseup', (e) => {
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+    });
+    
+    // Add done button
     const doneButton = document.createElement('div');
     doneButton.className = 'dropdown-done-button';
     doneButton.textContent = 'Apply';
-    doneButton.style.cssText = 'text-align:center;padding:8px;margin-top:8px;font-weight:500;background:var(--income-color,#4CAF50);color:white;cursor:pointer;border-radius:0 0 4px 4px;';
     dropdown.appendChild(doneButton);
     
-    doneButton.addEventListener('click', () => {
-        const financeString = `FINANCE: ${selectedLayout}, USD, ${selectedFilter}\n- `;
-        insertDropdownResult(textarea, financeString);
+    doneButton.addEventListener('click', (e) => {
+        // Stop all event propagation
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        
+        const result = config.buildResult(selections);
+        insertDropdownResult(textarea, result);
         safeCloseDropdown();
         textarea.focus();
         exitEditModeWithRender();
@@ -145,275 +250,59 @@ function createFinanceDropdown(button, textarea, wrapper) {
     const closeDropdown = (e) => {
         if (!dropdown.contains(e.target) && e.target !== button && !button.contains(e.target)) {
             safeCloseDropdown();
+            document.removeEventListener('mousedown', closeDropdown);
         }
     };
     
-    wrapper.addEventListener('mousedown', closeDropdown);
+    // Use setTimeout to avoid immediate closing when the dropdown is first opened
+    setTimeout(() => {
+        document.addEventListener('mousedown', closeDropdown);
+    }, 0);
 }
 
-// Mood dropdown
+// Individual widget dropdown functions (now using centralized system)
+function createFinanceDropdown(button, textarea, wrapper) {
+    createCentralizedDropdown(button, textarea, wrapper, 'finance');
+}
+
 function createMoodDropdown(button, textarea, wrapper) {
-    const types = [
-        { label: 'Calendar View', value: 'calendar', default: true },
-        { label: 'Circular View', value: 'circular' },
-        { label: 'Chart View', value: 'chart' }
-    ];
-    
-    const styles = [
-        { label: 'Color Only', value: 'color', default: true },
-        { label: 'Emoji Only', value: 'emoji' },
-        { label: 'Color + Emoji', value: 'all' }
-    ];
-    
-    const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="float:right;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
-    
-    const content = `
-        <div style="padding:10px 15px;font-weight:600;color:var(--color-text);font-size:1.0em;border-bottom:1px solid var(--color-border);background:var(--color-planner-header-bg, rgba(0,0,0,0.03));">Mood Tracker Settings</div>
-        <div style="padding:10px 15px;font-weight:600;color:var(--color-sidebar-text);font-size:0.9em;border-bottom:1px solid var(--color-border);">Display Type</div>
-        ${types.map(type => `
-            <div class="dropdown-item ${type.default ? 'selected' : ''}" data-value="${type.value}" style="padding:8px 15px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
-                <span>${type.label}</span>
-                ${type.default ? `<span class="check-icon">${checkIcon}</span>` : ''}
-            </div>
-        `).join('')}
-        <div style="padding:10px 15px;font-weight:600;color:var(--color-sidebar-text);font-size:0.9em;border-bottom:1px solid var(--color-border);margin-top:5px;">Style</div>
-        ${styles.map(style => `
-            <div class="dropdown-item style-item ${style.default ? 'selected' : ''}" data-style="${style.value}" style="padding:8px 15px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
-                <span>${style.label}</span>
-                ${style.default ? `<span class="check-icon">${checkIcon}</span>` : ''}
-            </div>
-        `).join('')}
-    `;
-    
-    const { dropdown, safeCloseDropdown } = createDropdownBase(button, 'mood-tracker-dropdown', content);
-    wrapper.appendChild(dropdown);
-    
-    // Handle item selection
-    let selectedType = 'calendar';
-    let selectedStyle = 'color';
-    
-    dropdown.addEventListener('click', (e) => {
-        const item = e.target.closest('.dropdown-item');
-        if (!item) return;
-        
-        e.preventDefault();
-        
-        if (item.classList.contains('style-item')) {
-            selectedStyle = item.dataset.style;
-            // Update check icons for styles
-            dropdown.querySelectorAll('.style-item .check-icon').forEach(el => el.remove());
-            const checkIcon = document.createElement('span');
-            checkIcon.className = 'check-icon';
-            checkIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="float:right;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
-            item.appendChild(checkIcon);
-            
-            dropdown.querySelectorAll('.style-item').forEach(el => 
-                el.classList.toggle('selected', el === item));
-        } else if (item.dataset.value) {
-            selectedType = item.dataset.value;
-            // Update check icons for types
-            dropdown.querySelectorAll('.dropdown-item:not(.style-item) .check-icon').forEach(el => el.remove());
-            const checkIcon = document.createElement('span');
-            checkIcon.className = 'check-icon';
-            checkIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="float:right;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
-            item.appendChild(checkIcon);
-            
-            dropdown.querySelectorAll('.dropdown-item:not(.style-item)').forEach(el => 
-                el.classList.toggle('selected', el === item));
-        }
-    });
-    
-    // Add done button at the bottom
-    const doneButton = document.createElement('div');
-    doneButton.className = 'dropdown-done-button';
-    doneButton.textContent = 'Apply';
-    doneButton.style.cssText = 'text-align:center;padding:8px;margin-top:8px;font-weight:500;background:var(--mood-happy,#4CAF50);color:white;cursor:pointer;border-radius:0 0 4px 4px;';
-    dropdown.appendChild(doneButton);
-    
-    doneButton.addEventListener('click', () => {
-        const moodString = `MOOD: ${selectedType}, ${selectedStyle}\n`;
-        insertDropdownResult(textarea, moodString);
-        safeCloseDropdown();
-        textarea.focus();
-        exitEditModeWithRender();
-    });
-    
-    // Close dropdown when clicking outside
-    const closeDropdown = (e) => {
-        if (!dropdown.contains(e.target) && e.target !== button && !button.contains(e.target)) {
-            safeCloseDropdown();
-        }
-    };
-    
-    wrapper.addEventListener('mousedown', closeDropdown);
+    createCentralizedDropdown(button, textarea, wrapper, 'mood');
 }
 
-// Books dropdown
 function createBooksDropdown(button, textarea, wrapper) {
-    const widgetTypes = [
-        { label: 'Full Reading Tracker', value: 'full-tracker', default: true },
-        { label: 'Currently Reading', value: 'currently-reading' },
-        { label: 'To Read List', value: 'to-read' },
-        { label: 'Stats', value: 'stats' },
-        { label: 'Bookshelf View', value: 'bookshelf' }
-    ];
-    
-    const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="float:right;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
-    
-    const content = `
-        <div style="padding:10px 15px;font-weight:600;color:var(--color-text);font-size:1.0em;border-bottom:1px solid var(--color-border);background:var(--color-planner-header-bg, rgba(0,0,0,0.03));">Books Widget Settings</div>
-        <div style="padding:10px 15px;font-weight:600;color:var(--color-sidebar-text);font-size:0.9em;border-bottom:1px solid var(--color-border);">Widget Type</div>
-        ${widgetTypes.map(type => `
-            <div class="dropdown-item ${type.default ? 'selected' : ''}" data-value="${type.value}" style="padding:8px 15px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
-                <span>${type.label}</span>
-                ${type.default ? `<span class="check-icon">${checkIcon}</span>` : ''}
-            </div>
-        `).join('')}
-    `;
-    
-    const { dropdown, safeCloseDropdown } = createDropdownBase(button, 'books-dropdown', content);
-    wrapper.appendChild(dropdown);
-    
-    // Handle item selection
-    let selectedType = 'full-tracker';
-    
-    dropdown.addEventListener('click', (e) => {
-        const item = e.target.closest('.dropdown-item');
-        if (!item) return;
-        
-        e.preventDefault();
-        
-        if (item.dataset.value) {
-            selectedType = item.dataset.value;
-            // Update check icons
-            dropdown.querySelectorAll('.dropdown-item .check-icon').forEach(el => el.remove());
-            const checkIcon = document.createElement('span');
-            checkIcon.className = 'check-icon';
-            checkIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="float:right;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
-            item.appendChild(checkIcon);
-            
-            dropdown.querySelectorAll('.dropdown-item').forEach(el => 
-                el.classList.toggle('selected', el === item));
-        }
-    });
-    
-    // Add done button at the bottom
-    const doneButton = document.createElement('div');
-    doneButton.className = 'dropdown-done-button';
-    doneButton.textContent = 'Apply';
-    doneButton.style.cssText = 'text-align:center;padding:8px;margin-top:8px;font-weight:500;background:var(--color-success,#4CAF50);color:white;cursor:pointer;border-radius:0 0 4px 4px;';
-    dropdown.appendChild(doneButton);
-    
-    doneButton.addEventListener('click', () => {
-        const booksString = `BOOKS: ${selectedType}\n`;
-        insertDropdownResult(textarea, booksString);
-        safeCloseDropdown();
-        textarea.focus();
-        exitEditModeWithRender();
-    });
-    
-    // Close dropdown when clicking outside
-    const closeDropdown = (e) => {
-        if (!dropdown.contains(e.target) && e.target !== button && !button.contains(e.target)) {
-            safeCloseDropdown();
-        }
-    };
-    
-    wrapper.addEventListener('mousedown', closeDropdown);
+    createCentralizedDropdown(button, textarea, wrapper, 'books');
 }
 
-// Movies dropdown
 function createMoviesDropdown(button, textarea, wrapper) {
-    const widgetTypes = [
-        { label: 'Full Movie Tracker', value: 'full-tracker', default: true },
-        { label: 'Watchlist', value: 'watchlist' },
-        { label: 'Watched Movies', value: 'watched' },
-        { label: 'Favorites', value: 'favorites' },
-        { label: 'Stats', value: 'stats' }
-    ];
-    
-    const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="float:right;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
-    
-    const content = `
-        <div style="padding:10px 15px;font-weight:600;color:var(--color-text);font-size:1.0em;border-bottom:1px solid var(--color-border);background:var(--color-planner-header-bg, rgba(0,0,0,0.03));">Movies Widget Settings</div>
-        <div style="padding:10px 15px;font-weight:600;color:var(--color-sidebar-text);font-size:0.9em;border-bottom:1px solid var(--color-border);">Widget Type</div>
-        ${widgetTypes.map(type => `
-            <div class="dropdown-item ${type.default ? 'selected' : ''}" data-value="${type.value}" style="padding:8px 15px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
-                <span>${type.label}</span>
-                ${type.default ? `<span class="check-icon">${checkIcon}</span>` : ''}
-            </div>
-        `).join('')}
-    `;
-    
-    const { dropdown, safeCloseDropdown } = createDropdownBase(button, 'movies-dropdown', content);
-    wrapper.appendChild(dropdown);
-    
-    // Handle item selection
-    let selectedType = 'full-tracker';
-    
-    dropdown.addEventListener('click', (e) => {
-        const item = e.target.closest('.dropdown-item');
-        if (!item) return;
-        
-        e.preventDefault();
-        
-        if (item.dataset.value) {
-            selectedType = item.dataset.value;
-            // Update check icons
-            dropdown.querySelectorAll('.dropdown-item .check-icon').forEach(el => el.remove());
-            const checkIcon = document.createElement('span');
-            checkIcon.className = 'check-icon';
-            checkIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="float:right;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
-            item.appendChild(checkIcon);
-            
-            dropdown.querySelectorAll('.dropdown-item').forEach(el => 
-                el.classList.toggle('selected', el === item));
-        }
-    });
-    
-    // Add done button at the bottom
-    const doneButton = document.createElement('div');
-    doneButton.className = 'dropdown-done-button';
-    doneButton.textContent = 'Apply';
-    doneButton.style.cssText = 'text-align:center;padding:8px;margin-top:8px;font-weight:500;background:var(--color-success,#4CAF50);color:white;cursor:pointer;border-radius:0 0 4px 4px;';
-    dropdown.appendChild(doneButton);
-    
-    doneButton.addEventListener('click', () => {
-        const moviesString = `MOVIES: ${selectedType}\n`;
-        insertDropdownResult(textarea, moviesString);
-        safeCloseDropdown();
-        textarea.focus();
-        exitEditModeWithRender();
-    });
-    
-    // Close dropdown when clicking outside
-    const closeDropdown = (e) => {
-        if (!dropdown.contains(e.target) && e.target !== button && !button.contains(e.target)) {
-            safeCloseDropdown();
-        }
-    };
-    
-    wrapper.addEventListener('mousedown', closeDropdown);
+    createCentralizedDropdown(button, textarea, wrapper, 'movies');
+}
+
+function createFuturelogDropdown(button, textarea, wrapper) {
+    createCentralizedDropdown(button, textarea, wrapper, 'futurelog');
 }
 
 // Custom date dropdown
 function createCustomDateDropdown(button, textarea, wrapper) {
     const content = `
-        <div style="padding:10px 15px;font-weight:600;color:var(--color-text);font-size:1.0em;border-bottom:1px solid var(--color-border);background:var(--color-planner-header-bg, rgba(0,0,0,0.03));">Insert Date/Time</div>
-        <div class="dropdown-item" data-value="today" style="padding:8px 15px;cursor:pointer;">Today</div>
-        <div class="dropdown-item" data-value="tomorrow" style="padding:8px 15px;cursor:pointer;">Tomorrow</div>
-        <div class="dropdown-item" data-value="now" style="padding:8px 15px;cursor:pointer;">Current Date/Time</div>
-        <div class="dropdown-item" data-value="custom" style="padding:8px 15px;cursor:pointer;">Custom Date...</div>
+        <div class="dropdown-header">Insert Date/Time</div>
+        <div class="dropdown-item" data-value="today">Today</div>
+        <div class="dropdown-item" data-value="tomorrow">Tomorrow</div>
+        <div class="dropdown-item" data-value="now">Current Date/Time</div>
+        <div class="dropdown-item" data-value="custom">Custom Date...</div>
     `;
     
     const { dropdown, safeCloseDropdown } = createDropdownBase(button, 'date-dropdown', content);
-    wrapper.appendChild(dropdown);
+    document.body.appendChild(dropdown);
     
+    // Handle date selection (single click handler)
     dropdown.addEventListener('click', (e) => {
+        // Stop all event propagation
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        
         const item = e.target.closest('.dropdown-item');
         if (!item) return;
-        
-        e.preventDefault();
         
         const value = item.dataset.value;
         let dateString = '';
@@ -425,7 +314,6 @@ function createCustomDateDropdown(button, textarea, wrapper) {
         } else if (value === 'now') {
             dateString = dateFns.format(new Date(), 'yyyy-MM-dd HH:mm');
         } else if (value === 'custom') {
-            // Could add a custom date picker here
             dateString = 'YYYY-MM-DD';
         }
         
@@ -434,14 +322,28 @@ function createCustomDateDropdown(button, textarea, wrapper) {
         textarea.focus();
     });
     
+    // Prevent event bubbling on mouse events
+    dropdown.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+    });
+    dropdown.addEventListener('mouseup', (e) => {
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+    });
+    
     // Close dropdown when clicking outside
     const closeDropdown = (e) => {
         if (!dropdown.contains(e.target) && e.target !== button && !button.contains(e.target)) {
             safeCloseDropdown();
+            document.removeEventListener('mousedown', closeDropdown);
         }
     };
     
-    wrapper.addEventListener('mousedown', closeDropdown);
+    // Use setTimeout to avoid immediate closing when the dropdown is first opened
+    setTimeout(() => {
+        document.addEventListener('mousedown', closeDropdown);
+    }, 0);
 }
 
 // Utility functions
@@ -492,4 +394,6 @@ window.createFinanceDropdown = createFinanceDropdown;
 window.createMoodDropdown = createMoodDropdown;
 window.createBooksDropdown = createBooksDropdown;
 window.createMoviesDropdown = createMoviesDropdown;
+window.createFuturelogDropdown = createFuturelogDropdown;
 window.createCustomDateDropdown = createCustomDateDropdown;
+window.createCentralizedDropdown = createCentralizedDropdown;

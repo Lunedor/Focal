@@ -480,6 +480,38 @@ body.dark-mode .widget-error {
     margin-top: 0.5rem;
 }
 
+#daily-options {
+    display: none;
+    background: rgba(var(--color-link-rgb), 0.05);
+    border: 1px solid rgba(var(--color-link-rgb), 0.2);
+    border-radius: 6px;
+    padding: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+#daily-options p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--color-sidebar-text);
+    line-height: 1.4;
+}
+
+#daily-range-options {
+    display: none;
+    background: rgba(var(--color-link-rgb), 0.05);
+    border: 1px solid rgba(var(--color-link-rgb), 0.2);
+    border-radius: 6px;
+    padding: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+#daily-range-options p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--color-sidebar-text);
+    line-height: 1.4;
+}
+
 .date-range-container {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -550,4 +582,8 @@ body.dark-mode .widget-error {
 
 .futurelog-form-group select {
     padding: 0.5rem 0.15rem;
+}
+
+.futurelog-form-group input {
+    width: auto;
 }
