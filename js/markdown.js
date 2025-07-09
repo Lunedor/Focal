@@ -215,17 +215,11 @@ const futurelogExtension = {
     level: 'block',
     start(src) { return src.match(/^FUTURELOG:/)?.index; },
     tokenizer(src, tokens) {
-        console.log('[FUTURELOG Extension] Tokenizing source:', src.substring(0, 200) + '...');
-        
         const lines = src.split('\n');
         const firstLine = lines[0];
         const futurelogMatch = /^FUTURELOG:\s*(.*)/.exec(firstLine);
         
         if (!futurelogMatch) return false;
-        
-        console.log('[FUTURELOG Extension] Found FUTURELOG line:', firstLine);
-        console.log('[FUTURELOG Extension] Total lines to process:', lines.length);
-        
         let currentLineIndex = 1;
         const items = [];
         let hasFoundContent = false;
@@ -233,17 +227,13 @@ const futurelogExtension = {
         // Collect all lines until we hit a meaningful delimiter
         while (currentLineIndex < lines.length) {
             const line = lines[currentLineIndex].trim();
-            console.log(`[FUTURELOG Extension] Processing line ${currentLineIndex}: "${line}"`);
-            
             // Skip initial blank lines, but stop at blank line after we've found content
             if (!line) {
                 if (hasFoundContent) {
-                    console.log(`[FUTURELOG Extension] Stopping at blank line ${currentLineIndex} after finding content`);
-                    break;
+                  break;
                 } else {
-                    console.log(`[FUTURELOG Extension] Skipping initial blank line ${currentLineIndex}`);
-                    currentLineIndex++;
-                    continue;
+                  currentLineIndex++;
+                  continue;
                 }
             }
             
@@ -251,7 +241,6 @@ const futurelogExtension = {
             if (line.match(/^#{1,6}\s/) || 
                 line.match(/^---+$/) ||
                 line.match(/^(TASKS|GOAL|FINANCE|MOOD|BOOKS|MOVIES|FUTURELOG):/)) {
-                console.log(`[FUTURELOG Extension] Stopping at line ${currentLineIndex}: "${line}"`);
                 break;
             }
             
@@ -260,9 +249,6 @@ const futurelogExtension = {
             // Look for lines with SCHEDULED dates
             const scheduledMatch = line.match(/\(SCHEDULED:\s*([^)]+)\)/i);
             const repeatMatch = line.match(/\(REPEAT:\s*([^)]+)\)/i);
-            
-            console.log(`[FUTURELOG Extension] SCHEDULED match for "${line}":`, scheduledMatch);
-            console.log(`[FUTURELOG Extension] REPEAT match for "${line}":`, repeatMatch);
             
             if (scheduledMatch || repeatMatch) {
                 // Extract the text without the SCHEDULED/REPEAT part
@@ -274,7 +260,6 @@ const futurelogExtension = {
                 const cleanText = itemText.replace(/^[-*+]\s*/, '').replace(/^\[\s*[xX]?\s*\]\s*/, '');
                 
                 if (scheduledMatch) {
-                    console.log('[FUTURELOG Extension] Adding scheduled item:', { text: cleanText, dateStr: scheduledMatch[1].trim(), hasCheckbox, isChecked });
                     items.push({
                         text: cleanText,
                         dateStr: scheduledMatch[1].trim(),
@@ -286,7 +271,6 @@ const futurelogExtension = {
                 }
                 
                 if (repeatMatch) {
-                    console.log('[FUTURELOG Extension] Adding repeat item:', { text: cleanText, repeatRule: repeatMatch[1].trim(), hasCheckbox, isChecked });
                     items.push({
                         text: cleanText,
                         repeatRule: repeatMatch[1].trim(),
@@ -301,8 +285,6 @@ const futurelogExtension = {
             currentLineIndex++;
         }
         
-        console.log('[FUTURELOG Extension] Final items found:', items);
-        
         const consumedLines = currentLineIndex;
         const raw = lines.slice(0, consumedLines).join('\n');
         
@@ -314,8 +296,6 @@ const futurelogExtension = {
         };
     },
     renderer(token) {
-        console.log('[FUTURELOG Extension] Rendering token:', token);
-        
         // Clean the items to only include necessary data for the widget
         const cleanItems = token.items.map(item => {
             if (item.type === 'scheduled') {

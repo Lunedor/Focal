@@ -11,7 +11,26 @@ const futurelogWidget = (() => {
         monthsToShow: 6,
         startDate: new Date(),
         onCommandChange: null,
+        showAllItems: false,
     };
+
+    // --- STORAGE KEYS ---
+    const STORAGE_KEYS = {
+        SHOW_ALL_ITEMS: 'futurelog-show-all-items'
+    };
+
+    // --- INITIALIZATION ---
+    function initializeState() {
+        // Restore user's "Show All" preference from localStorage
+        const savedShowAll = localStorage.getItem(STORAGE_KEYS.SHOW_ALL_ITEMS);
+        if (savedShowAll !== null) {
+            state.showAllItems = savedShowAll === 'true';
+        }
+    }
+
+    function saveShowAllPreference() {
+        localStorage.setItem(STORAGE_KEYS.SHOW_ALL_ITEMS, state.showAllItems.toString());
+    }
 
     // --- DOM ELEMENTS ---
     let containerEl = null;
@@ -113,20 +132,17 @@ const futurelogWidget = (() => {
             // Generate ID consistent with generateItemId
             fallbackId = `scheduled-${dateFns.format(new Date(linkDate), 'yyyy-MM-dd')} ${cleanText}`;
         }
-        console.log(`[FUTURELOG] Generated fallback ID: "${fallbackId}" for item:`, item);
         return fallbackId;
     }
 
     function parseItems(items) {
-        console.log('[FUTURELOG] Parsing items:', items);
         const result = [];
         
         items.forEach(item => {
             if (item.type === 'scheduled') {
                 // Handle scheduled items (single date)
                 const date = window.parseDateString(item.dateStr);
-                console.log('[FUTURELOG] Parsed scheduled date for', item.dateStr, ':', date);
-                
+
                 if (date) {
                     // Format the text with checkbox if it's a checkbox item
                     let displayText = item.text;
@@ -150,8 +166,7 @@ const futurelogWidget = (() => {
             } else if (item.type === 'repeat') {
                 // Handle repeat items (recurring events)
                 const expandedDates = expandRepeatItem(item);
-                console.log('[FUTURELOG] Expanded repeat item:', item.text, '-> dates:', expandedDates.length);
-                
+
                 // Store the first occurrence for linking
                 const firstOccurrenceDate = expandedDates.firstOccurrence;
                 
@@ -180,8 +195,7 @@ const futurelogWidget = (() => {
             } else {
                 // Legacy format fallback
                 const date = window.parseDateString(item.dateStr);
-                console.log('[FUTURELOG] Parsed legacy date for', item.dateStr, ':', date);
-                
+
                 if (date) {
                     result.push({
                         text: item.text,
@@ -392,20 +406,84 @@ const futurelogWidget = (() => {
             months.push(monthDate);
         }
 
+        // Get items to display - either just futurelog items or all items
+        let itemsToDisplay = [...state.items];
+        
+        if (state.showAllItems) {
+            // Add items from other journal pages
+            if (window.getAllScheduledItems) {
+                const allScheduled = window.getAllScheduledItems();
+                const additionalItems = [];
+                
+                allScheduled.forEach((items, dateStr) => {
+                    const itemDate = dateFns.parseISO(dateStr);
+                    if (dateFns.isAfter(itemDate, today) || dateFns.isSameDay(itemDate, today)) {
+                        items.forEach(item => {
+                            // Format the text properly for display
+                            let displayText = item.text;
+                            
+                            // Handle checkbox items from journal
+                            if (item.isCheckbox) {
+                                // Remove the markdown checkbox syntax from the text
+                                displayText = displayText.replace(/^[-*]\s*\[[x ]\]\s*/, '');
+                                // Add the proper checkbox symbol
+                                const checkboxSymbol = item.checkboxState ? '☑' : '☐';
+                                displayText = `${checkboxSymbol} ${displayText}`;
+                            }
+                            
+                            additionalItems.push({
+                                text: displayText,
+                                date: itemDate,
+                                dateStr: dateStr,
+                                type: item.recurring ? 'repeat' : 'scheduled',
+                                source: 'journal',
+                                displayName: item.displayName,
+                                hasCheckbox: item.isCheckbox || false,
+                                isChecked: item.checkboxState || false,
+                                fullLine: item.text,
+                                valid: true,
+                                id: `journal-${dateStr}-${item.text}`
+                            });
+                        });
+                    }
+                });
+                
+                // Remove duplicates between futurelog and journal items
+                const seenItems = new Set();
+                
+                // First, mark futurelog items as seen
+                state.items.forEach(item => {
+                    if (item.date) {
+                        const cleanText = item.text.replace(/^[🔁☐☑\s\[\]x-]+/, '').trim();
+                        const itemKey = `${dateFns.format(item.date, 'yyyy-MM-dd')}-${cleanText}`;
+                        seenItems.add(itemKey);
+                    }
+                });
+                
+                // Then, add journal items that aren't duplicates
+                additionalItems.forEach(item => {
+                    const cleanText = item.text.replace(/^[🔁☐☑\s\[\]x-]+/, '').trim();
+                    const itemKey = `${dateFns.format(item.date, 'yyyy-MM-dd')}-${cleanText}`;
+                    
+                    if (!seenItems.has(itemKey)) {
+                        seenItems.add(itemKey);
+                        itemsToDisplay.push(item);
+                    }
+                });
+            }
+        }
+
         // Group items by month
         const itemsByMonth = {};
-        console.log('[FUTURELOG] Grouping', state.items.length, 'items by month');
-        state.items.forEach(item => {
+        itemsToDisplay.forEach(item => {
             if (!item.date) return;
             
             const monthKey = dateFns.format(item.date, 'yyyy-MM');
-            console.log('[FUTURELOG] Item', item.text, 'goes to month', monthKey);
             if (!itemsByMonth[monthKey]) {
                 itemsByMonth[monthKey] = [];
             }
             itemsByMonth[monthKey].push(item);
         });
-        console.log('[FUTURELOG] Items by month:', itemsByMonth);
 
         // Generate calendar HTML
         const calendarsHtml = months.map(monthDate => {
@@ -415,6 +493,10 @@ const futurelogWidget = (() => {
             return renderMiniCalendar(monthDate, monthItems);
         }).join('');
 
+        // Update the button text based on current state
+        const showAllButtonText = state.showAllItems ? 'Hide All' : 'Show All';
+        const showAllButtonClass = state.showAllItems ? 'showing-all' : '';
+
         containerEl.innerHTML = `
             <div class="futurelog-widget" onclick="event.stopPropagation()">
                 <div class="futurelog-header">
@@ -423,6 +505,10 @@ const futurelogWidget = (() => {
                         <button class="finance-add-button">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                             New Entry
+                        </button>
+                        <button class="futurelog-toggle-all-btn ${showAllButtonClass}" title="Show all upcoming items from across your journal">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                            ${showAllButtonText}
                         </button>
                     </div>
                 </div>
@@ -448,16 +534,13 @@ const futurelogWidget = (() => {
 
         // Group items by day
         const itemsByDay = {};
-        console.log('[FUTURELOG] Grouping', items.length, 'items for month', dateFns.format(monthDate, 'yyyy-MM'));
         items.forEach(item => {
             const dayKey = dateFns.format(item.date, 'yyyy-MM-dd');
-            console.log('[FUTURELOG] Item', item.text, 'goes to day', dayKey);
             if (!itemsByDay[dayKey]) {
                 itemsByDay[dayKey] = [];
             }
             itemsByDay[dayKey].push(item);
         });
-        console.log('[FUTURELOG] Items by day for this month:', itemsByDay);
 
         // Sort items chronologically for the month list and group repeat items
         const itemsForList = [];
@@ -467,7 +550,8 @@ const futurelogWidget = (() => {
         const repeatGroups = new Map();
         
         items.forEach(item => {
-            if (item.type === 'repeat') {
+            if (item.type === 'repeat' && item.source !== 'journal') {
+                // Only group repeat items from futurelog, not from journal
                 const repeatKey = `${item.text}-${item.repeatRule}`;
                 if (!repeatGroups.has(repeatKey)) {
                     repeatGroups.set(repeatKey, {
@@ -475,13 +559,14 @@ const futurelogWidget = (() => {
                         type: 'repeat',
                         firstOccurrenceDate: item.firstOccurrenceDate,
                         repeatRule: item.repeatRule,
-                        count: 1
+                        count: 1,
+                        source: item.source
                     });
                 } else {
                     repeatGroups.get(repeatKey).count++;
                 }
             } else {
-                // Add scheduled items directly
+                // Add scheduled items and journal items directly
                 itemsForList.push(item);
             }
         });
@@ -495,7 +580,8 @@ const futurelogWidget = (() => {
                     type: 'repeat',
                     repeatRule: repeatGroup.repeatRule,
                     count: repeatGroup.count,
-                    linkToFirstOccurrence: true
+                    linkToFirstOccurrence: true,
+                    source: repeatGroup.source
                 });
             }
         });
@@ -573,6 +659,7 @@ const futurelogWidget = (() => {
                         if (isToday) itemClass += ' today';
                         if (isPast) itemClass += ' past';
                         if (item.type === 'repeat') itemClass += ' repeat';
+                        if (item.source === 'journal') itemClass += ' journal-item';
                         
                         // For repeat items, use the first occurrence date for linking
                         const linkDate = item.linkToFirstOccurrence 
@@ -580,9 +667,19 @@ const futurelogWidget = (() => {
                             : dateFns.format(item.date, 'yyyy-MM-dd');
                         
                         // Show count for repeat items in month list
-                        const displayText = item.count && item.count > 1 
+                        let displayText = item.count && item.count > 1 
                             ? `${item.text} (${item.count}x this month)`
                             : item.text;
+                        
+                        // Add source label when in "Show All" mode
+                        if (state.showAllItems && item.source === 'journal') {
+                            displayText += ` (from [[${item.displayName}]])`;
+                        }
+                        
+                        // Only show remove button for futurelog items, not journal items
+                        const removeButton = item.source !== 'journal' 
+                            ? `<button class="remove-item-btn" data-item-id="${item.id || generateFallbackId(item, linkDate)}" title="Remove this item">×</button>` 
+                            : '';
                         
                         return `
                             <div class="${itemClass}" data-date="${linkDate}" data-planner-date="${linkDate}" data-item-id="${item.id || generateFallbackId(item, linkDate)}">
@@ -590,7 +687,7 @@ const futurelogWidget = (() => {
                                     <span class="item-date">${formattedDate}</span>
                                     <span class="item-text">${displayText}</span>
                                 </div>
-                                <button class="remove-item-btn" data-item-id="${item.id || generateFallbackId(item, linkDate)}" title="Remove this item">×</button>
+                                ${removeButton}
                             </div>
                         `;
                     }).join('')}
@@ -776,6 +873,35 @@ const futurelogWidget = (() => {
                 showFuturelogEntryModal();
             });
         });
+
+        // Add click handler for the new "Show All" toggle
+        const toggleBtn = containerEl.querySelector('.futurelog-toggle-all-btn');
+
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                // Toggle the state
+                const isShowingAll = toggleBtn.classList.contains('showing-all');
+                
+                if (!isShowingAll) {
+                    // Enable "Show All" mode - re-render with all items
+                    state.showAllItems = true;
+                    toggleBtn.classList.add('showing-all');
+                    toggleBtn.innerHTML = toggleBtn.innerHTML.replace('Show All', 'Hide All');
+                    saveShowAllPreference(); // Save preference
+                    renderFutureLog(); // Re-render with all items
+                } else {
+                    // Disable "Show All" mode - re-render with only futurelog items
+                    state.showAllItems = false;
+                    toggleBtn.classList.remove('showing-all');
+                    toggleBtn.innerHTML = toggleBtn.innerHTML.replace('Hide All', 'Show All');
+                    saveShowAllPreference(); // Save preference
+                    renderFutureLog(); // Re-render with only futurelog items
+                }
+            });
+        }
     }
 
     // --- MODAL FUNCTIONS ---
@@ -1291,8 +1417,6 @@ const futurelogWidget = (() => {
     }
     
     function addEntryToCommand(entry, isCheckbox = false) {
-        console.log(`[FUTURELOG] Adding entry: ${entry}, checkbox: ${isCheckbox}`);
-        
         if (!state.onCommandChange) {
             console.error('[FUTURELOG] Cannot add entry: onCommandChange callback is not set');
             return;
@@ -1353,8 +1477,6 @@ const futurelogWidget = (() => {
             return;
         }
         
-        console.log(`[FUTURELOG] Converted entry to markdown format: ${markdownEntry}`);
-        
         // Get the current page content from localStorage
         const pageWrapper = DOM.pageContentWrapper || document.querySelector('[data-key]');
         if (!pageWrapper || !pageWrapper.dataset.key) {
@@ -1370,16 +1492,11 @@ const futurelogWidget = (() => {
             return;
         }
         
-        console.log(`[FUTURELOG] Current page content: ${currentContent}`);
-        
         // Find the futurelog widget command in the content and add the new entry
         const lines = currentContent.split('\n');
         let inFuturelogCommand = false;
         let futurelogStartIndex = -1;
         let futurelogEndIndex = -1;
-        
-        // Debug: Log all lines to see the structure
-        console.log('[FUTURELOG] Content lines:', lines);
         
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
@@ -1388,15 +1505,11 @@ const futurelogWidget = (() => {
             if (line.startsWith('```futurelog') || line.startsWith('FUTURELOG:')) {
                 inFuturelogCommand = true;
                 futurelogStartIndex = i;
-                console.log(`[FUTURELOG] Found futurelog start at line ${i}: ${line}`);
             } else if (inFuturelogCommand && line === '```') {
                 futurelogEndIndex = i;
-                console.log(`[FUTURELOG] Found futurelog end at line ${i}: ${line}`);
                 break;
             }
         }
-        
-        console.log(`[FUTURELOG] Start index: ${futurelogStartIndex}, End index: ${futurelogEndIndex}`);
         
         if (futurelogStartIndex !== -1) {
             // Get the existing futurelog content
@@ -1432,9 +1545,6 @@ const futurelogWidget = (() => {
             
             // Save the updated content to localStorage
             setStorage(pageKey, updatedContent);
-            console.log(`[FUTURELOG] Updated page data in localStorage for key: ${pageKey}`);
-            console.log(`[FUTURELOG] New content: ${updatedContent}`);
-            
             // Update the state command for consistency
             const updatedCommand = existingFuturelogContent.join('\n');
             state.command = updatedCommand;
@@ -1443,7 +1553,6 @@ const futurelogWidget = (() => {
             // Update the command through the callback
             try {
                 state.onCommandChange(updatedCommand);
-                console.log(`[FUTURELOG] Successfully called onCommandChange with: "${updatedCommand}"`);
             } catch (error) {
                 console.error('[FUTURELOG] Error calling onCommandChange:', error);
             }
@@ -1461,8 +1570,6 @@ const futurelogWidget = (() => {
     }
     
     function removeItemFromCommand(itemId) {
-        console.log(`[FUTURELOG] Removing item: ${itemId}`);
-        
         // Show confirmation modal first
         showRemoveConfirmation(itemId);
     }
@@ -1503,8 +1610,6 @@ const futurelogWidget = (() => {
     }
     
     function performRemoveItem(itemId) {
-        console.log(`[FUTURELOG] Removing item: ${itemId}`);
-        
         // Get the current page content from localStorage
         const pageWrapper = DOM.pageContentWrapper || document.querySelector('[data-key]');
         if (!pageWrapper || !pageWrapper.dataset.key) {
@@ -1519,17 +1624,11 @@ const futurelogWidget = (() => {
             console.error('[FUTURELOG] No content found for page key:', pageKey);
             return;
         }
-        
-        console.log(`[FUTURELOG] Current page content: ${currentContent}`);
-        
         // Find the futurelog widget command in the content and remove the item
         const lines = currentContent.split('\n');
         let inFuturelogCommand = false;
         let futurelogStartIndex = -1;
         let futurelogEndIndex = -1;
-        
-        // Debug: Log all lines to see the structure
-        console.log('[FUTURELOG] Content lines:', lines);
         
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
@@ -1538,15 +1637,11 @@ const futurelogWidget = (() => {
             if (line.startsWith('```futurelog') || line.startsWith('FUTURELOG:')) {
                 inFuturelogCommand = true;
                 futurelogStartIndex = i;
-                console.log(`[FUTURELOG] Found futurelog start at line ${i}: ${line}`);
             } else if (inFuturelogCommand && line === '```') {
                 futurelogEndIndex = i;
-                console.log(`[FUTURELOG] Found futurelog end at line ${i}: ${line}`);
                 break;
             }
         }
-        
-        console.log(`[FUTURELOG] Start index: ${futurelogStartIndex}, End index: ${futurelogEndIndex}`);
         
         if (futurelogStartIndex !== -1) {
             // Get the existing futurelog content
@@ -1566,8 +1661,6 @@ const futurelogWidget = (() => {
                 
                 // Generate ID for this line to check if it matches
                 const lineId = generateItemId(line.trim());
-                console.log(`[FUTURELOG] Comparing line ID "${lineId}" with target ID "${itemId}"`);
-                console.log(`[FUTURELOG] Line: "${line.trim()}"`);
                 return lineId !== itemId;
             });
             
@@ -1590,8 +1683,6 @@ const futurelogWidget = (() => {
             
             // Save the updated content to localStorage
             setStorage(pageKey, updatedContent);
-            console.log(`[FUTURELOG] Updated page data in localStorage for key: ${pageKey}`);
-            console.log(`[FUTURELOG] New content: ${updatedContent}`);
             
             // Update the state command for consistency
             const updatedCommand = filteredFuturelogContent.join('\n');
@@ -1611,8 +1702,6 @@ const futurelogWidget = (() => {
     }
 
     function navigateToMonthView(monthDateStr) {
-        console.log('[FUTURELOG] Navigating to month view:', monthDateStr);
-        
         // Parse the date
         const date = new Date(monthDateStr);
         
@@ -1631,7 +1720,8 @@ const futurelogWidget = (() => {
     function init(initOptions) {
         const { placeholder, options: optionsStr, items, command, onCommandChange } = initOptions;
         
-        console.log('[FUTURELOG] Init called with full options:', initOptions);
+        // Initialize state and restore user preferences
+        initializeState();
         
         containerEl = placeholder;
         state.onCommandChange = onCommandChange;
@@ -1640,7 +1730,6 @@ const futurelogWidget = (() => {
         let actualCommand = command;
         if (!actualCommand && placeholder.dataset.command) {
             actualCommand = placeholder.dataset.command;
-            console.log('[FUTURELOG] Using command from placeholder dataset:', actualCommand);
         }
         
         // If still no command, construct it from the widget command and items
@@ -1674,42 +1763,32 @@ const futurelogWidget = (() => {
             } else {
                 actualCommand = widgetCommand;
             }
-            console.log('[FUTURELOG] Constructed command:', actualCommand);
         }
         
         state.command = actualCommand;
         
         // Store the command in the placeholder dataset for future reference
         placeholder.dataset.command = actualCommand;
-        
-        console.log('[FUTURELOG] Final command:', actualCommand);
-        console.log('[FUTURELOG] onCommandChange type:', typeof onCommandChange);
 
         // Parse options
         const parsedOptions = parseOptions(optionsStr);
         state.monthsToShow = parsedOptions.monthsToShow;
         state.options = optionsStr;
 
-        console.log('[FUTURELOG] Parsed options:', parsedOptions);
-
         // Parse items (they come as JSON from the markdown extension)
         let parsedItems = [];
         try {
             if (typeof items === 'string') {
-                console.log('[FUTURELOG] Items string before parsing:', items);
                 parsedItems = JSON.parse(items.replace(/&quot;/g, '"'));
             } else {
                 parsedItems = items || [];
             }
-            console.log('[FUTURELOG] Parsed items raw:', parsedItems);
         } catch (e) {
             console.error('Error parsing futurelog items:', e);
             parsedItems = [];
         }
 
         state.items = parseItems(parsedItems);
-        console.log('[FUTURELOG] Final parsed items with dates:', state.items);
-
         // Render the widget
         renderFutureLog();
     }
