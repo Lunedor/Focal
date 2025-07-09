@@ -397,6 +397,7 @@ Welcome to your new personal dashboard. Focal is a minimalist, local-first plann
 - **Task Management**: Create and track tasks with checkboxes
 - **Goal Tracking**: Set and monitor goals with progress bars
 - **Mood Tracking**: Log and visualize your daily moods ([[Daily Journal]])
+- **Habit Tracking**: Build consistent daily habits and track progress ([[My Daily Habits]])
 - **Finance Tracking**: Monitor income, expenses, and spending patterns ([[Finances]])
 - **Book Tracking**: Manage your reading library and track progress ([[Reading List]])
 - **Movie Tracking**: Build your watchlist and track viewing history ([[Movies]])
@@ -407,6 +408,7 @@ TASKS: Getting Started
 - [ ] Check out the [[Feature Showcase]] page
 - [ ] Create your first custom page
 - [ ] Try the mood tracking in the [[Daily Journal]]
+- [ ] Set up habit tracking in [[My Daily Habits]]
 - [ ] Set up your finances in the [[Finances]] page
 - [ ] Add books to your [[Reading List]]
 - [ ] Create a movie watchlist in [[Movies]]
@@ -504,6 +506,13 @@ Build your watchlist and track viewing history on the [[Movies]] page.
 Use the MOVIES: syntax with different widget types (watchlist, watched, favorites, stats, full-tracker).
 
 Search and add movies using The Movie Database (TMDB) API integration.
+
+---
+
+## Habit Tracking
+Build consistent daily habits and track your progress with visual feedback on the [[My Daily Habits]] page.
+
+Use the HABITS: syntax with different widget types and time periods to visualize your progress.
 
 ---
 
@@ -896,6 +905,199 @@ Use the checkbox interface in the watchlist to mark movies as watched - they'll 
     };
     setStorage('movies-data', JSON.stringify(sampleMoviesData));
 
+    // 10. Create a "Habits" page to showcase the habit tracker
+    const habitsContent = `
+# My Daily Habits 🎯
+
+Build consistent daily habits and track your progress with Focal's comprehensive habit tracking system. Research shows that tracking habits increases success rates by up to 42%.
+
+## How to Use
+1. Define your habits using the \`HABITS: define\` block
+2. Track daily progress with \`HABITS: today\` 
+3. Visualize your progress with different widget types
+4. Set targets for quantifiable habits
+
+---
+
+## Habit Definitions
+
+HABITS: define
+
+- Meditate
+- Exercise  
+- Read (TARGET: 30 pages)
+- Drink Water (TARGET: 8 glasses)
+- Journal Writing
+- Practice Guitar (TARGET: 30 minutes)
+- Walk Steps (TARGET: 10000 steps)
+
+---
+
+## Today's Progress
+
+HABITS: today
+
+---
+
+## This Month's Overview
+
+HABITS: grid, this-month
+
+---
+
+## Habit Statistics
+
+HABITS: stats
+
+---
+
+## Individual Habit Charts
+
+### Meditation Progress
+HABITS: chart, Meditate, last-30-days
+
+### Reading Progress  
+HABITS: chart, Read, last-30-days
+
+---
+
+## Habit Widget Options
+
+### Widget Types
+- \`today\`: Interactive daily tracker
+- \`grid\`: Calendar-style progress grid
+- \`stats\`: Completion rates and streaks
+- \`chart\`: Visual progress chart for specific habits
+
+### Time Periods
+- \`this-week\`: Current week view
+- \`this-month\`: Current month view
+- \`last-three-months\`: Past three months
+- \`last-six-months\`: Past six months
+- \`this-year\`: Current year view
+- \`last-7-days\`: Past week
+- \`last-30-days\`: Past month
+- \`last-90-days\`: Past quarter
+- \`last-180-days\`: Past 180 days
+- \`last-365-days\`: Past 365 days
+
+### Habit Types
+- **Binary Habits**: Simple checkbox (e.g., "Meditate")
+- **Quantified Habits**: Target-based with progress bars (e.g., "Read (TARGET: 30 pages)")
+
+## Tips for Success
+
+- Start with 2-3 habits maximum
+- Make habits specific and measurable
+- Track consistently for at least 21 days
+- Use the [[Daily Journal]] to reflect on your habit progress
+- Celebrate small wins and streaks
+
+## Research-Based Benefits
+
+- **Consistency**: Visual tracking increases habit adherence
+- **Motivation**: Streaks and progress bars provide positive reinforcement
+- **Awareness**: Daily tracking increases mindfulness of behaviors
+- **Accountability**: Written goals and progress create commitment
+
+*Remember: Small, consistent actions compound into remarkable results over time.*
+    `.trim();
+    setStorage('page-My Daily Habits', habitsContent);
+
+    // 11. Add sample habit data to demonstrate the habit tracker
+    const habitDefinitions = [
+      {
+        name: 'Meditate',
+        type: 'binary',
+        id: 'meditate'
+      },
+      {
+        name: 'Exercise',
+        type: 'binary',
+        id: 'exercise'
+      },
+      {
+        name: 'Read',
+        type: 'quantified',
+        target: '30 pages',
+        id: 'read'
+      },
+      {
+        name: 'Drink Water',
+        type: 'quantified',
+        target: '8 glasses',
+        id: 'drink-water'
+      },
+      {
+        name: 'Journal Writing',
+        type: 'binary',
+        id: 'journal-writing'
+      },
+      {
+        name: 'Practice Guitar',
+        type: 'quantified',
+        target: '30 minutes',
+        id: 'practice-guitar'
+      },
+      {
+        name: 'Walk Steps',
+        type: 'quantified',
+        target: '10000 steps',
+        id: 'walk-steps'
+      }
+    ];
+    setStorage('habit-definitions', JSON.stringify(habitDefinitions));
+
+    // Helper function to format dates
+    function formatDate(date) {
+      return date.toISOString().split('T')[0];
+    }
+
+    // Sample habit data for the last few days
+    const sampleHabitData = {
+      [formatDate(today)]: {
+        'meditate': true,
+        'exercise': false,
+        'read': 25,
+        'drink-water': 6,
+        'journal-writing': true,
+        'practice-guitar': 20,
+        'walk-steps': 8500
+      },
+      [formatDate(yesterday)]: {
+        'meditate': true,
+        'exercise': true,
+        'read': 35,
+        'drink-water': 8,
+        'journal-writing': false,
+        'practice-guitar': 30,
+        'walk-steps': 12000
+      },
+      [formatDate(twoDaysAgo)]: {
+        'meditate': false,
+        'exercise': true,
+        'read': 20,
+        'drink-water': 5,
+        'journal-writing': true,
+        'practice-guitar': 15,
+        'walk-steps': 7500
+      },
+      [formatDate(threeDaysAgo)]: {
+        'meditate': true,
+        'exercise': false,
+        'read': 40,
+        'drink-water': 7,
+        'journal-writing': true,
+        'practice-guitar': 25,
+        'walk-steps': 9000
+      }
+    };
+
+    // Save sample habit data
+    Object.entries(sampleHabitData).forEach(([date, data]) => {
+      setStorage(`habit-data-${date}`, JSON.stringify(data));
+    });
+
     // 13. Set the visited flag
     // 13. Set the visited flag
     localStorage.setItem('focal-journal-visited', 'true');
@@ -907,11 +1109,11 @@ Use the checkbox interface in the watchlist to mark movies as watched - they'll 
   }
   // --- Ensure push token is registered on app load if notifications are granted and user is signed in ---
   if (window.firebase && window.subscribeUserToPush && window.firebase.auth) {
-    console.log('[init] Checking auth state and notification permission...');
+    
     window.firebase.auth().onAuthStateChanged(function(user) {
-      console.log('[init] Auth state changed:', user);
+      
       if (user && Notification.permission === 'granted') {
-        console.log('[init] User is signed in and notification permission is granted.');
+        
         window.subscribeUserToPush();
       }
     });

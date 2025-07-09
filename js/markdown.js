@@ -240,7 +240,7 @@ const futurelogExtension = {
             // Stop at new heading, horizontal rule, or another widget
             if (line.match(/^#{1,6}\s/) || 
                 line.match(/^---+$/) ||
-                line.match(/^(TASKS|GOAL|FINANCE|MOOD|BOOKS|MOVIES|FUTURELOG):/)) {
+                line.match(/^(TASKS|GOAL|FINANCE|MOOD|BOOKS|MOVIES|HABITS|FUTURELOG):/)) {
                 break;
             }
             
@@ -328,6 +328,45 @@ const futurelogExtension = {
         const optionsStr = JSON.stringify(token.options).replace(/"/g, '&quot;');
         const itemsStr = JSON.stringify(cleanItems).replace(/"/g, '&quot;');
         return `<div class="widget-placeholder futurelog-placeholder" data-widget-type="futurelog" data-options="${optionsStr}" data-items="${itemsStr}"></div>`;
+    }
+};
+
+const habitsExtension = {
+    name: 'habits',
+    level: 'block',
+    start(src) { 
+        const match = src.match(/^HABITS:/i);
+        return match?.index; 
+    },
+    tokenizer(src, tokens) {
+        // For HABITS: define, we need to capture the definition lines that follow
+        const rule = /^HABITS:\s*(define[^\n]*)\n?((?:[\s]*-[^\n]*\n?)*)/i;
+        const match = rule.exec(src);
+        if (match) {
+            return {
+                type: 'habits',
+                raw: match[0],
+                config: match[1].trim(),
+                definitions: match[2].trim()
+            };
+        }
+        
+        // For other HABITS commands (today, stats, grid, chart), just match the single line
+        const simpleRule = /^HABITS:\s*(.*)(?:\n|$)/i;
+        const simpleMatch = simpleRule.exec(src);
+        if (simpleMatch) {
+            return {
+                type: 'habits',
+                raw: simpleMatch[0],
+                config: simpleMatch[1].trim(),
+                definitions: ''
+            };
+        }
+        
+        return false;
+    },
+    renderer(token) {
+        return `<div class="widget-placeholder habits-placeholder" data-widget-type="habits" data-config='${token.config}'></div>`;
     }
 };
 
@@ -593,7 +632,7 @@ renderer.listitem = (text, task, checked) => {
 };
 
 marked.use({
-    extensions: [wikiLinkExtension, tableCheckboxExtension, taskSummaryExtension, goalExtension, moodTrackerExtension, financeExtension, booksExtension, moviesExtension, futurelogExtension],
+    extensions: [wikiLinkExtension, tableCheckboxExtension, taskSummaryExtension, goalExtension, moodTrackerExtension, financeExtension, booksExtension, moviesExtension, futurelogExtension, habitsExtension],
     gfm: true,
     breaks: true,
     renderer: renderer
@@ -774,13 +813,23 @@ const parseMarkdown = (text, options = {}) => {
       return tomorrow;
     }
     
-    // Handle annual repeats (birthdays, anniversaries)
+    // Handle annual repeats (birthdays, anniversaries) and full dates
     let dateStr = repeatRule.trim();
-    let parsedDate = parseDate(dateStr);
     
-    // Also handle DD-MM format specifically
+    // First try using the centralized date parsing function for full dates like "2025-06-15"
+    let parsedDate = null;
+    if (window.parseDateString) {
+      parsedDate = window.parseDateString(dateStr);
+    }
+    
+    // If that didn't work, try the local parseDate function
     if (!parsedDate) {
-      const ddmmMatch = dateStr.match(/^(\d{1,2})-(\d{1,2})$/);
+      parsedDate = parseDate(dateStr);
+    }
+    
+    // Also handle DD.MM format specifically (for annual events)
+    if (!parsedDate) {
+      const ddmmMatch = dateStr.match(/^(\d{1,2})[./-](\d{1,2})$/);
       if (ddmmMatch) {
         const day = parseInt(ddmmMatch[1]);
         const month = parseInt(ddmmMatch[2]) - 1; // JavaScript months are 0-based
@@ -789,18 +838,24 @@ const parseMarkdown = (text, options = {}) => {
     }
     
     if (parsedDate) {
-      // Calculate next occurrence of this date
-      const thisYear = today.getFullYear();
-      const nextYear = thisYear + 1;
-      
-      // Try this year first
-      let thisYearDate = new Date(thisYear, parsedDate.getMonth(), parsedDate.getDate());
-      if (thisYearDate > today) {
-        return thisYearDate;
+      // For full dates (with year), always return that date so it's clickable
+      if (dateStr.match(/\d{4}/)) {
+        // This is a full date with year - always return it (even if past) so it's clickable
+        return parsedDate;
+      } else {
+        // This is an annual repeat (DD.MM format) - calculate next occurrence
+        const thisYear = today.getFullYear();
+        const nextYear = thisYear + 1;
+        
+        // Try this year first
+        let thisYearDate = new Date(thisYear, parsedDate.getMonth(), parsedDate.getDate());
+        if (thisYearDate > today) {
+          return thisYearDate;
+        }
+        
+        // Otherwise next year
+        return new Date(nextYear, parsedDate.getMonth(), parsedDate.getDate());
       }
-      
-      // Otherwise next year
-      return new Date(nextYear, parsedDate.getMonth(), parsedDate.getDate());
     }
     
     return null;
@@ -810,8 +865,17 @@ const parseMarkdown = (text, options = {}) => {
   function parseDate(dateStr) {
     if (!dateStr) return null;
     
+    // Try ISO format first (YYYY-MM-DD)
+    let match = dateStr.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (match) {
+      let year = parseInt(match[1]);
+      let month = parseInt(match[2]) - 1; // JavaScript months are 0-based
+      let day = parseInt(match[3]);
+      return new Date(year, month, day);
+    }
+    
     // Try DD.MM.YYYY or DD.MM.YY
-    let match = dateStr.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2,4})$/);
+    match = dateStr.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2,4})$/);
     if (match) {
       let day = parseInt(match[1]);
       let month = parseInt(match[2]) - 1; // JavaScript months are 0-based
@@ -876,16 +940,39 @@ const parseMarkdown = (text, options = {}) => {
         } else {
           // Fallback: try to normalize as a date or MM-DD
           let dateStr = repeatRule.trim();
-          let norm = window.normalizeDateStringToYyyyMmDd(dateStr);
-          if (!norm) {
-            const dm = dateStr.match(/^(\d{2})[./-](\d{2})$/);
-            if (dm) {
-              norm = `${dm[2]}-${dm[1]}`;
+          
+          // Check if it's a full date with year (one-time event)
+          if (dateStr.match(/\d{4}/)) {
+            let parsedFullDate = null;
+            if (window.parseDateString) {
+              parsedFullDate = window.parseDateString(dateStr);
+            }
+            if (!parsedFullDate) {
+              parsedFullDate = parseDate(dateStr);
+            }
+            
+            if (parsedFullDate) {
+              const isPast = parsedFullDate < new Date();
+              tooltip = `Scheduled for ${dateFns.format(parsedFullDate, 'MMM d, yyyy')}${isPast ? ' (past)' : ''}`;
             } else {
-              norm = dateStr;
+              tooltip = `Scheduled for ${dateStr}`;
+            }
+          } else {
+            // Annual repeat (DD.MM format)
+            let norm = window.normalizeDateStringToYyyyMmDd(dateStr);
+            if (!norm) {
+              const dm = dateStr.match(/^(\d{1,2})[./-](\d{1,2})$/);
+              if (dm) {
+                norm = `${dm[2]}-${dm[1]}`;
+                tooltip = `Repeats annually on ${dm[1]}.${dm[2]}`;
+              } else {
+                norm = dateStr;
+                tooltip = `Repeats on ${norm}`;
+              }
+            } else {
+              tooltip = `Repeats annually on ${dateStr}`;
             }
           }
-          tooltip = `Repeats on ${norm}`;
         }
       }
     }

@@ -654,7 +654,7 @@ window.MovieTracker = (() => {
         loadMoviesFromStorage();
         
         if (state.movies[movieId]) {
-            console.log('Movie already exists');
+            
             return;
         }
         

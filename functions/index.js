@@ -28,14 +28,14 @@ setGlobalOptions({ region: QUEUE_LOCATION });
 exports.scheduleReminder = onDocumentCreated("reminders/{reminderId}", async (event) => {
   const snap = event.data;
   if (!snap) {
-    console.log("No data associated with the event");
+    
     return;
   }
   const reminderData = snap.data();
   const reminderTime = reminderData.reminderTime.toDate();
 
   if (reminderTime < new Date()) {
-    console.log(`Reminder ${event.params.reminderId} is in the past. Deleting.`);
+    
     return snap.ref.delete();
   }
 
@@ -54,7 +54,7 @@ exports.scheduleReminder = onDocumentCreated("reminders/{reminderId}", async (ev
     },
   };
 
-  console.log(`Scheduling task for reminder ${event.params.reminderId} at ${reminderTime.toISOString()}`);
+  
   await tasksClient.createTask({ parent: queuePath, task });
   return snap.ref.update({ status: "scheduled" });
 });
@@ -77,7 +77,7 @@ exports.sendReminderPush = onRequest(async (req, res) => {
     const reminderDoc = await reminderRef.get();
 
     if (!reminderDoc.exists) {
-      console.log(`Reminder ${reminderId} no longer exists.`);
+      
       res.status(200).send("OK: Reminder deleted or already processed.");
       return;
     }
@@ -110,7 +110,7 @@ exports.sendReminderPush = onRequest(async (req, res) => {
           },
         },
       };
-      console.log(`Sending push for reminder ${reminderId} to ${tokens.length} devices.`);
+      
       const response = await admin.messaging().sendEachForMulticast(message);
       // Remove invalid tokens
       const invalidTokens = [];
@@ -129,14 +129,14 @@ exports.sendReminderPush = onRequest(async (req, res) => {
         await userRef.update({
           tokens: admin.firestore.FieldValue.arrayRemove(...invalidTokens),
         });
-        console.log(`Removed ${invalidTokens.length} invalid tokens for user ${userId}.`);
+        
       }
     } else {
-      console.log(`No tokens found for user ${userId}. Skipping push.`);
+      
     }
 
     await reminderRef.delete();
-    console.log(`Successfully processed and deleted reminder ${reminderId}.`);
+    
     res.status(200).send("Push sent successfully");
     
   } catch (error) {

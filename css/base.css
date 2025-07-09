@@ -431,3 +431,9 @@ body.onedark-mode input[type="checkbox"] {
 hr {
   margin: 20px 0px;
 }
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}

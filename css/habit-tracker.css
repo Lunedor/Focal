@@ -1,0 +1,538 @@
+/* Habit Tracker Widget Styles */
+.habit-widget {
+    background: var(--color-planner-bg);
+    border: 2px solid var(--color-border);
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+    transition: all 0.3s ease;
+}
+
+.habit-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.habit-header-content {
+    flex: 1;
+}
+
+.habit-header h3 {
+    margin: 0 0 4px 0;
+    font-size: 1.1em;
+    color: var(--color-text);
+    font-weight: 600;
+}
+
+.habit-date {
+    font-size: 0.9em;
+    color: var(--color-sidebar-text);
+    font-weight: 500;
+}
+
+.habit-help {
+    text-align: center;
+    color: var(--color-sidebar-text);
+    font-style: italic;
+    margin-top: 8px;
+}
+
+.habit-help code {
+    background: var(--color-sidebar-active-bg);
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: monospace;
+}
+
+/* Today Widget Styles */
+.habit-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.habit-item {
+    background: var(--color-sidebar-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.2s ease;
+}
+
+.habit-item:hover {
+    background: var(--color-sidebar-active-bg);
+}
+
+.habit-item.binary {
+    justify-content: space-between;
+}
+
+.habit-checkbox-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+.habit-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.habit-label {
+    font-weight: 500;
+    color: var(--color-text);
+    cursor: pointer;
+    flex: 1;
+}
+
+.habit-status {
+    font-size: 1.2em;
+    min-width: 24px;
+    text-align: center;
+}
+
+.habit-item.quantified {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+}
+
+.habit-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.habit-name {
+    font-weight: 500;
+    color: var(--color-text);
+}
+
+.habit-target {
+    font-size: 0.85em;
+    color: var(--color-sidebar-text);
+}
+
+.habit-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.habit-btn {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--color-border);
+    background: var(--color-button);
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    transition: all 0.2s ease;
+}
+
+.habit-btn:hover {
+    background: var(--color-button-hover);
+}
+
+.habit-input {
+    width: 80px;
+    padding: 8px;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    text-align: center;
+    background: var(--color-sidebar-bg);
+    color: var(--color-text);
+    font-size: 0.9em;
+}
+
+.habit-progress {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.habit-progress-bar {
+    flex: 1;
+    height: 8px;
+    background: var(--color-progress-bar-bg);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.habit-progress-fill {
+    height: 100%;
+    background: var(--color-progress-bar);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.habit-progress-text {
+    font-size: 0.85em;
+    color: var(--color-sidebar-text);
+    min-width: 60px;
+    text-align: right;
+}
+
+/* Grid Widget Styles */
+.habit-grid {
+    display: grid;
+    gap: 1px;
+    background: var(--color-border);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    overflow: hidden;
+    /* Grid template columns will be set dynamically via inline styles */
+}
+
+.habit-grid-header {
+    display: contents;
+}
+
+.habit-grid-row {
+    display: contents;
+}
+
+.habit-name-col {
+    background: var(--color-sidebar-active-bg);
+    padding: 8px;
+    font-weight: 500;
+    color: var(--color-text);
+    border-right: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    min-width: 120px;
+}
+
+.habit-date-col {
+    background: var(--color-sidebar-active-bg);
+    padding: 8px;
+    text-align: center;
+    font-size: 0.8em;
+    color: var(--color-sidebar-text);
+    min-width: 30px;
+}
+
+.habit-cell {
+    background: var(--color-sidebar-bg);
+    padding: 8px;
+    text-align: center;
+    font-size: 0.8em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 32px;
+    transition: all 0.2s ease;
+}
+
+.habit-cell.completed {
+    background: #d4edda;
+    color: #155724;
+}
+
+.habit-cell.partial {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.habit-cell.incomplete {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* Dark mode adjustments */
+body.dark-mode .habit-cell.completed {
+    background: rgba(40, 167, 69, 0.2);
+    color: #28a745;
+}
+
+body.dark-mode .habit-cell.partial {
+    background: rgba(255, 193, 7, 0.2);
+    color: #ffc107;
+}
+
+body.dark-mode .habit-cell.incomplete {
+    background: rgba(220, 53, 69, 0.2);
+    color: #dc3545;
+}
+
+/* Stats Widget Styles */
+.habit-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+}
+
+.habit-stat-card {
+    background: var(--color-sidebar-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 16px;
+    text-align: center;
+}
+
+.habit-stat-name {
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: 8px;
+    font-size: 1.1em;
+}
+
+.habit-stat-completion {
+    font-size: 2em;
+    font-weight: bold;
+    color: var(--color-link);
+    margin-bottom: 12px;
+}
+
+.habit-stat-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.habit-stat-details div {
+    font-size: 0.9em;
+    color: var(--color-sidebar-text);
+}
+
+/* Chart Widget Styles */
+.habit-chart {
+    display: flex;
+    align-items: end;
+    gap: 2px;
+    height: 200px;
+    padding: 16px;
+    background: var(--color-sidebar-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+}
+
+.habit-chart-bar {
+    flex: 1;
+    background: var(--color-progress-bar);
+    min-height: 4px;
+    border-radius: 2px 2px 0 0;
+    transition: height 0.3s ease;
+    cursor: pointer;
+}
+
+.habit-chart-bar:hover {
+    background: var(--color-progress-bar-hover, var(--color-link));
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .habit-grid {
+        font-size: 0.9em;
+    }
+    
+    .habit-name-col {
+        min-width: 100px;
+    }
+    
+    .habit-date-col {
+        min-width: 25px;
+        padding: 6px;
+    }
+    
+    .habit-cell {
+        min-height: 28px;
+        padding: 6px;
+    }
+    
+    .habit-stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .habit-chart {
+        height: 150px;
+        padding: 12px;
+    }
+    
+    .habit-controls {
+        flex-direction: column;
+        gap: 6px;
+    }
+    
+    .habit-btn {
+        width: 100%;
+        height: 36px;
+    }
+    
+    .habit-input {
+        width: 100%;
+    }
+}
+
+/* New habit management styles */
+.habit-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.habit-remove-btn {
+    background: none;
+    border: none;
+    color: var(--color-sidebar-text);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    opacity: 0.6;
+}
+
+.habit-remove-btn:hover {
+    background: rgba(244, 67, 54, 0.1);
+    color: #f44336;
+    opacity: 1;
+}
+
+.habit-item.quantified {
+    position: relative;
+}
+
+.habit-item.quantified .habit-remove-btn {
+    position: absolute;
+    top: 40%;
+    right: 12px;
+}
+
+/* Habit modal styles */
+.habit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.habit-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.habit-form-group label {
+    font-weight: 500;
+    color: var(--color-text);
+    font-size: 0.9rem;
+}
+
+.habit-form-group input[type="text"] {
+    padding: 8px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    background: var(--color-background);
+    color: var(--color-text);
+    font-size: 0.9rem;
+}
+
+.habit-form-group input[type="text"]:focus {
+    outline: none;
+    border-color: var(--color-button);
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.habit-type-selection {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.habit-type-selection input[type="radio"] {
+    margin-right: 8px;
+}
+
+.habit-type-selection label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-weight: normal;
+}
+
+.habit-form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 8px;
+}
+
+.btn-primary, .btn-secondary {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background: var(--color-button);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--color-button-hover);
+}
+
+.btn-secondary {
+    background: var(--color-sidebar-active-bg);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+}
+
+.btn-secondary:hover {
+    background: var(--color-border);
+}
+
+/* Filter modal styles */
+.filter-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.filter-option {
+    padding: 12px 16px;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    background: var(--color-sidebar-bg);
+    color: var(--color-text);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+}
+
+.filter-option:hover {
+    background: var(--color-sidebar-active-bg);
+    border-color: var(--color-button);
+}
+
+.filter-option.selected {
+    background: var(--color-button);
+    color: white;
+    border-color: var(--color-button);
+}
+
+.filter-option.selected:hover {
+    background: var(--color-button-hover);
+    border-color: var(--color-button-hover);
+}

@@ -60,7 +60,7 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Opened cache and caching app shell');
+        
         return cache.addAll(URLS_TO_CACHE);
       })
       .catch(error => {
@@ -148,7 +148,7 @@ self.addEventListener('notificationclick', event => {
 
 // Add a listener for incoming push messages
 self.addEventListener('push', event => {
-  console.log('[Service Worker] Push Received.');
+  
 
   let title = 'Focal Journal';
   let options = {

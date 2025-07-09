@@ -30,7 +30,7 @@ const financeTracker = (() => {
         let timeFilter = 'all'; // Default to show all data
         
         // Add debug logging to see what's coming in
-        console.log(`[Focal Finance Debug] Parsing command: "${commandStr.substring(0, 100)}..."`);
+        
         
         if (commandStr.includes('\n')) {
             // Extract multiple FINANCE: commands
@@ -43,19 +43,19 @@ const financeTracker = (() => {
             
             // Extract currency and time filter from the first command that has it
             if (allCommands.length > 0) {
-                console.log(`[Focal Finance] Found ${allCommands.length} commands: ${allCommands.join(', ')}`);
+                
                 
                 // Extract currency from commands (use the first one that has a currency specified)
                 for (const cmd of allCommands) {
                     const cmdParts = cmd.replace(/^finance:\s*/i, '').split(',').map(p => p.trim()).filter(p => p);
                     if (cmdParts.length >= 2 && cmdParts[1]) {
                         currency = cmdParts[1];
-                        console.log(`[Focal Finance] Found currency: ${currency}`);
+                        
                         
                         // Look for time filter (3rd parameter)
                         if (cmdParts.length >= 3 && cmdParts[2]) {
                             timeFilter = cmdParts[2];
-                            console.log(`[Focal Finance] Found time filter: ${timeFilter}`);
+                            
                         }
                         break; // Use the first currency and filter we find
                     }
@@ -75,7 +75,7 @@ const financeTracker = (() => {
                 }
             });
             
-            console.log(`[Focal Finance] Extracted widget types: ${widgetTypes.join(', ')}`);
+            
         } else {
             // Single command case
             // Process single command
@@ -105,14 +105,14 @@ const financeTracker = (() => {
         }
         
         const currencySymbol = getCurrencySymbol(currency);
-        console.log(`[Focal Finance] Final parse result - Widget types: ${widgetTypes.join(', ')}, Currency: ${currencySymbol}, Time filter: ${timeFilter}`);
+        
         
         return { widgetTypes, currencySymbol, timeFilter, currencyCode: currency };
     }
 
     function parseTransactions(transactionsStr) {
         // Add some debugging to help identify parsing issues
-        console.log(`[Focal Finance] Parsing ${transactionsStr.split('\n').filter(l => l.trim()).length} transactions`);
+        
         
         return transactionsStr.split('\n')
             .map(line => line.trim())
@@ -160,7 +160,7 @@ const financeTracker = (() => {
     
     function applyTimeFilter(transactions, timeFilter) {
         if (!timeFilter || timeFilter === 'all') {
-            console.log(`[Focal Finance] No time filter applied, showing all ${transactions.length} transactions`);
+            
             return transactions;
         }
         
@@ -170,7 +170,7 @@ const financeTracker = (() => {
         
         let startDate;
         
-        console.log(`[Focal Finance] Applying time filter: ${timeFilter}`);
+        
         
         switch (timeFilter) {
             case 'this-month':
@@ -211,18 +211,18 @@ const financeTracker = (() => {
                     
                     // Filter transactions for the specific year
                     const filtered = transactions.filter(t => t.date >= startDate && t.date <= endDate);
-                    console.log(`[Focal Finance] Filtered to ${filtered.length} transactions for year ${year}`);
+                    
                     return filtered;
                 }
                 
                 // Unknown filter, return all transactions
-                console.log(`[Focal Finance] Unknown time filter: ${timeFilter}, showing all transactions`);
+                
                 return transactions;
         }
         
         // Filter transactions from the start date to today
         const filtered = transactions.filter(t => t.date >= startDate);
-        console.log(`[Focal Finance] Filtered to ${filtered.length} transactions from ${startDate.toDateString()} to now`);
+        
         return filtered;
     }
     
@@ -419,7 +419,7 @@ const financeTracker = (() => {
     function renderPieChartWidget() {
         if (!containerEl) return;
 
-        console.log(`[Focal Finance] Rendering pie chart with ${state.transactions.length} transactions`);
+        
         
         // Define pie chart colors
         const pieColors = [
@@ -451,7 +451,7 @@ const financeTracker = (() => {
             expensesByCategory[b] - expensesByCategory[a]
         );
         
-        console.log(`[Focal Finance] Pie chart data - Categories: ${sortedCategories.length}, Total expenses: ${totalExpenses}`);
+        
 
         // Generate pie chart segments
         let startAngle = 0;
@@ -534,14 +534,13 @@ const financeTracker = (() => {
     function renderChartWidget() {
         if (!containerEl) return;
 
-        console.log(`[Focal Finance] Rendering chart with ${state.transactions.length} transactions`);
+        
         
         // Debug the first few transactions to check date formats
         if (state.transactions.length > 0) {
-            console.log(`[Focal Finance] Sample transaction:`, 
                         state.transactions[0].date, 
                         `(${typeof state.transactions[0].date})`,
-                        `Amount: ${state.transactions[0].amount}`);
+                        `Amount: ${state.transactions[0].amount}`
         }
 
         // 1. Group transactions by month
@@ -576,13 +575,13 @@ const financeTracker = (() => {
         const maxExpenses = Math.max(...Object.values(transactionsByMonth).map(m => m.expenses));
         const maxValue = Math.max(maxIncome, maxExpenses, 1); // Use 1 to avoid division by zero
         
-        console.log(`[Focal Finance] Chart data - Income max: ${maxIncome}, Expenses max: ${maxExpenses}, Using max value: ${maxValue}`);
-        console.log(`[Focal Finance] Months to display: ${sortedMonths.join(', ')}`);
+        
+        
         
         // Check transaction data for each month
         for (const monthKey of sortedMonths) {
             const data = transactionsByMonth[monthKey];
-            console.log(`[Focal Finance] Month ${monthKey}: Income: ${data.income.toFixed(2)}, Expenses: ${data.expenses.toFixed(2)}`);
+            
         }
 
         // 3. Render HTML for the chart
@@ -598,7 +597,7 @@ const financeTracker = (() => {
             if (data.income > 0 && incomeHeight < 10) incomeHeight = 10;
             if (data.expenses > 0 && expenseHeight < 10) expenseHeight = 10;
             
-            console.log(`[Focal Finance] Bar heights for ${monthKey}: Income: ${incomeHeight}px, Expenses: ${expenseHeight}px`);
+            
             
             // Create date manually to avoid parseISO issues
             const [year, month] = monthKey.split('-');
@@ -673,7 +672,7 @@ const financeTracker = (() => {
         containerEl = placeholder;
         let transactionsStr = transactions;
 
-        console.log(`[Focal Finance] Init called with command length: ${command.length}, transactions length: ${transactionsStr ? transactionsStr.length : 0}`);
+        
 
         // The placeholder is the command node
         state.commandNode = placeholder;
@@ -696,7 +695,7 @@ const financeTracker = (() => {
         // If command contains transactions (multiple FINANCE: format) use that instead
         const extractedTransactions = extractTransactionsFromCommand(command);
         if (extractedTransactions) {
-            console.log(`[Focal Finance] Found transactions in command, length: ${extractedTransactions.length}`);
+            
             transactionsStr = extractedTransactions;
         } else if (command.includes('\n') && !transactionsStr) {
             // If we have a multiline command but no detected transactions in either place,
@@ -709,7 +708,7 @@ const financeTracker = (() => {
             
             if (nonCommandLines.length > 0) {
                 transactionsStr = nonCommandLines.join('\n');
-                console.log(`[Focal Finance] Using non-command lines as transactions: ${transactionsStr}`);
+                
             }
         }
 
@@ -721,12 +720,12 @@ const financeTracker = (() => {
         state.timeFilter = timeFilter;
         state.currencyCode = currencyCode;
 
-        console.log(`[Focal Finance] Initializing widget types: ${widgetTypes.join(', ')}, currency: ${currencySymbol} (${currencyCode}), time filter: ${timeFilter}`);
+        
 
         // Parse the transaction text into structured data.
         const allTransactions = parseTransactions(transactionsStr);
         
-        console.log(`[Focal Finance] Parsed ${allTransactions.length} valid transactions out of ${transactionsStr.split('\n').filter(l => l.trim()).length} lines`);
+        
         
         // Apply time filter to the transactions
         state.transactions = applyTimeFilter(allTransactions, timeFilter);
@@ -819,10 +818,10 @@ const financeTracker = (() => {
     }
     // Function to update the time filter
     function updateFilter(newFilter) {
-        console.log(`[Focal Finance] Updating filter to: ${newFilter}`);
+        
         
         if (newFilter === state.timeFilter) {
-            console.log(`[Focal Finance] Filter already set to ${newFilter}, no change needed`);
+            
             return;
         }
         
@@ -1023,7 +1022,7 @@ const financeTracker = (() => {
     
     // Add a new transaction to the command
     function addTransactionToCommand(transactionEntry) {
-        console.log(`[Focal Finance] Adding transaction: ${transactionEntry}`);
+        
         
         if (!state.command || !state.onCommandChange) {
             console.error('[Focal Finance] Cannot add transaction: command or onCommandChange is not set');
@@ -1067,7 +1066,7 @@ const financeTracker = (() => {
 
     // Remove a transaction from the command
     function removeTransactionFromCommand(transactionId) {
-        console.log(`[Focal Finance] Removing transaction: ${transactionId}`);
+        
         
         // Show confirmation modal first
         showRemoveConfirmation(transactionId);
@@ -1117,7 +1116,7 @@ const financeTracker = (() => {
 
     // Perform the actual transaction removal
     function performRemoveTransaction(transactionId) {
-        console.log(`[Focal Finance] Removing transaction: ${transactionId}`);
+        
         
         // Get the current page content from localStorage
         const pageWrapper = DOM.pageContentWrapper || document.querySelector('[data-key]');

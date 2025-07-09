@@ -31,10 +31,10 @@ const NotificationManager = {
             this.permission = status;
             if (this.updateStatusButton) this.updateStatusButton();
             if (status === 'granted') {
-                console.log('[Notifications] Permission granted.');
+                
                 this.scanAndSchedule(); // Scan immediately after getting permission
             } else {
-                console.log('[Notifications] Permission denied.');
+                
             }
         }
         return this.permission;
@@ -102,11 +102,11 @@ const NotificationManager = {
                     }
                 }
             });
-            console.log(`[Notifications] Queuing reminder for Firestore: "${reminder.text}"`);
+            
         });
 
         await batch.commit();
-        console.log(`[Notifications] Synced ${futureReminders.length} reminders, deleted ${toDelete.length} outdated reminders from Firestore.`);
+        
     },
 
     /**

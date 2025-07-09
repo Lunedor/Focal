@@ -8,5 +8,5 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeNavigation();         // All navigation handlers
     initializeCheckboxHandlers();   // Checkbox management
     
-    console.log('All event systems initialized');
+    
 });

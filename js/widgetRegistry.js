@@ -46,7 +46,17 @@ const widgetRegistry = {
         // The finance widget requires a full page re-render when its command
         // (e.g., the filter) changes.
         if (currentPageKey.startsWith('page-')) {
-          renderLibraryPage(currentPageKey.substring(5));
+          // Instead of re-rendering the entire page, just update the content
+          const contentWrapper = document.querySelector(`[data-key="${currentPageKey}"]`);
+          if (contentWrapper) {
+            const currentContent = getStorage(currentPageKey);
+            const renderedContent = contentWrapper.querySelector('.rendered-content');
+            if (renderedContent) {
+              renderedContent.innerHTML = parseMarkdown(currentContent);
+              // Only initialize widgets in the new content
+              initializeWidgetsInContainer(renderedContent);
+            }
+          }
         }
       };
       // Call with a single, standardized options object
@@ -151,7 +161,17 @@ const widgetRegistry = {
         
         // Re-render the page to show updated widget
         if (currentPageKey.startsWith('page-')) {
-          renderLibraryPage(currentPageKey.substring(5));
+          // Instead of re-rendering the entire page, just update the content
+          const contentWrapper = document.querySelector(`[data-key="${currentPageKey}"]`);
+          if (contentWrapper) {
+            const currentContent = getStorage(currentPageKey);
+            const renderedContent = contentWrapper.querySelector('.rendered-content');
+            if (renderedContent) {
+              renderedContent.innerHTML = parseMarkdown(currentContent);
+              // Only initialize widgets in the new content
+              initializeWidgetsInContainer(renderedContent);
+            }
+          }
         }
       };
       
@@ -186,7 +206,17 @@ const widgetRegistry = {
         
         // Re-render the page to show updated widget
         if (currentPageKey.startsWith('page-')) {
-          renderLibraryPage(currentPageKey.substring(5));
+          // Instead of re-rendering the entire page, just update the content
+          const contentWrapper = document.querySelector(`[data-key="${currentPageKey}"]`);
+          if (contentWrapper) {
+            const currentContent = getStorage(currentPageKey);
+            const renderedContent = contentWrapper.querySelector('.rendered-content');
+            if (renderedContent) {
+              renderedContent.innerHTML = parseMarkdown(currentContent);
+              // Only initialize widgets in the new content
+              initializeWidgetsInContainer(renderedContent);
+            }
+          }
         }
       };
       
@@ -223,7 +253,17 @@ const widgetRegistry = {
         
         // Re-render the page to show updated widget
         if (currentPageKey.startsWith('page-')) {
-          renderLibraryPage(currentPageKey.substring(5));
+          // Instead of re-rendering the entire page, just update the content
+          const contentWrapper = document.querySelector(`[data-key="${currentPageKey}"]`);
+          if (contentWrapper) {
+            const currentContent = getStorage(currentPageKey);
+            const renderedContent = contentWrapper.querySelector('.rendered-content');
+            if (renderedContent) {
+              renderedContent.innerHTML = parseMarkdown(currentContent);
+              // Only initialize widgets in the new content
+              initializeWidgetsInContainer(renderedContent);
+            }
+          }
         }
       };
       
@@ -239,12 +279,95 @@ const widgetRegistry = {
       placeholder.innerHTML = '<div class="widget-error">FutureLog widget not loaded</div>';
     }
   },
+  // Register the habits widget
+  'habits': (placeholder) => {
+    if (typeof HabitTracker !== 'undefined' && HabitTracker.init) {
+      const config = placeholder.dataset.config || 'today';
+      
+      
+      const onCommandChange = (newCommand) => {
+        const pageWrapper = placeholder.closest('[data-key]');
+        const currentPageKey = pageWrapper ? pageWrapper.dataset.key : null;
+        if (!currentPageKey) return;
+
+        const currentContent = getStorage(currentPageKey);
+        if (!currentContent) return;
+
+        // Use the placeholder's current config attribute as the "old" command
+        const oldCommand = `HABITS: ${placeholder.dataset.config}`;
+        const updatedContent = currentContent.replace(oldCommand, newCommand);
+        setStorage(currentPageKey, updatedContent);
+        placeholder.dataset.config = newCommand.replace('HABITS:', '').trim();
+        if (typeof debouncedSyncWithCloud === 'function') debouncedSyncWithCloud();
+        
+        // Re-render the page to show updated widget
+        if (currentPageKey.startsWith('page-')) {
+          // Instead of re-rendering the entire page, just update the content
+          const contentWrapper = document.querySelector(`[data-key="${currentPageKey}"]`);
+          if (contentWrapper) {
+            const currentContent = getStorage(currentPageKey);
+            const renderedContent = contentWrapper.querySelector('.rendered-content');
+            if (renderedContent) {
+              renderedContent.innerHTML = parseMarkdown(currentContent);
+              // Only initialize widgets in the new content
+              initializeWidgetsInContainer(renderedContent);
+            }
+          }
+        }
+      };
+      
+      // Always call the habit tracker init - let it handle re-initialization logic
+      HabitTracker.init({ 
+        placeholder, 
+        command: `HABITS: ${config}`,
+        onCommandChange 
+      });
+    } else {
+      
+      placeholder.innerHTML = '<div class="widget-error">HabitTracker not loaded</div>';
+    }
+  },
 };
 
 function initializeWidgetsInContainer(container) {
+  
+  
   const goalCallCounts = {}; // Counter for goals with the same label on one page
-  container.querySelectorAll('.widget-placeholder').forEach(placeholder => {
+  const placeholders = container.querySelectorAll('.widget-placeholder:not(.widget-initialized)');
+  
+  
+  
+  // Track processed placeholders by their unique combination of type and command
+  const processedPlaceholders = new Set();
+  
+  placeholders.forEach((placeholder, index) => {
+    
+    
+    
     const widgetType = placeholder.dataset.widgetType;
+    let command = '';
+    
+    // Different widgets store their command data differently
+    if (widgetType === 'habits') {
+      command = placeholder.dataset.config || 'today';
+      
+    } else {
+      command = placeholder.dataset.command || '';
+      
+    }
+    
+    // Create a unique key for this placeholder
+    const placeholderKey = `${widgetType}-${command}-${placeholder.outerHTML}`;
+    
+    // Skip if we've already processed an identical placeholder
+    if (processedPlaceholders.has(placeholderKey)) {
+      
+      placeholder.remove(); // Remove the duplicate
+      return;
+    }
+    
+    processedPlaceholders.add(placeholderKey);
+    
     const options = {};
 
     // Special handling for goals to count occurrences
@@ -255,9 +378,19 @@ function initializeWidgetsInContainer(container) {
     }
 
     if (widgetRegistry[widgetType]) {
+      
+      
+      // For habits widgets, don't mark as initialized here - let the widget handle it
+      if (widgetType !== 'habits') {
+        // Mark this placeholder as initialized before calling the widget
+        placeholder.classList.add('widget-initialized');
+      }
+      
       // A more generic way to pass data from the placeholder to the init function
       const initFn = widgetRegistry[widgetType];
       initFn(placeholder, options);
+    } else {
+      
     }
   });
 }
