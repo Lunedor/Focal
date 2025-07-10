@@ -170,134 +170,270 @@ function setupDragAndDrop(itemType, itemsArray, getData, setData) {
       touchDragState.dragItem = item;
       touchDragState.initialIndex = Number(item.dataset.index);
       
-      // Start drag detection timer
-      touchDragState.dragTimer = setTimeout(() => {
-        if (!touchDragState.isDragging) {
-          startTouchDrag(item, itemType);
-        }
-      }, 200); // 200ms delay to distinguish from tap
-    }, { passive: false });
+    // 10. Create a "Habits" page to showcase the habit tracker
+    const habitsContent = `
+# My Daily Habits 🎯
 
-    item.addEventListener('touchmove', (e) => {
-      if (!touchDragState.isDragging && touchDragState.dragTimer) {
-        const touch = e.touches[0];
-        const deltaY = Math.abs(touch.clientY - touchDragState.startY);
-        
-        // Cancel drag if moved too much during initial delay
-        if (deltaY > 10) {
-          clearTimeout(touchDragState.dragTimer);
-          touchDragState.dragTimer = null;
-          return;
-        }
-      }
-      
-      if (touchDragState.isDragging) {
-        e.preventDefault();
-        const touch = e.touches[0];
-        touchDragState.currentY = touch.clientY;
-        touchDragState.currentX = touch.clientX;
-        
-        // Update visual feedback
-        updateTouchDragVisual(touch.clientY);
-        
-        // Find drop target
-        const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-        const dropTarget = elementBelow?.closest(`.library-page-item.${itemType}`);
-        
-        // Update drag over states
-        document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-        if (dropTarget && dropTarget !== touchDragState.dragItem) {
-          dropTarget.classList.add('drag-over');
-        }
-      }
-    }, { passive: false });
+Build consistent daily habits and track your progress with Focal's advanced habit tracking system. Enjoy:
+- **Categories** for organization
+- **Goals** and smart insights
+- **Achievements** and streaks
+- **Targets** for quantified habits
+- **Calendar grid, stats, and charts**
 
-    item.addEventListener('touchend', (e) => {
-      if (touchDragState.dragTimer) {
-        clearTimeout(touchDragState.dragTimer);
-        touchDragState.dragTimer = null;
-      }
-      
-      if (touchDragState.isDragging) {
-        e.preventDefault();
-        finishTouchDrag(itemType, getData, setData);
-      }
-    }, { passive: false });
+## How to Use
+1. Define your habits using the \`HABITS: define\` block (see below for examples)
+2. Track daily progress with \`HABITS: day\`
+3. Visualize your progress with widgets: \`categories\`, \`goals\`, \`achievements\`, \`grid\`, \`stats\`, \`chart\`
+4. Set targets, goals, and achievements for extra motivation
 
-    item.addEventListener('touchcancel', (e) => {
-      if (touchDragState.dragTimer) {
-        clearTimeout(touchDragState.dragTimer);
-        touchDragState.dragTimer = null;
-      }
-      
-      if (touchDragState.isDragging) {
-        cancelTouchDrag();
-      }
-    });
-  });
+---
 
-  function startTouchDrag(item, type) {
-    touchDragState.isDragging = true;
-    dragType = type;
-    
-    // Visual feedback
-    item.classList.add('dragging');
-    document.body.style.userSelect = 'none';
-    
-    // Create placeholder
-    const placeholder = item.cloneNode(true);
-    placeholder.classList.add('drag-placeholder');
-    placeholder.style.opacity = '0.5';
-    item.parentNode.insertBefore(placeholder, item.nextSibling);
-    touchDragState.placeholder = placeholder;
-    
-    // Make original item semi-transparent
-    item.style.opacity = '0.8';
-    item.style.transform = 'scale(1.02)';
-    item.style.zIndex = '1000';
-    item.style.pointerEvents = 'none';
-  }
+## Habit Definitions
 
-  function updateTouchDragVisual(currentY) {
-    // This function can be enhanced to show visual feedback during drag
-    // For now, it just maintains the drag state
-  }
+HABITS: define
 
-  function finishTouchDrag(type, getData, setData) {
-    const dragItem = touchDragState.dragItem;
-    const placeholder = touchDragState.placeholder;
-    
-    // Find drop target
-    const elementBelow = document.elementFromPoint(touchDragState.currentX, touchDragState.currentY);
-    const dropTarget = elementBelow?.closest(`.library-page-item.${type}`);
-    
-    if (dropTarget && dropTarget !== dragItem) {
-      const srcIdx = touchDragState.initialIndex;
-      const targetIdx = Number(dropTarget.dataset.index);
-      
-      if (srcIdx !== null && srcIdx !== targetIdx) {
-        let currentItems = (type === 'unpinned') ? itemsArray.slice() : getData();
-        
-        const [moved] = currentItems.splice(srcIdx, 1);
-        currentItems.splice(targetIdx, 0, moved);
-        
-        setData(currentItems);
-        renderSidebar();
-      }
-    }
-    
-    // Cleanup
-    cleanupTouchDrag();
-  }
+- Meditate (CATEGORY: Wellness) (GOAL: every day) (SCHEDULE: everyday) (ACHIEVEMENT: 7 day streak = Movie night)
+- Exercise (CATEGORY: Health) (GOAL: 3 times per week) (SCHEDULE: Mon, Wed, Fri) (ACHIEVEMENT: 30 completions = New workout gear)
+- Read (CATEGORY: Learning) (TARGET: 30 pages) (GOAL: 5 times per week) (SCHEDULE: weekdays) (ACHIEVEMENT: 50 completions = Buy 3 new books)
+- Drink Water (CATEGORY: Health) (TARGET: 8 glasses) (GOAL: 7 days in a row) (ACHIEVEMENT: perfect week = Spa day)
+- Journal Writing (CATEGORY: Personal) (GOAL: 4 times per week) (SCHEDULE: Tue, Thu, Sat) (ACHIEVEMENT: 30 day streak = Beautiful new journal)
+- Practice Guitar (CATEGORY: Creative) (TARGET: 30 minutes) (GOAL: 3 times per week) (SCHEDULE: Mon, Wed, Fri) (ACHIEVEMENT: 25 completions = New guitar pick set)
+- Walk Steps (CATEGORY: Fitness) (TARGET: 10000 steps) (GOAL: every day) (SCHEDULE: everyday) (ACHIEVEMENT: perfect month = New running shoes)
+- Check Finances (CATEGORY: Finance) (GOAL: 4 times per month) (SCHEDULE: weekends) (ACHIEVEMENT: 20 completions = Financial planning book)
 
-  function cancelTouchDrag() {
-    cleanupTouchDrag();
-  }
+---
 
-  function cleanupTouchDrag() {
-    // Remove visual feedback
-    if (touchDragState.dragItem) {
-      touchDragState.dragItem.classList.remove('dragging');
+## Today's Progress
+
+HABITS: day
+
+---
+
+## Categories Overview
+
+HABITS: categories
+
+---
+
+## Achievements
+
+HABITS: achievements
+
+---
+
+## Weekly Goals Progress
+
+HABITS: categories
+
+---
+
+## Goal Progress
+
+HABITS: goals
+
+---
+
+## This Month's Overview
+
+HABITS: grid, this-month
+
+---
+
+## Habit Statistics
+
+HABITS: stats
+
+---
+
+## Individual Habit Charts
+
+### Meditation Progress
+HABITS: chart, Meditate, last-30-days
+
+### Reading Progress
+HABITS: chart, Read, last-30-days
+
+---
+
+## Future Log (Sample)
+
+FUTURELOG: 6-months
+
+- SCHEDULED: 2025-08-01 Birthday party 🎉
+- SCHEDULED: 2025-09-15 Doctor appointment (SCHEDULED: 2025-09-15)
+- REPEAT: every monday from 2025-07-14 to 2025-09-01 Weekly team meeting
+- REPEAT: 25.12 Christmas
+
+---
+
+## Widget Options
+
+### Widget Types
+- \`today\`: Interactive daily tracker
+- \`grid\`: Calendar-style progress grid
+- \`stats\`: Completion rates and streaks
+- \`chart\`: Visual progress chart for specific habits
+- \`categories\`: Category analytics
+- \`goals\`: Goal progress and insights
+- \`achievements\`: Achievement gallery
+- \`futurelog\`: Calendar of upcoming events and repeating items
+
+### Time Periods
+- \`this-week\`, \`this-month\`, \`last-7-days\`, \`last-30-days\`, \`last-90-days\`, \`last-365-days\`, etc.
+
+### Habit Types
+- **Binary Habits**: Simple checkbox (e.g., "Meditate")
+- **Quantified Habits**: Target-based with progress bars (e.g., "Read (TARGET: 30 pages)")
+
+## Tips for Success
+
+- Start with 2-3 habits maximum
+- Make habits specific and measurable
+- Track consistently for at least 21 days
+- Use the [[Daily Journal]] to reflect on your habit progress
+- Celebrate small wins and streaks
+
+## Research-Based Benefits
+
+- **Consistency**: Visual tracking increases habit adherence
+- **Motivation**: Streaks and progress bars provide positive reinforcement
+- **Awareness**: Daily tracking increases mindfulness of behaviors
+- **Accountability**: Written goals and progress create commitment
+
+*Remember: Small, consistent actions compound into remarkable results over time.*
+`;
+# My Daily Habits 🎯
+
+Build consistent daily habits and track your progress with Focal's advanced habit tracking system. Enjoy:
+- **Categories** for organization
+- **Goals** and smart insights
+- **Achievements** and streaks
+- **Targets** for quantified habits
+- **Calendar grid, stats, and charts**
+
+## How to Use
+1. Define your habits using the `HABITS: define` block (see below for examples)
+2. Track daily progress with `HABITS: day`
+3. Visualize your progress with widgets: `categories`, `goals`, `achievements`, `grid`, `stats`, `chart`
+4. Set targets, goals, and achievements for extra motivation
+
+---
+
+## Habit Definitions
+
+HABITS: define
+
+- Meditate (CATEGORY: Wellness) (GOAL: every day) (SCHEDULE: everyday) (ACHIEVEMENT: 7 day streak = Movie night)
+- Exercise (CATEGORY: Health) (GOAL: 3 times per week) (SCHEDULE: Mon, Wed, Fri) (ACHIEVEMENT: 30 completions = New workout gear)
+- Read (CATEGORY: Learning) (TARGET: 30 pages) (GOAL: 5 times per week) (SCHEDULE: weekdays) (ACHIEVEMENT: 50 completions = Buy 3 new books)
+- Drink Water (CATEGORY: Health) (TARGET: 8 glasses) (GOAL: 7 days in a row) (ACHIEVEMENT: perfect week = Spa day)
+- Journal Writing (CATEGORY: Personal) (GOAL: 4 times per week) (SCHEDULE: Tue, Thu, Sat) (ACHIEVEMENT: 30 day streak = Beautiful new journal)
+- Practice Guitar (CATEGORY: Creative) (TARGET: 30 minutes) (GOAL: 3 times per week) (SCHEDULE: Mon, Wed, Fri) (ACHIEVEMENT: 25 completions = New guitar pick set)
+- Walk Steps (CATEGORY: Fitness) (TARGET: 10000 steps) (GOAL: every day) (SCHEDULE: everyday) (ACHIEVEMENT: perfect month = New running shoes)
+- Check Finances (CATEGORY: Finance) (GOAL: 4 times per month) (SCHEDULE: weekends) (ACHIEVEMENT: 20 completions = Financial planning book)
+
+---
+
+## Today's Progress
+
+HABITS: day
+
+---
+
+## Categories Overview
+
+HABITS: categories
+
+---
+
+## Achievements
+
+HABITS: achievements
+
+---
+
+## Weekly Goals Progress
+
+HABITS: categories
+
+---
+
+## Goal Progress
+
+HABITS: goals
+
+---
+
+## This Month's Overview
+
+HABITS: grid, this-month
+
+---
+
+## Habit Statistics
+
+HABITS: stats
+
+---
+
+## Individual Habit Charts
+
+### Meditation Progress
+HABITS: chart, Meditate, last-30-days
+
+### Reading Progress
+HABITS: chart, Read, last-30-days
+
+---
+
+## Future Log (Sample)
+
+FUTURELOG: 6-months
+
+- SCHEDULED: 2025-08-01 Birthday party 🎉
+- SCHEDULED: 2025-09-15 Doctor appointment (SCHEDULED: 2025-09-15)
+- REPEAT: every monday from 2025-07-14 to 2025-09-01 Weekly team meeting
+- REPEAT: 25.12 Christmas
+
+---
+
+## Widget Options
+
+### Widget Types
+- `today`: Interactive daily tracker
+- `grid`: Calendar-style progress grid
+- `stats`: Completion rates and streaks
+- `chart`: Visual progress chart for specific habits
+- `categories`: Category analytics
+- `goals`: Goal progress and insights
+- `achievements`: Achievement gallery
+- `futurelog`: Calendar of upcoming events and repeating items
+
+### Time Periods
+- `this-week`, `this-month`, `last-7-days`, `last-30-days`, `last-90-days`, `last-365-days`, etc.
+
+### Habit Types
+- **Binary Habits**: Simple checkbox (e.g., "Meditate")
+- **Quantified Habits**: Target-based with progress bars (e.g., "Read (TARGET: 30 pages)")
+
+## Tips for Success
+
+- Start with 2-3 habits maximum
+- Make habits specific and measurable
+- Track consistently for at least 21 days
+- Use the [[Daily Journal]] to reflect on your habit progress
+- Celebrate small wins and streaks
+
+## Research-Based Benefits
+
+- **Consistency**: Visual tracking increases habit adherence
+- **Motivation**: Streaks and progress bars provide positive reinforcement
+- **Awareness**: Daily tracking increases mindfulness of behaviors
+- **Accountability**: Written goals and progress create commitment
+
+*Remember: Small, consistent actions compound into remarkable results over time.*
+    `.trim();
       touchDragState.dragItem.style.opacity = '';
       touchDragState.dragItem.style.transform = '';
       touchDragState.dragItem.style.zIndex = '';
@@ -923,19 +1059,50 @@ Build consistent daily habits and track your progress with Focal's comprehensive
 
 HABITS: define
 
-- Meditate
-- Exercise  
-- Read (TARGET: 30 pages)
-- Drink Water (TARGET: 8 glasses)
-- Journal Writing
-- Practice Guitar (TARGET: 30 minutes)
-- Walk Steps (TARGET: 10000 steps)
+- Meditate (CATEGORY: Wellness) (GOAL: every day) (SCHEDULE: everyday) (ACHIEVEMENT: 7 day streak = Movie night)
+- Exercise (CATEGORY: Health) (GOAL: 3 times per week) (SCHEDULE: Mon, Wed, Fri) (ACHIEVEMENT: 30 completions = New workout gear)
+- Read (CATEGORY: Learning) (TARGET: 30 pages) (GOAL: 5 times per week) (SCHEDULE: weekdays) (ACHIEVEMENT: 50 completions = Buy 3 new books)
+- Drink Water (CATEGORY: Health) (TARGET: 8 glasses) (GOAL: 7 days in a row) (ACHIEVEMENT: perfect week = Spa day)
+- Journal Writing (CATEGORY: Personal) (GOAL: 4 times per week) (SCHEDULE: Tue, Thu, Sat) (ACHIEVEMENT: 30 day streak = Beautiful new journal)
+- Practice Guitar (CATEGORY: Creative) (TARGET: 30 minutes) (GOAL: 3 times per week) (SCHEDULE: Mon, Wed, Fri) (ACHIEVEMENT: 25 completions = New guitar pick set)
+- Walk Steps (CATEGORY: Fitness) (TARGET: 10000 steps) (GOAL: every day) (SCHEDULE: everyday) (ACHIEVEMENT: perfect month = New running shoes)
+- Check Finances (CATEGORY: Finance) (GOAL: 4 times per month) (SCHEDULE: weekends) (ACHIEVEMENT: 20 completions = Financial planning book)
 
 ---
 
 ## Today's Progress
 
-HABITS: today
+HABITS: day
+
+---
+
+## Categories Overview
+
+HABITS: categories
+
+---
+
+## Achievement Gallery
+
+HABITS: achievements
+
+---
+
+## Yesterday's Review
+
+HABITS: day, 2025-07-08
+
+---
+
+## Weekly Goals Progress
+
+HABITS: categories
+
+---
+
+## Goal Progress
+
+HABITS: goals
 
 ---
 

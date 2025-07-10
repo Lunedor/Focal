@@ -5,7 +5,114 @@ A minimalist, local-first digital bullet journal designed for clarity and focus.
 ![Focal Journal Screenshot](https://github.com/Lunedor/Focal/blob/main/Screenshots/Screenshot_1.jpg)
 
 
+
 ## ✨ Key Features
+*   **Advanced Habit Tracking**: Build powerful routines with:
+    - **Categories** for organization
+    - **Goals** and smart insights
+    - **Achievements** and streaks
+    - **Targets** for quantified habits
+    - **Calendar grid, stats, and charts**
+    - **Mobile-first, responsive widgets**
+    - **Persistent filters and cloud sync**
+    - **Widget types**: `today`, `grid`, `stats`, `chart`, `categories`, `goals`, `achievements`
+    - **Flexible scheduling**: (SCHEDULE: ...), (GOAL: ...), (TARGET: ...), (ACHIEVEMENT: ...)
+    - **Example usage and full documentation below**
+*   **Futurelog Widget**: Plan and visualize upcoming events, recurring items, and long-term goals with a calendar-style future log. Features include:
+    - **Scheduled and recurring events**
+    - **Show All toggle** for full list or calendar view
+    - **Widget type**: `FUTURELOG: [period]` (e.g., `FUTURELOG: 6-months`)
+    - **Example usage and full documentation below**
+# 📈 Habit Tracker Widget
+
+Focal's habit tracker is a modular, analytics-driven system for building and maintaining routines. All widgets are mobile-first and support advanced features:
+
+## Defining Habits
+
+Use the `HABITS: define` block to declare your habits, categories, goals, targets, schedules, and achievements:
+
+```
+HABITS: define
+- Meditate (CATEGORY: Wellness) (GOAL: every day) (SCHEDULE: everyday) (ACHIEVEMENT: 7 day streak = Movie night)
+- Exercise (CATEGORY: Health) (GOAL: 3 times per week) (SCHEDULE: Mon, Wed, Fri) (ACHIEVEMENT: 30 completions = New workout gear)
+- Read (CATEGORY: Learning) (TARGET: 30 pages) (GOAL: 5 times per week) (SCHEDULE: weekdays) (ACHIEVEMENT: 50 completions = Buy 3 new books)
+- Drink Water (CATEGORY: Health) (TARGET: 8 glasses) (GOAL: 7 days in a row) (ACHIEVEMENT: perfect week = Spa day)
+- Journal Writing (CATEGORY: Personal) (GOAL: 4 times per week) (SCHEDULE: Tue, Thu, Sat) (ACHIEVEMENT: 30 day streak = Beautiful new journal)
+- Practice Guitar (CATEGORY: Creative) (TARGET: 30 minutes) (GOAL: 3 times per week) (SCHEDULE: Mon, Wed, Fri) (ACHIEVEMENT: 25 completions = New guitar pick set)
+- Walk Steps (CATEGORY: Fitness) (TARGET: 10000 steps) (GOAL: every day) (SCHEDULE: everyday) (ACHIEVEMENT: perfect month = New running shoes)
+- Check Finances (CATEGORY: Finance) (GOAL: 4 times per month) (SCHEDULE: weekends) (ACHIEVEMENT: 20 completions = Financial planning book)
+```
+
+## Widget Types
+
+- `HABITS: today` — Interactive daily tracker
+- `HABITS: grid, this-month` — Calendar-style progress grid
+- `HABITS: stats` — Completion rates, streaks, and analytics
+- `HABITS: chart, [Habit Name], [period]` — Visual chart for a specific habit
+- `HABITS: categories` — Category analytics
+- `HABITS: goals` — Goal progress and insights
+- `HABITS: achievements` — Achievement gallery
+
+## Time Periods
+
+- `this-week`, `this-month`, `last-7-days`, `last-30-days`, `last-90-days`, `last-365-days`, etc.
+
+## Example
+
+```
+## My Habits
+HABITS: define
+- Meditate (CATEGORY: Wellness) (GOAL: every day) (SCHEDULE: everyday) (ACHIEVEMENT: 7 day streak = Movie night)
+- Read (CATEGORY: Learning) (TARGET: 30 pages) (GOAL: 5 times per week) (SCHEDULE: weekdays) (ACHIEVEMENT: 50 completions = Buy 3 new books)
+
+### Today's Progress
+HABITS: today
+
+### This Month's Overview
+HABITS: grid, this-month
+
+### Habit Statistics
+HABITS: stats
+
+### Meditation Progress
+HABITS: chart, Meditate, last-30-days
+```
+
+## Tips
+- Start with 2-3 habits
+- Make habits specific and measurable
+- Use achievements and streaks for motivation
+
+# 📅 Futurelog Widget
+
+Plan and visualize upcoming events, recurring items, and long-term goals.
+
+## Syntax
+
+```
+FUTURELOG: 6-months
+- SCHEDULED: 2025-08-01 Birthday party 🎉
+- SCHEDULED: 2025-09-15 Doctor appointment
+- REPEAT: every monday from 2025-07-14 to 2025-09-01 Weekly team meeting
+- REPEAT: 25.12 Christmas
+```
+
+## Features
+- Scheduled and recurring events
+- Calendar and list view
+- "Show All" toggle
+- Integrates with planner and notifications
+
+## Example
+
+```
+## Upcoming Events
+FUTURELOG: 3-months
+- SCHEDULED: 2025-08-01 Birthday party 🎉
+- REPEAT: every friday from 2025-07-18 to 2025-09-01 Weekly review
+```
+
+See the onboarding sample page for more usage ideas!
 
 *   **Dynamic Planner**: Seamlessly switch between a detailed **Weekly Planner** and a high-level **Monthly Calendar** view.
 *   **Powerful Note-Taking**: All notes are written in Markdown. Create a personal knowledge base with wiki-style `[[bi-directional links]]`.
