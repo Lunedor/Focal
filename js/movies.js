@@ -14,7 +14,6 @@ window.MovieTracker = (() => {
     const MOVIE_STATUSES = {
         'to-watch': { label: 'To Watch', color: 'var(--color-text)', icon: '🎬' },
         'watched': { label: 'Watched', color: 'var(--color-progress-bar)', icon: '✅' },
-        'favorites': { label: 'Favorites', color: 'var(--color-link)', icon: '⭐' },
         'dropped': { label: 'Dropped', color: '#ef4444', icon: '❌' }
     };
 
@@ -77,7 +76,7 @@ window.MovieTracker = (() => {
             totalMovies: allMovies.length,
             watched: allMovies.filter(([_, movie]) => movie.status === 'watched').length,
             toWatch: allMovies.filter(([_, movie]) => movie.status === 'to-watch').length,
-            favorites: allMovies.filter(([_, movie]) => movie.status === 'favorites').length,
+            favorites: allMovies.filter(([_, movie]) => movie.isFavorite).length,
             dropped: allMovies.filter(([_, movie]) => movie.status === 'dropped').length,
             watchedThisYear: 0,
             watchedThisMonth: 0
@@ -167,6 +166,7 @@ window.MovieTracker = (() => {
             genres: tmdbMovie.genres ? tmdbMovie.genres.map(g => g.name).join(', ') : '',
             runtime: tmdbMovie.runtime,
             status: 'to-watch',
+            isFavorite: false,
             addedDate: new Date().toISOString(), // Use full timestamp instead of just date
             personalRating: null,
             notes: '',
@@ -225,8 +225,10 @@ window.MovieTracker = (() => {
         
         // Apply current filter
         let filteredMovies = allMovies;
-        if (state.currentFilter !== 'all') {
+        if (state.currentFilter === 'to-watch' || state.currentFilter === 'watched' || state.currentFilter === 'dropped') {
             filteredMovies = allMovies.filter(([_, movie]) => movie.status === state.currentFilter);
+        } else if (state.currentFilter === 'favorites') {
+            filteredMovies = allMovies.filter(([_, movie]) => movie.isFavorite);
         }
         
         const pagination = paginateMovies(filteredMovies, state.currentPage);
@@ -245,7 +247,7 @@ window.MovieTracker = (() => {
                     <button class="filter-btn ${state.currentFilter === 'all' ? 'active' : ''}" data-filter="all">All (${allMovies.length})</button>
                     <button class="filter-btn ${state.currentFilter === 'to-watch' ? 'active' : ''}" data-filter="to-watch">To Watch (${allMovies.filter(([_, m]) => m.status === 'to-watch').length})</button>
                     <button class="filter-btn ${state.currentFilter === 'watched' ? 'active' : ''}" data-filter="watched">Watched (${allMovies.filter(([_, m]) => m.status === 'watched').length})</button>
-                    <button class="filter-btn ${state.currentFilter === 'favorites' ? 'active' : ''}" data-filter="favorites">Favorites (${allMovies.filter(([_, m]) => m.status === 'favorites').length})</button>
+                    <button class="filter-btn ${state.currentFilter === 'favorites' ? 'active' : ''}" data-filter="favorites">Favorites (${allMovies.filter(([_, m]) => m.isFavorite).length})</button>
                 </div>
                 <div class="movie-list">
                     ${renderMoviesList(pagination.movies)}
@@ -263,34 +265,36 @@ window.MovieTracker = (() => {
         
         return `
             <div class="movie-item" data-movie-id="${movieId}">
-                <div class="movie-poster">
-                    ${movieData.poster ? 
-                        `<img src="${movieData.poster}" alt="${escapeHtml(movieData.title)}" loading="lazy">` : 
-                        `<div class="movie-poster-placeholder">🎬</div>`
-                    }
+            <div class="movie-poster">
+                ${movieData.poster ? 
+                `<img src="${movieData.poster}" alt="${escapeHtml(movieData.title)}" loading="lazy">` : 
+                `<div class="movie-poster-placeholder">🎬</div>`
+                }
+            </div>
+            <div class="movie-info">
+                <div class="movie-title">${escapeHtml(movieData.title)} ${releaseYear ? `(${releaseYear})` : ''}
+                <button class="movie-favorite-btn" data-movie-id="${movieId}" title="Toggle Favorite" style="background:none;border:none;cursor:pointer;font-size:1.2em;vertical-align:middle;">${movieData.isFavorite ? '❤️' : '🤍'}</button>
                 </div>
-                <div class="movie-info">
-                    <div class="movie-title">${escapeHtml(movieData.title)} ${releaseYear ? `(${releaseYear})` : ''}</div>
-                    <div class="movie-meta">
-                        <span class="movie-status" style="color: ${statusConfig.color}">
-                            ${statusConfig.icon} ${statusConfig.label}
-                        </span>
-                        ${movieData.runtime ? `<span class="movie-runtime">${movieData.runtime}min</span>` : ''}
-                        ${movieData.rating ? `<span class="movie-tmdb-rating">⭐ ${movieData.rating.toFixed(1)}</span>` : ''}
-                    </div>
-                    ${personalRating ? `<div class="movie-personal-rating">${personalRating}</div>` : ''}
-                    ${watchedDate ? `<div class="movie-watched-date">Watched: ${watchedDate}</div>` : ''}
-                    ${movieData.notes ? `<div class="movie-notes">${escapeHtml(movieData.notes)}</div>` : ''}
+                <div class="movie-meta">
+                <span class="movie-status" style="color: ${statusConfig.color}">
+                    ${statusConfig.icon} ${statusConfig.label}
+                </span>
+                ${movieData.runtime ? `<span class="movie-runtime">${movieData.runtime}min</span>` : ''}
+                ${movieData.rating ? `<span class="movie-tmdb-rating">⭐ ${movieData.rating.toFixed(1)}</span>` : ''}
                 </div>
-                <div class="movie-actions">
-                    <select class="movie-status-select" data-movie-id="${movieId}">
-                        ${Object.entries(MOVIE_STATUSES).map(([status, config]) => 
-                            `<option value="${status}" ${movieData.status === status ? 'selected' : ''}>${config.label}</option>`
-                        ).join('')}
-                    </select>
-                    <button class="movie-edit-btn" data-movie-id="${movieId}">Edit</button>
-                    <button class="movie-remove-btn" data-movie-id="${movieId}">×</button>
-                </div>
+                ${movieData.personalRating ? `<div class="movie-personal-rating">${'★'.repeat(movieData.personalRating) + '☆'.repeat(5 - movieData.personalRating)}</div>` : ''}
+                ${watchedDate ? `<div class="movie-watched-date">Watched: ${watchedDate}</div>` : ''}
+                ${movieData.notes ? `<div class="movie-notes">${escapeHtml(movieData.notes)}</div>` : ''}
+            </div>
+            <div class="movie-actions">
+                <select class="movie-status-select" data-movie-id="${movieId}">
+                ${Object.entries(MOVIE_STATUSES).map(([status, config]) => 
+                    `<option value="${status}" ${movieData.status === status ? 'selected' : ''}>${config.label}</option>`
+                ).join('')}
+                </select>
+                <button class="movie-edit-btn" data-movie-id="${movieId}">Edit</button>
+                <button class="movie-remove-btn" data-movie-id="${movieId}">×</button>
+            </div>
             </div>
         `;
     }
@@ -312,8 +316,15 @@ window.MovieTracker = (() => {
         return `
             <div class="movie-tracker watchlist">
                 <div class="movie-header">
+                    <div class="movie-header">
                     <h4>Watchlist</h4>
                     <span class="movie-count">${toWatchMovies.length}</span>
+                </div>
+                    <button class="movie-add-btn">Add Movie</button>
+                </div>
+                <div class="movie-search" style="display: none;">
+                    <input type="text" placeholder="Search movies..." class="movie-search-input">
+                    <div class="movie-search-results"></div>
                 </div>
                 <div class="movie-simple-list">
                     ${pagination.movies.length === 0 ? 
@@ -364,7 +375,7 @@ window.MovieTracker = (() => {
 
     function renderFavoritesWidget(state) {
         const favoriteMovies = Object.entries(state.movies)
-            .filter(([_, movie]) => movie.status === 'favorites')
+            .filter(([_, movie]) => movie.isFavorite)
             .sort(([_, a], [__, b]) => new Date(b.addedDate) - new Date(a.addedDate));
         const pagination = paginateMovies(favoriteMovies, state.currentPage, 10);
         
@@ -525,6 +536,28 @@ window.MovieTracker = (() => {
                 filterMovies(filter);
             });
         });
+
+        // Favorite star button listeners
+        container.querySelectorAll('.movie-favorite-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const movieId = e.target.dataset.movieId;
+                toggleFavorite(movieId);
+            });
+        });
+    // --- FAVORITE TOGGLE ---
+    function toggleFavorite(movieId) {
+        loadMoviesFromStorage();
+        if (!state.movies[movieId]) return;
+        state.movies[movieId].isFavorite = !state.movies[movieId].isFavorite;
+        saveMoviesToStorage();
+        if (typeof renderApp === 'function') {
+            renderApp();
+        } else if (currentContainer) {
+            render(currentContainer, currentConfig);
+        }
+    }
 
         // Pagination buttons - individual listeners
         container.querySelectorAll('.pagination-btn').forEach(btn => {

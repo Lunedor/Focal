@@ -28,12 +28,13 @@
 .movie-count {
     background: var(--color-progress-bar-bg);
     color: var(--color-text);
-    padding: 4px 8px;
-    border-radius: 12px;
+    padding: 3px 9px;
+    border-radius: 50%;
     font-size: 0.8em;
     font-weight: 600;
     min-width: 20px;
     text-align: center;
+    margin-left: 8px;
 }
 
 .movie-add-btn {
@@ -478,7 +479,7 @@
 }
 
 .movie-tracker.favorites .movie-header h4::before {
-    content: "⭐";
+    content: "❤️";
     margin-right: 8px;
 }
 
