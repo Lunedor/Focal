@@ -163,8 +163,6 @@ function setupDragAndDrop(itemType, itemsArray, getData, setData) {
   function onDragStart(e) {
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', e.currentTarget.dataset.page);
-    // Add dragging class for visual feedback
-    setTimeout(() => e.currentTarget.classList.add('dragging'), 0);
   }
 
   function onDragOver(e) {
