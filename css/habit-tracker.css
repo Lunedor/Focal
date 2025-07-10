@@ -883,6 +883,8 @@ body.dark-mode .habit-cell.not-scheduled {
     display: flex;
     flex-direction: column;
     gap: 6px;
+    overflow-y: auto;
+    max-height: 580px;
 }
 
 .habit-form-group {
