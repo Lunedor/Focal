@@ -566,6 +566,11 @@ Use the checkbox interface in the watchlist to mark movies as watched - they'll 
     setStorage('movies-data', JSON.stringify(sampleMoviesData));
 
     // 10. Create a "Habits" page to showcase the habit tracker
+
+    // 13. Create a "Future Log" page to showcase the futurelog widget
+    const futurelogContent = `
+# Future Log 🗓️\n\nPlan your long-term events, deadlines, and recurring tasks with the Future Log widget.\n\n---\n\n## Upcoming Events\n\nFUTURELOG: 12-months\n- Project deadline (SCHEDULED: ${dayAfterTomorrowDateStr})\n- [ ] Renew passport (SCHEDULED: ${dateFns.format(dateFns.addDays(today, 30), 'yyyy-MM-dd')})\n- Team meeting (REPEAT: every monday)\n- [ ] Pay insurance (REPEAT: every 3 months from ${todayDateStr})\n\n---\n\n**How to use:**\n- Add new events or recurring tasks directly in the widget\n- Click a month to jump to that calendar\n- Remove or edit items via the UI\n\n**Widget Syntax:**\n\n\`FUTURELOG: 12-months\`\n\n- Use \`(SCHEDULED: YYYY-MM-DD)\` for one-time events\n- Use \`(REPEAT: every monday)\` or similar for recurring\n- Supports checkboxes for tasks\n\n---\n\nSee the main README for more details.\n    `.trim();
+    setStorage('page-Future Log', futurelogContent);
     const habitsContent = `
 # My Daily Habits 🎯
 

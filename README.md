@@ -4,9 +4,11 @@ A minimalist, local-first digital bullet journal and planner. Organize your task
 
 ![Focal Journal Screenshot](Screenshots/Screenshot_1.jpg)
 
+
 ## ✨ Features
 
 - **Weekly & Monthly Planner:** Plan your week and month with flexible, markdown-powered entries.
+- **Future Log Widget:** Visualize and manage long-term plans, recurring events, and scheduled tasks with a dedicated future log calendar widget. Supports adding, editing, and removing future events, recurring rules, and scheduled items.
 - **Task Management:** Create and track tasks with checkboxes and summaries.
 - **Goal Tracking:** Set goals, track progress, and visualize achievements.
 - **Habit Tracker:** Build routines, set targets, track streaks, and earn rewards.
@@ -28,6 +30,7 @@ A minimalist, local-first digital bullet journal and planner. Organize your task
 - **Libraries:** date-fns, marked.js, Feather Icons
 - **Storage:** Browser `localStorage` (default), Firebase (optional)
 
+
 ## 📚 Markdown Extensions
 
 Focal extends Markdown for rich planning:
@@ -39,11 +42,32 @@ Focal extends Markdown for rich planning:
 - `HABITS: today|grid|stats|chart|categories|goals|achievements` — Habit widgets
 - `MOOD: calendar|chart|circular, emoji|color|all, YYYY-MM-DD:mood` — Mood widgets
 - `FINANCE: summary|chart|chartpie, USD, this-month` — Finance widgets
+- `FUTURELOG: [options]` — Future log widget for long-term planning. Supports options like `6-months`, `12-months`, and displays scheduled/recurring items in a calendar view. Add entries with `SCHEDULED:` or `REPEAT:` syntax inside the widget block.
 - `BOOKS: full-tracker|to-read|stats|...` — Book widgets
 - `MOVIES: watchlist|watched|favorites|stats|...` — Movie widgets
 - `(SCHEDULED: YYYY-MM-DD)` — Schedule tasks/events
 - `(REPEAT: ...)` — Recurring events
 - `(NOTIFY: YYYY-MM-DD HH:mm)` — Push notifications
+## 🗓️ Future Log Widget Usage
+
+Add a future log widget to any page using:
+
+```
+FUTURELOG: 12-months
+- Project deadline (SCHEDULED: 2025-08-15)
+- [ ] Renew passport (SCHEDULED: 2025-09-01)
+- Team meeting (REPEAT: every monday)
+```
+
+**Features:**
+- Visual calendar for 6 or 12 months
+- Add scheduled or recurring events (supports checkboxes)
+- Remove or edit items via the UI
+- Click a month to jump to that view
+- Markdown export/import compatible
+
+See the sample data for a demonstration.
+
 
 ## 🚀 Getting Started
 
