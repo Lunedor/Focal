@@ -7,6 +7,24 @@ function insertMarkdown(textarea, { prefix, suffix = '' }) {
     const originalValue = textarea.value;
     const selectedText = originalValue.substring(start, end);
 
+    // Special handling for (SCHEDULED: ), (REPEAT: ), (NOTIFY: ), PROGRESS: []
+    const cursorInMiddleCases = [
+        { prefix: '(SCHEDULED: ', suffix: ')' },
+        { prefix: '(REPEAT: ', suffix: ')' },
+        { prefix: '(NOTIFY: ', suffix: ')' },
+        { prefix: 'PROGRESS: [', suffix: ']' }
+    ];
+    const matchCase = cursorInMiddleCases.find(
+        c => prefix === c.prefix && suffix === c.suffix
+    );
+    if (matchCase && !selectedText) {
+        const newText = prefix + suffix;
+        textarea.value = originalValue.substring(0, start) + newText + originalValue.substring(end);
+        textarea.focus();
+        // Place cursor between the parentheses/brackets
+        textarea.selectionStart = textarea.selectionEnd = start + prefix.length;
+        return;
+    }
     if (prefix === '- [ ] ') {
         const lineStart = originalValue.lastIndexOf('\n', start - 1) + 1;
         let lineEnd = originalValue.indexOf('\n', end);
@@ -107,11 +125,11 @@ const EditModeManager = {
                 { separator: true },
                 { icon: 'list', action: 'tasks', title: 'Insert TASKS:', md: { prefix: 'TASKS:\n' } },
                 { icon: 'target', action: 'goal', title: 'Insert GOAL:', md: { prefix: 'GOAL: ' } },
-                { icon: 'bar-chart-2', action: 'progress', title: 'Insert PROGRESS: []', md: { prefix: 'PROGRESS: []' } },
+                { icon: 'bar-chart-2', action: 'progress', title: 'Insert PROGRESS: []', md: { prefix: 'PROGRESS: [', suffix: ']' } },
                 { separator: true },
-                { icon: 'clock', action: 'scheduled', title: 'Insert (SCHEDULED: )', md: { prefix: '(SCHEDULED: )' } },
-                { icon: 'repeat', action: 'repeat', title: 'Insert (REPEAT: )', md: { prefix: '(REPEAT: )' } },
-                { icon: 'bell', action: 'notify', title: 'Insert (NOTIFY: )', md: { prefix: '(NOTIFY: )' } },
+                { icon: 'clock', action: 'scheduled', title: 'Insert (SCHEDULED: )', md: { prefix: '(SCHEDULED: ', suffix: ')' } },
+                { icon: 'repeat', action: 'repeat', title: 'Insert (REPEAT: )', md: { prefix: '(REPEAT: ', suffix: ')' } },
+                { icon: 'bell', action: 'notify', title: 'Insert (NOTIFY: )', md: { prefix: '(NOTIFY: ', suffix: ')' } },
                 { separator: true },
                 { icon: 'calendar', action: 'custom-date', title: 'Insert Date/Time', md: null },
                 { separator: true },
@@ -214,7 +232,7 @@ const EditModeManager = {
         if (toolbar && toolbar.contains(ev.target)) return;
         
         // Don't close edit mode if clicking on a dropdown
-        if (ev.target.closest('.finance-dropdown, .mood-dropdown, .books-dropdown, .movies-dropdown, .futurelog-dropdown, .date-dropdown')) {
+        if (ev.target.closest('.finance-dropdown, .mood-dropdown, .books-dropdown, .movies-dropdown, .futurelog-dropdown, .date-dropdown, .fj-date-picker-popup')) {
             return;
         }
         
