@@ -163,8 +163,6 @@ function setupDragAndDrop(itemType, itemsArray, getData, setData) {
   function onDragStart(e) {
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', e.currentTarget.dataset.page);
-    // Add dragging class for visual feedback
-    setTimeout(() => e.currentTarget.classList.add('dragging'), 0);
   }
 
   function onDragOver(e) {
@@ -203,10 +201,8 @@ function setupDragAndDrop(itemType, itemsArray, getData, setData) {
       dragState.placeholder.className = 'placeholder';
       dragState.placeholder.style.height = `${dragState.dragItem.offsetHeight}px`;
       
-      // --- NEWLY ADDED LINE ---
       // Set the placeholder's text to match the dragged item's page name
       dragState.placeholder.textContent = dragState.dragItem.dataset.page;
-      // --- END OF NEW LINE ---
 
       dragState.dragItem.parentNode.insertBefore(dragState.placeholder, dragState.dragItem);
 
