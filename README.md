@@ -61,11 +61,12 @@ Focal extends Markdown for rich planning:
 
 ## 📝 Example Usage
 
-
+```
 # From within the project directory
 python -m http.server
 # Or for Python 2
 # python -m SimpleHTTPServer
+```
 
 Now you can access the app at http://localhost:8000.
 
