@@ -378,4 +378,5 @@ textarea:focus {
   margin: 0;
   max-height: 350px;
   overflow-y: auto;
+  overflow-x: hidden;
 }
