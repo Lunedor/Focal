@@ -103,10 +103,12 @@ const EditModeManager = {
         
         if (key && key.startsWith('page-')) {
             buttons = [
+                ...buttons,
                 { separator: true },
                 { icon: 'list', action: 'tasks', title: 'Insert TASKS:', md: { prefix: 'TASKS:\n' } },
                 { icon: 'target', action: 'goal', title: 'Insert GOAL:', md: { prefix: 'GOAL: ' } },
                 { icon: 'bar-chart-2', action: 'progress', title: 'Insert PROGRESS: []', md: { prefix: 'PROGRESS: []' } },
+                { separator: true },
                 { icon: 'clock', action: 'scheduled', title: 'Insert (SCHEDULED: )', md: { prefix: '(SCHEDULED: )' } },
                 { icon: 'repeat', action: 'repeat', title: 'Insert (REPEAT: )', md: { prefix: '(REPEAT: )' } },
                 { icon: 'bell', action: 'notify', title: 'Insert (NOTIFY: )', md: { prefix: '(NOTIFY: )' } },
@@ -114,12 +116,13 @@ const EditModeManager = {
                 { icon: 'calendar', action: 'custom-date', title: 'Insert Date/Time', md: null },
                 { separator: true },
                 { icon: 'bookmark', action: 'futurelog', title: 'Insert Future Log', md: null },
+                { icon: 'rotate-cw', action: 'habit', title: 'Insert Habit Tracker', md: { prefix: 'HABITS: day' } },
                 { icon: 'dollar-sign', action: 'finance', title: 'Insert Finance Tracker', md: null },
                 { icon: 'smile', action: 'mood', title: 'Insert Mood Tracker', md: null },
                 { icon: 'book-open', action: 'books', title: 'Insert Book Tracker', md: null },
                 { icon: 'film', action: 'movies', title: 'Insert Movie Tracker', md: null },
                 { separator: true },
-                ...buttons
+                
             ];
         }
 
