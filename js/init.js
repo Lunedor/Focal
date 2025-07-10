@@ -109,113 +109,61 @@ function setupDragAndDrop(itemType, itemsArray, getData, setData) {
   let dragState = {
     isDragging: false,
     dragItem: null,    // The <li> element being dragged
-    dragType: null,    // 'pinned' or 'unpinned'
     placeholder: null,
+    dragTimer: null,
   };
 
   const items = DOM.libraryNavList.querySelectorAll(`.library-page-item.${itemType}`);
 
   // --- Attach Event Listeners ---
   items.forEach(item => {
-    // Both mouse and touch start here
-    item.addEventListener('pointerdown', onPointerDown);
-
-    // Only for native mouse drag-and-drop
+    // Native HTML5 Drag & Drop for Mouse
+    item.addEventListener('dragstart', onDragStart);
     item.addEventListener('dragover', onDragOver);
     item.addEventListener('dragleave', onDragLeave);
     item.addEventListener('drop', onDrop);
-    item.addEventListener('dragstart', onDragStart);
     item.addEventListener('dragend', onDragEnd);
+
+    // Touch events for Mobile "Hold and Drag"
+    item.addEventListener('touchstart', onTouchStart, { passive: true });
+    item.addEventListener('touchend', onTouchEnd);
+    item.addEventListener('touchcancel', onTouchEnd);
   });
 
-  // --- Event Handler Functions ---
+  // --- Reordering Logic ---
+  function handleReorder(draggedPage, targetPage) {
+    if (draggedPage === targetPage) return; // Dropped on itself
 
-  function onPointerDown(e) {
-    // Ignore right-clicks or non-primary pointers
-    if (e.button !== 0 || !e.isPrimary) return;
+    let currentItems = getData(); // Get the latest array from storage
+    const srcIdx = currentItems.indexOf(draggedPage);
+    if (srcIdx === -1) return; // Item not found
 
-    // For touch, we need to manually start the drag after a delay
-    if (e.pointerType === 'touch') {
-      dragState.dragItem = e.currentTarget;
+    // Remove item from its current position
+    const [moved] = currentItems.splice(srcIdx, 1);
 
-      // Listen on the window to track movement anywhere on the screen
-      window.addEventListener('pointermove', onPointerMove, { passive: false });
-      window.addEventListener('pointerup', onPointerUp);
-
-      // Start a timer to differentiate a tap/click from a drag
-      dragState.dragTimer = setTimeout(() => {
-        // If the timer completes, we are officially dragging
-        startTouchDrag();
-      }, 200);
-    } else {
-      // For mouse, we just enable the native draggable attribute.
-      // The browser will then fire the 'dragstart' event.
-      e.currentTarget.draggable = true;
-    }
-  }
-
-  function onPointerMove(e) {
-    // This function is ONLY for touch dragging
-    if (!dragState.isDragging) {
-      // If the user moves their finger too much, cancel the drag timer
-      if (dragState.dragTimer) {
-        clearTimeout(dragState.dragTimer);
-        dragState.dragTimer = null;
-      }
-      return;
-    }
-
-    // Prevent page scrolling while dragging
-    e.preventDefault();
-
-    // Find what element is under the finger
-    const elementBelow = document.elementFromPoint(e.clientX, e.clientY);
-    const dropTarget = elementBelow?.closest(`.library-page-item.${itemType}`);
-
-    // Update the visual "drag-over" indicator
-    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-    if (dropTarget && dropTarget !== dragState.dragItem) {
-      dropTarget.classList.add('drag-over');
-    }
-  }
-  
-  // --- Also, replace the onPointerUp function ---
-
-  function onPointerUp(e) {
-    // This function is ONLY for touch dragging
-    if (dragState.dragTimer) {
-      clearTimeout(dragState.dragTimer);
-      dragState.dragTimer = null;
-    }
-
-    if (dragState.isDragging) {
-      // This was a touch drag, so we handle the drop logic here
-      const elementBelow = document.elementFromPoint(e.clientX, e.clientY);
-      const dropTarget = elementBelow?.closest(`.library-page-item.${itemType}`);
-      
-      if (dropTarget) {
-        // reorderItems will now handle its own cleanup
-        reorderItems(dragState.dragItem, dropTarget);
+    if (targetPage) {
+      const targetIdx = currentItems.indexOf(targetPage);
+      if (targetIdx > -1) {
+        // Insert before the target
+        currentItems.splice(targetIdx, 0, moved);
       } else {
-        // If we didn't drop on a valid target, we still need to clean up.
-        cleanup();
+        // Target not found (edge case), append to the end
+        currentItems.push(moved);
       }
     } else {
-      // If we weren't even dragging (i.e., it was a tap), we still might have
-      // active window listeners that need to be removed.
-      cleanup();
+      // No target page means dropping at the end of the list
+      currentItems.push(moved);
     }
+    
+    setData(currentItems);
+    renderSidebar(); // Re-render to show new order and re-attach listeners
   }
 
   // --- Native HTML5 Drag Handlers (for Mouse) ---
-
   function onDragStart(e) {
-    // Set the data to be transferred
     e.dataTransfer.effectAllowed = 'move';
-    const pageName = e.currentTarget.dataset.page;
-    e.dataTransfer.setData('text/plain', pageName);
-
-    // Add a class for visual feedback
+    e.dataTransfer.setData('text/plain', e.currentTarget.dataset.page);
+    // Add dragging class for visual feedback
     setTimeout(() => e.currentTarget.classList.add('dragging'), 0);
   }
 
@@ -231,63 +179,84 @@ function setupDragAndDrop(itemType, itemsArray, getData, setData) {
 
   function onDrop(e) {
     e.preventDefault();
+    e.currentTarget.classList.remove('drag-over');
     const draggedPage = e.dataTransfer.getData('text/plain');
-    const sourceItem = DOM.libraryNavList.querySelector(`[data-page="${draggedPage}"]`);
-    const targetItem = e.currentTarget;
-    
-    if (sourceItem && targetItem && sourceItem !== targetItem) {
-        reorderItems(sourceItem, targetItem);
-    }
+    const targetPage = e.currentTarget.dataset.page;
+    handleReorder(draggedPage, targetPage);
   }
 
   function onDragEnd(e) {
-    // This is the native equivalent of cleanup for mouse
-    e.currentTarget.draggable = false;
     cleanup();
   }
 
-  // --- Helper Functions ---
+  // --- Touch Event Handlers (for Mobile) ---
+    // --- Touch Event Handlers (for Mobile) ---
+  function onTouchStart(e) {
+    dragState.dragItem = e.currentTarget;
+    // Start drag after a long press (e.g., 500ms) to allow for scrolling
+    dragState.dragTimer = setTimeout(() => {
+      dragState.isDragging = true;
+      dragState.dragItem.classList.add('dragging');
 
-  function startTouchDrag() {
-    if (!dragState.dragItem) return;
-    dragState.isDragging = true;
+      // Create a placeholder
+      dragState.placeholder = document.createElement('li');
+      dragState.placeholder.className = 'placeholder';
+      dragState.placeholder.style.height = `${dragState.dragItem.offsetHeight}px`;
+      
+      // Set the placeholder's text to match the dragged item's page name
+      dragState.placeholder.textContent = dragState.dragItem.dataset.page;
 
-    // Create placeholder and apply styles
-    dragState.dragItem.classList.add('dragging');
-    const placeholder = dragState.dragItem.cloneNode(true);
-    placeholder.classList.add('drag-placeholder');
-    dragState.dragItem.parentNode.insertBefore(placeholder, dragState.dragItem);
-    dragState.placeholder = placeholder;
-    dragState.dragItem.style.opacity = '0.5';
-    document.body.style.userSelect = 'none'; // Prevent text selection
+      dragState.dragItem.parentNode.insertBefore(dragState.placeholder, dragState.dragItem);
+
+      // Add global listeners to track finger movement outside the original item
+      document.addEventListener('touchmove', onTouchMove, { passive: false });
+    }, 500);
   }
 
-  function reorderItems(sourceItem, targetItem) {
-    const draggedPage = sourceItem.dataset.page;
-    const targetPage = targetItem.dataset.page;
+  function onTouchMove(e) {
+    if (!dragState.isDragging) return;
+    e.preventDefault(); // Prevent scrolling while dragging
 
-    // Create a mutable copy of the array for this item type
-    let currentItems = itemsArray.slice();
+    const touch = e.touches[0];
+    const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+    const dropTarget = targetElement ? targetElement.closest(`.library-page-item.${itemType}`) : null;
 
-    const srcIdx = currentItems.indexOf(draggedPage);
-    const targetIdx = currentItems.indexOf(targetPage);
-
-    if (srcIdx > -1 && targetIdx > -1) {
-      cleanup();
-      
-      // Perform the reorder
-      const [moved] = currentItems.splice(srcIdx, 1);
-      currentItems.splice(targetIdx, 0, moved);
-
-      // Save the new order and re-render the sidebar onto a clean DOM
-      setData(currentItems);
-      renderSidebar();
+    if (dropTarget && dropTarget !== dragState.dragItem) {
+      const rect = dropTarget.getBoundingClientRect();
+      // Determine if touch is in the top or bottom half of the target item
+      const nextSibling = (touch.clientY > rect.top + rect.height / 2) ? dropTarget.nextSibling : dropTarget;
+      dropTarget.parentNode.insertBefore(dragState.placeholder, nextSibling);
     }
   }
 
- 
+  function onTouchEnd(e) {
+    // Clear the long-press timer if the touch ends before it fires
+    clearTimeout(dragState.dragTimer);
 
+    if (dragState.isDragging) {
+      const draggedPage = dragState.dragItem.dataset.page;
+      // The element after the placeholder is our target
+      let nextEl = dragState.placeholder.nextElementSibling;
+      // If the next element is the item we were dragging, get the one after it
+      if (nextEl === dragState.dragItem) {
+        nextEl = nextEl.nextElementSibling;
+      }
+      const targetPage = nextEl ? nextEl.dataset.page : null;
+      handleReorder(draggedPage, targetPage);
+    }
+    // Always run cleanup
+    cleanup();
+  }
+
+  // --- Helper & Cleanup Functions ---
   function cleanup() {
+    // Clear long-press timer
+    if (dragState.dragTimer) {
+      clearTimeout(dragState.dragTimer);
+    }
+    // Remove global touch listeners
+    document.removeEventListener('touchmove', onTouchMove);
+
     // Remove all visual styles and placeholders
     document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
     document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
@@ -295,20 +264,11 @@ function setupDragAndDrop(itemType, itemsArray, getData, setData) {
     if (dragState.placeholder) {
       dragState.placeholder.remove();
     }
-    if (dragState.dragItem) {
-      dragState.dragItem.style.opacity = '';
-    }
-    document.body.style.userSelect = '';
-
-    // Remove temporary window listeners for touch
-    window.removeEventListener('pointermove', onPointerMove);
-    window.removeEventListener('pointerup', onPointerUp);
 
     // Reset the state object for the next operation
     dragState = {
       isDragging: false,
       dragItem: null,
-      dragType: null,
       placeholder: null,
       dragTimer: null
     };
