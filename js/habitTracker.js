@@ -2803,104 +2803,105 @@ const HabitTracker = (function() {
         return html;
     }
     
-    function renderAchievementsWidget() {
-        const allAchievements = getAllAchievements();
-        const definitions = getHabitDefinitions();
-        const achievementList = [];
-        const availableAchievements = [];
-        
-        // Flatten all achievements into a list with metadata
-        for (const habitId in allAchievements) {
-            const habitAchievements = allAchievements[habitId];
-            for (const achievementId in habitAchievements) {
-                achievementList.push(habitAchievements[achievementId]);
-            
+// Helper to prevent XSS attacks by escaping HTML special characters.
+const escapeHTML = (str) => {
+    if (typeof str !== 'string') return str;
+    return str.replace(/[&<>"']/g, (match) => {
+        switch (match) {
+            case '&': return '&';
+            case '<': return '<';
+            case '>': return '>';
+            case '"': return '"';
+            case "'": return '"';
+            default: return match;
         }
-        
-        // Find available (not yet earned) achievements
-        for (const habit of definitions) {
-            if (habit.achievement) {
-                const achievements = Array.isArray(habit.achievement) ? habit.achievement : [habit.achievement];
-                const habitAchievements = allAchievements[habit.id] || {};
-                
-                for (const achievement of achievements) {
-                    if (!habitAchievements[achievement.id]) {
-                        // Calculate progress for this achievement
-                        const progress = calculateAchievementProgress(habit, achievement);
-                        availableAchievements.push({
-                            ...achievement,
-                            habitName: habit.name,
-                            habitId: habit.id,
-                            progress
-                        });
-                    }
-                }
-            }
-        }
-        
-        // Sort by earned date (newest first)
-        achievementList.sort((a, b) => new Date(b.earnedDate) - new Date(a.earnedDate));
-        
-        // Sort available achievements by progress (closest to completion first)
-        availableAchievements.sort((a, b) => b.progress.percentage - a.progress.percentage);
-        
-        if (achievementList.length === 0 && availableAchievements.length === 0) {
-            return `<div class="habit-widget">
-                <div class="habit-header">
-                    <div class="habit-header-content">
-                        <h3>🏆 Achievements</h3>
-                        <div class="habit-help">
-                            <span>🎉 Unlock achievements by reaching habit milestones! Add some achievement rewards to your habits to get started.</span>
-                            <br><br>
-                            <strong>Achievement types you can earn:</strong><br>
-                            • <strong>Streaks:</strong> "7 day streak = Movie night"<br>
-                            • <strong>Total completions:</strong> "50 completions = New gear"<br>
-                            • <strong>Perfect periods:</strong> "perfect week = Treat myself"<br>
-                            • <strong>Multiple rewards:</strong> Add several achievements per habit<br>
-                            <br>
-                            <strong>Example habits with achievements:</strong><br>
-                            <code>- Exercise (ACHIEVEMENT: 7 day streak = Movie night)</code><br>
-                            <code>- Read (ACHIEVEMENT: 30 completions = Buy new books)</code><br>
-                            <code>- Meditate (ACHIEVEMENT: perfect week = Spa day)</code>
-                        </div>
+    });
+};
+
+// --- RENDER HELPER FUNCTIONS (for readability and reusability) ---
+
+function renderEarnedCard(achievement) {
+    const categoryEmoji = getCategoryEmoji(getHabitCategory(achievement.habitName));
+    const timeAgo = getTimeAgo(new Date(achievement.earnedDate));
+
+    return `
+        <div class="achievement-card earned">
+            <div class="achievement-card-header">
+                <div class="achievement-icon-large">🏆</div>
+                <div class="achievement-type-badge earned">${escapeHTML(getAchievementTypeName(achievement.type))}</div>
+            </div>
+            <div class="achievement-card-content">
+                <div class="achievement-habit-info">
+                    ${escapeHTML(categoryEmoji)} ${escapeHTML(achievement.habitName)}
+                </div>
+                <div class="achievement-reward-title">
+                    ${escapeHTML(achievement.reward)}
+                </div>
+                <div class="achievement-description">
+                    ${escapeHTML(getAchievementDescription(achievement))}
+                </div>
+            </div>
+            <div class="achievement-card-footer">
+                <div class="achievement-earned-date">
+                    🎉 Earned ${escapeHTML(timeAgo)}
+                </div>
+            </div>
+        </div>`;
+}
+
+function renderAvailableCard(achievement) {
+    const categoryEmoji = getCategoryEmoji(getHabitCategory(achievement.habitName));
+    const progressPercentage = achievement.progress.percentage;
+    const isCloseToEarning = progressPercentage >= 80;
+
+    return `
+        <div class="achievement-card available ${isCloseToEarning ? 'close-to-earning' : ''}">
+            <div class="achievement-card-header">
+                <div class="achievement-icon-large">🎯</div>
+                <div class="achievement-type-badge available">${escapeHTML(getAchievementTypeName(achievement.type))}</div>
+            </div>
+            <div class="achievement-card-content">
+                <div class="achievement-habit-info">
+                    ${escapeHTML(categoryEmoji)} ${escapeHTML(achievement.habitName)}
+                </div>
+                <div class="achievement-reward-title">
+                    ${escapeHTML(achievement.reward)}
+                </div>
+                <div class="achievement-description">
+                    ${escapeHTML(getAchievementDescription(achievement))}
+                </div>
+                <div class="achievement-progress">
+                    <div class="achievement-progress-text">
+                        ${achievement.progress.current} / ${achievement.progress.target}
+                        ${isCloseToEarning ? '🔥 Almost there!' : ''}
                     </div>
-                    <div class="finance-widget-controls">
-                        <button class="finance-add-button habit-add-button">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                            New Habit
-                        </button>
+                    <div class="achievement-progress-bar">
+                        <div class="achievement-progress-fill" style="width: ${progressPercentage}%"></div>
                     </div>
                 </div>
-            </div>`;
-        }
-        
-        const totalEarned = achievementList.length;
-        const totalAvailable = availableAchievements.length;
-        const totalPossible = totalEarned + totalAvailable;
-        const completionPercentage = totalPossible > 0 ? Math.round((totalEarned / totalPossible) * 100) : 0;
-        
-        let html = `<div class="habit-widget achievements">
+            </div>
+        </div>`;
+}
+
+function renderEmptyState() {
+    return `
+        <div class="habit-widget">
             <div class="habit-header">
                 <div class="habit-header-content">
                     <h3>🏆 Achievements</h3>
-                    <div class="achievement-summary">
-                        <div class="achievement-stats">
-                            <div class="achievement-stat">
-                                <div class="achievement-stat-number">${totalEarned}</div>
-                                <div class="achievement-stat-label">Earned</div>
-                            </div>
-                            <div class="achievement-stat">
-                                <div class="achievement-stat-number">${totalAvailable}</div>
-                                <div class="achievement-stat-label">Available</div>
-                            </div>
-                            <div class="achievement-stat">
-                                <div class="achievement-stat-number">${completionPercentage}%</div>
-                                <div class="achievement-stat-label">Complete</div>
-                            </div>
-                        </div>
-                        <div class="achievement-progress-bar">
-                            <div class="achievement-progress-fill" style="width: ${completionPercentage}%"></div>
-                        </div>
+                    <div class="habit-help">
+                        <span>🎉 Unlock achievements by reaching habit milestones! Add some achievement rewards to your habits to get started.</span>
+                        <br><br>
+                        <strong>Achievement types you can earn:</strong><br>
+                        • <strong>Streaks:</strong> "7 day streak = Movie night"<br>
+                        • <strong>Total completions:</strong> "50 completions = New gear"<br>
+                        • <strong>Perfect periods:</strong> "perfect week = Treat myself"<br>
+                        • <strong>Multiple rewards:</strong> Add several achievements per habit<br>
+                        <br>
+                        <strong>Example habits with achievements:</strong><br>
+                        <code>- Exercise (ACHIEVEMENT: 7 day streak = Movie night)</code><br>
+                        <code>- Read (ACHIEVEMENT: 30 completions = Buy new books)</code><br>
+                        <code>- Meditate (ACHIEVEMENT: perfect week = Spa day)</code>
                     </div>
                 </div>
                 <div class="finance-widget-controls">
@@ -2910,7 +2911,113 @@ const HabitTracker = (function() {
                     </button>
                 </div>
             </div>
-            
+        </div>`;
+}
+
+// --- MAIN WIDGET FUNCTION ---
+
+function renderAchievementsWidget() {
+    // --- 1. DATA PREPARATION ---
+    const allAchievements = getAllAchievements();
+    const definitions = getHabitDefinitions();
+    const earnedAchievements = [];
+    const availableAchievements = [];
+
+    // Flatten all earned achievements into a single list
+    for (const habitId in allAchievements) {
+        const habitAchievements = allAchievements[habitId];
+        for (const achievementId in habitAchievements) {
+            earnedAchievements.push(habitAchievements[achievementId]);
+        } // FIXED: Added missing closing brace here
+    }
+
+    // Find available (not yet earned) achievements and calculate their progress
+    for (const habit of definitions) {
+        if (!habit.achievement) continue;
+
+        const achievements = Array.isArray(habit.achievement) ? habit.achievement : [habit.achievement];
+        const earnedHabitAchievements = allAchievements[habit.id] || {};
+
+        for (const achievement of achievements) {
+            if (!earnedHabitAchievements[achievement.id]) {
+                availableAchievements.push({
+                    ...achievement,
+                    habitName: habit.name,
+                    habitId: habit.id,
+                    progress: calculateAchievementProgress(habit, achievement),
+                });
+            }
+        }
+    }
+
+    // Sort the lists
+    earnedAchievements.sort((a, b) => new Date(b.earnedDate) - new Date(a.earnedDate));
+    availableAchievements.sort((a, b) => b.progress.percentage - a.progress.percentage);
+
+    // --- 2. RENDER EMPTY STATE (if necessary) ---
+    if (earnedAchievements.length === 0 && availableAchievements.length === 0) {
+        return renderEmptyState();
+    }
+
+    // --- 3. CALCULATE STATS ---
+    const totalEarned = earnedAchievements.length;
+    const totalAvailable = availableAchievements.length;
+    const totalPossible = totalEarned + totalAvailable;
+    const completionPercentage = totalPossible > 0 ? Math.round((totalEarned / totalPossible) * 100) : 0;
+    
+    // --- 4. GENERATE DYNAMIC CONTENT ---
+    const earnedCardsHtml = earnedAchievements.length > 0
+        ? earnedAchievements.map(renderEarnedCard).join('')
+        : `<div class="achievement-empty">
+               <div class="achievement-empty-icon">🎯</div>
+               <div class="achievement-empty-title">No achievements earned yet</div>
+               <div class="achievement-empty-message">Keep working on your habits to unlock achievements!</div>
+           </div>`;
+
+    const availableCardsHtml = availableAchievements.length > 0
+        ? availableAchievements.map(renderAvailableCard).join('')
+        : `<div class="achievement-empty">
+               <div class="achievement-empty-icon">✨</div>
+               <div class="achievement-empty-title">All achievements earned!</div>
+               <div class="achievement-empty-message">Add more achievement rewards to your habits to unlock more.</div>
+           </div>`;
+
+    // --- 5. ASSEMBLE THE FINAL WIDGET ---
+    // FIXED: The duplicated, broken code block at the end has been removed.
+    return `
+        <div class="habit-widget achievements">
+            <div class="habit-header">
+                <div class="habit-header-content">
+                    <div style="
+    display: flex;
+    justify-content: space-between;
+"><h3>🏆 Achievements</h3>
+                    <div class="finance-widget-controls">
+                    <button class="finance-add-button habit-add-button">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        New Habit
+                    </button></div>
+                </div><div class="achievement-summary">
+                        <div class="achievement-stats">
+                            <div class="achievement-stat">
+                                <div class="achievement-stat-number">0</div>
+                                <div class="achievement-stat-label">Earned</div>
+                            </div>
+                            <div class="achievement-stat">
+                                <div class="achievement-stat-number">8</div>
+                                <div class="achievement-stat-label">Available</div>
+                            </div>
+                            <div class="achievement-stat">
+                                <div class="achievement-stat-number">0%</div>
+                                <div class="achievement-stat-label">Complete</div>
+                            </div>
+                        </div>
+                        <div class="achievement-progress-bar">
+                            <div class="achievement-progress-fill" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="achievement-tabs">
                 <button class="achievement-tab active" data-tab="earned">
                     🏆 Earned (${totalEarned})
@@ -2922,129 +3029,19 @@ const HabitTracker = (function() {
             
             <div class="achievement-content">
                 <div class="achievement-tab-content active" data-content="earned">
-                    <div class="achievements-grid">`;
-        
-        if (achievementList.length === 0) {
-            html += `<div class="achievement-empty">
-                <div class="achievement-empty-icon">🎯</div>
-                <div class="achievement-empty-title">No achievements earned yet</div>
-                <div class="achievement-empty-message">Keep working on your habits to unlock achievements!</div>
-            </div>`;
-        } else {
-            for (const achievement of achievementList) {
-                const categoryEmoji = getCategoryEmoji(getHabitCategory(achievement.habitName));
-                const earnedDate = new Date(achievement.earnedDate);
-                const timeAgo = getTimeAgo(earnedDate);
-                
-                html += `<div class="achievement-card earned">
-                    <div class="achievement-card-header">
-                        <div class="achievement-icon-large">🏆</div>
-                        <div class="achievement-type-badge earned">${getAchievementTypeName(achievement.type)}</div>
+                    <div class="achievements-grid">
+                        ${earnedCardsHtml}
                     </div>
-                    <div class="achievement-card-content">
-                        <div class="achievement-habit-info">
-                            ${categoryEmoji} ${achievement.habitName}
-                        </div>
-                        <div class="achievement-reward-title">
-                            ${achievement.reward}
-                        </div>
-                        <div class="achievement-description">
-                            ${getAchievementDescription(achievement)}
-                        </div>
-                    </div>
-                    <div class="achievement-card-footer">
-                        <div class="achievement-earned-date">
-                            🎉 Earned ${timeAgo}
-                        </div>
-                    </div>
-                </div>`;
-            }
-        }
-        
-        html += `</div>
                 </div>
                 
                 <div class="achievement-tab-content" data-content="available">
-                    <div class="achievements-grid">`;
-        
-        if (availableAchievements.length === 0) {
-            html += `<div class="achievement-empty">
-                <div class="achievement-empty-icon">✨</div>
-                <div class="achievement-empty-title">All achievements earned!</div>
-                <div class="achievement-empty-message">Add more achievement rewards to your habits to unlock more.</div>
-            </div>`;
-        } else {
-            for (const achievement of availableAchievements) {
-                const categoryEmoji = getCategoryEmoji(getHabitCategory(achievement.habitName));
-                const progressPercentage = achievement.progress.percentage;
-                const isCloseToEarning = progressPercentage >= 80;
-                
-                html += `<div class="achievement-card available ${isCloseToEarning ? 'close-to-earning' : ''}">
-                    <div class="achievement-card-header">
-                        <div class="achievement-icon-large">🎯</div>
-                        <div class="achievement-type-badge available">${getAchievementTypeName(achievement.type)}</div>
+                    <div class="achievements-grid">
+                        ${availableCardsHtml}
                     </div>
-                    <div class="achievement-card-content">
-                        <div class="achievement-habit-info">
-                            ${categoryEmoji} ${achievement.habitName}
-                        </div>
-                        <div class="achievement-reward-title">
-                            ${achievement.reward}
-                        </div>
-                        <div class="achievement-description">
-                            ${getAchievementDescription(achievement)}
-                        </div>
-                        <div class="achievement-progress">
-                            <div class="achievement-progress-text">
-                                ${achievement.progress.current} / ${achievement.progress.target}
-                                ${isCloseToEarning ? '🔥 Almost there!' : ''}
-                            </div>
-                            <div class="achievement-progress-bar">
-                                <div class="achievement-progress-fill" style="width: ${progressPercentage}%"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>`;
-            }
-        }
-        
-        html += `</div>
                 </div>
             </div>
         </div>`;
-        
-        return html;
-            const categoryEmoji = getCategoryEmoji(getHabitCategory(achievement.habitName));
-            const earnedDate = new Date(achievement.earnedDate);
-            const timeAgo = getTimeAgo(earnedDate);
-            
-            html += `<div class="achievement-card">
-                <div class="achievement-card-header">
-                    <div class="achievement-icon-large">🏆</div>
-                    <div class="achievement-type-badge">${getAchievementTypeName(achievement.type)}</div>
-                </div>
-                <div class="achievement-card-content">
-                    <div class="achievement-habit-info">
-                        ${categoryEmoji} ${achievement.habitName}
-                    </div>
-                    <div class="achievement-reward-title">
-                        ${achievement.reward}
-                    </div>
-                    <div class="achievement-description">
-                        ${getAchievementDescription(achievement)}
-                    </div>
-                </div>
-                <div class="achievement-card-footer">
-                    <div class="achievement-earned-date">
-                        Earned ${timeAgo}
-                    </div>
-                </div>
-            </div>`;
-        }
-        
-        html += `</div></div>`;
-        return html;
-    };
+}
     
     
     function calculateAchievementProgress(habit, achievement) {

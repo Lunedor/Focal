@@ -146,13 +146,15 @@ body.dark-mode .finance-card {
 
 .finance-transaction-table-container {
     overflow-x: auto;
+    overflow-y: auto;
+    max-height: 350px; /* Adjust to your desired table height */
+    border-radius: 4px; /* Optional: for styling the container */
+    border: 1px solid var(--color-border);
 }
 
 .finance-transaction-list table {
     width: 99%;
     border-collapse: collapse;
-    table-layout: fixed;
-    min-width: 500px; /* Ensures table doesn't get too compressed */
 }
 
 .finance-transaction-list thead {
@@ -161,15 +163,6 @@ body.dark-mode .finance-card {
     background-color: var(--color-planner-bg);
     z-index: 1;
     box-shadow: 0 1px 0 var(--color-border);
-}
-
-.finance-transaction-list tbody {
-    display: block;
-    max-height: 300px;
-    overflow-y: auto;
-    /* For Firefox */
-    scrollbar-width: thin;
-    scrollbar-color: var(--color-border) transparent;
 }
 
 /* Custom scrollbar for Chrome, Edge, and Safari */
@@ -190,18 +183,14 @@ body.dark-mode .finance-card {
     background-color: var(--color-sidebar-text);
 }
 
-.finance-transaction-list thead, 
-.finance-transaction-list tbody tr {
-    display: table;
-    width: 90%;
-    table-layout: fixed;
-}
-
 .finance-transaction-list th {
-    text-align: center;
-    padding: 8px 12px;
-    font-size: 0.9em;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background-color: var(--color-background);
     color: var(--color-sidebar-text);
+    font-weight: 600;
+    text-align: center;
     border-bottom: 1px solid var(--color-border);
 }
 
@@ -763,7 +752,4 @@ body.highcontrast-mode {
         width: 70px;
     }
     
-    .finance-transaction-list tbody {
-        max-height: 250px; /* Slightly smaller height on mobile */
-    }
 }

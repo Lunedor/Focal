@@ -105,364 +105,213 @@ function renderSidebar() {
 }
 
 function setupDragAndDrop(itemType, itemsArray, getData, setData) {
-  let dragSrcIdx = null;
-  let dragType = null;
-  
-  // Touch drag state
-  let touchDragState = {
+  // A single state object to track the drag operation
+  let dragState = {
     isDragging: false,
-    startY: 0,
-    currentY: 0,
-    currentX: 0,
-    dragItem: null,
+    dragItem: null,    // The <li> element being dragged
+    dragType: null,    // 'pinned' or 'unpinned'
     placeholder: null,
-    initialIndex: null
   };
 
   const items = DOM.libraryNavList.querySelectorAll(`.library-page-item.${itemType}`);
 
+  // --- Attach Event Listeners ---
   items.forEach(item => {
-    // HTML5 Drag and Drop (Desktop)
-    item.addEventListener('dragstart', (e) => {
-      dragSrcIdx = Number(item.dataset.index);
-      dragType = itemType;
-      item.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
-    });
+    // Both mouse and touch start here
+    item.addEventListener('pointerdown', onPointerDown);
 
-    item.addEventListener('dragend', () => {
-      item.classList.remove('dragging');
-      dragSrcIdx = null;
-      dragType = null;
-    });
+    // Only for native mouse drag-and-drop
+    item.addEventListener('dragover', onDragOver);
+    item.addEventListener('dragleave', onDragLeave);
+    item.addEventListener('drop', onDrop);
+    item.addEventListener('dragstart', onDragStart);
+    item.addEventListener('dragend', onDragEnd);
+  });
 
-    item.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      item.classList.add('drag-over');
-    });
+  // --- Event Handler Functions ---
 
-    item.addEventListener('dragleave', () => {
-      item.classList.remove('drag-over');
-    });
+  function onPointerDown(e) {
+    // Ignore right-clicks or non-primary pointers
+    if (e.button !== 0 || !e.isPrimary) return;
 
-    item.addEventListener('drop', (e) => {
-      e.preventDefault();
-      item.classList.remove('drag-over');
-      const targetIdx = Number(item.dataset.index);
+    // For touch, we need to manually start the drag after a delay
+    if (e.pointerType === 'touch') {
+      dragState.dragItem = e.currentTarget;
 
-      if (dragType !== itemType || dragSrcIdx === null || dragSrcIdx === targetIdx) return;
+      // Listen on the window to track movement anywhere on the screen
+      window.addEventListener('pointermove', onPointerMove, { passive: false });
+      window.addEventListener('pointerup', onPointerUp);
 
-      let currentItems = (itemType === 'unpinned') ? itemsArray.slice() : getData();
+      // Start a timer to differentiate a tap/click from a drag
+      dragState.dragTimer = setTimeout(() => {
+        // If the timer completes, we are officially dragging
+        startTouchDrag();
+      }, 200);
+    } else {
+      // For mouse, we just enable the native draggable attribute.
+      // The browser will then fire the 'dragstart' event.
+      e.currentTarget.draggable = true;
+    }
+  }
 
-      const [moved] = currentItems.splice(dragSrcIdx, 1);
+  function onPointerMove(e) {
+    // This function is ONLY for touch dragging
+    if (!dragState.isDragging) {
+      // If the user moves their finger too much, cancel the drag timer
+      if (dragState.dragTimer) {
+        clearTimeout(dragState.dragTimer);
+        dragState.dragTimer = null;
+      }
+      return;
+    }
+
+    // Prevent page scrolling while dragging
+    e.preventDefault();
+
+    // Find what element is under the finger
+    const elementBelow = document.elementFromPoint(e.clientX, e.clientY);
+    const dropTarget = elementBelow?.closest(`.library-page-item.${itemType}`);
+
+    // Update the visual "drag-over" indicator
+    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    if (dropTarget && dropTarget !== dragState.dragItem) {
+      dropTarget.classList.add('drag-over');
+    }
+  }
+  
+  // --- Also, replace the onPointerUp function ---
+
+  function onPointerUp(e) {
+    // This function is ONLY for touch dragging
+    if (dragState.dragTimer) {
+      clearTimeout(dragState.dragTimer);
+      dragState.dragTimer = null;
+    }
+
+    if (dragState.isDragging) {
+      // This was a touch drag, so we handle the drop logic here
+      const elementBelow = document.elementFromPoint(e.clientX, e.clientY);
+      const dropTarget = elementBelow?.closest(`.library-page-item.${itemType}`);
+      
+      if (dropTarget) {
+        // reorderItems will now handle its own cleanup
+        reorderItems(dragState.dragItem, dropTarget);
+      } else {
+        // If we didn't drop on a valid target, we still need to clean up.
+        cleanup();
+      }
+    } else {
+      // If we weren't even dragging (i.e., it was a tap), we still might have
+      // active window listeners that need to be removed.
+      cleanup();
+    }
+  }
+
+  // --- Native HTML5 Drag Handlers (for Mouse) ---
+
+  function onDragStart(e) {
+    // Set the data to be transferred
+    e.dataTransfer.effectAllowed = 'move';
+    const pageName = e.currentTarget.dataset.page;
+    e.dataTransfer.setData('text/plain', pageName);
+
+    // Add a class for visual feedback
+    setTimeout(() => e.currentTarget.classList.add('dragging'), 0);
+  }
+
+  function onDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    e.currentTarget.classList.add('drag-over');
+  }
+
+  function onDragLeave(e) {
+    e.currentTarget.classList.remove('drag-over');
+  }
+
+  function onDrop(e) {
+    e.preventDefault();
+    const draggedPage = e.dataTransfer.getData('text/plain');
+    const sourceItem = DOM.libraryNavList.querySelector(`[data-page="${draggedPage}"]`);
+    const targetItem = e.currentTarget;
+    
+    if (sourceItem && targetItem && sourceItem !== targetItem) {
+        reorderItems(sourceItem, targetItem);
+    }
+  }
+
+  function onDragEnd(e) {
+    // This is the native equivalent of cleanup for mouse
+    e.currentTarget.draggable = false;
+    cleanup();
+  }
+
+  // --- Helper Functions ---
+
+  function startTouchDrag() {
+    if (!dragState.dragItem) return;
+    dragState.isDragging = true;
+
+    // Create placeholder and apply styles
+    dragState.dragItem.classList.add('dragging');
+    const placeholder = dragState.dragItem.cloneNode(true);
+    placeholder.classList.add('drag-placeholder');
+    dragState.dragItem.parentNode.insertBefore(placeholder, dragState.dragItem);
+    dragState.placeholder = placeholder;
+    dragState.dragItem.style.opacity = '0.5';
+    document.body.style.userSelect = 'none'; // Prevent text selection
+  }
+
+  function reorderItems(sourceItem, targetItem) {
+    const draggedPage = sourceItem.dataset.page;
+    const targetPage = targetItem.dataset.page;
+
+    // Create a mutable copy of the array for this item type
+    let currentItems = itemsArray.slice();
+
+    const srcIdx = currentItems.indexOf(draggedPage);
+    const targetIdx = currentItems.indexOf(targetPage);
+
+    if (srcIdx > -1 && targetIdx > -1) {
+      cleanup();
+      
+      // Perform the reorder
+      const [moved] = currentItems.splice(srcIdx, 1);
       currentItems.splice(targetIdx, 0, moved);
 
+      // Save the new order and re-render the sidebar onto a clean DOM
       setData(currentItems);
       renderSidebar();
-    });
-
-    // Touch Events for Mobile
-    item.addEventListener('touchstart', (e) => {
-      const touch = e.touches[0];
-      touchDragState.startY = touch.clientY;
-      touchDragState.currentX = touch.clientX;
-      touchDragState.dragItem = item;
-      touchDragState.initialIndex = Number(item.dataset.index);
-      
-    // 10. Create a "Habits" page to showcase the habit tracker
-    const habitsContent = `
-# My Daily Habits 🎯
-
-Build consistent daily habits and track your progress with Focal's advanced habit tracking system. Enjoy:
-- **Categories** for organization
-- **Goals** and smart insights
-- **Achievements** and streaks
-- **Targets** for quantified habits
-- **Calendar grid, stats, and charts**
-
-## How to Use
-1. Define your habits using the \`HABITS: define\` block (see below for examples)
-2. Track daily progress with \`HABITS: day\`
-3. Visualize your progress with widgets: \`categories\`, \`goals\`, \`achievements\`, \`grid\`, \`stats\`, \`chart\`
-4. Set targets, goals, and achievements for extra motivation
-
----
-
-## Habit Definitions
-
-HABITS: define
-
-- Meditate (CATEGORY: Wellness) (GOAL: every day) (SCHEDULE: everyday) (ACHIEVEMENT: 7 day streak = Movie night)
-- Exercise (CATEGORY: Health) (GOAL: 3 times per week) (SCHEDULE: Mon, Wed, Fri) (ACHIEVEMENT: 30 completions = New workout gear)
-- Read (CATEGORY: Learning) (TARGET: 30 pages) (GOAL: 5 times per week) (SCHEDULE: weekdays) (ACHIEVEMENT: 50 completions = Buy 3 new books)
-- Drink Water (CATEGORY: Health) (TARGET: 8 glasses) (GOAL: 7 days in a row) (ACHIEVEMENT: perfect week = Spa day)
-- Journal Writing (CATEGORY: Personal) (GOAL: 4 times per week) (SCHEDULE: Tue, Thu, Sat) (ACHIEVEMENT: 30 day streak = Beautiful new journal)
-- Practice Guitar (CATEGORY: Creative) (TARGET: 30 minutes) (GOAL: 3 times per week) (SCHEDULE: Mon, Wed, Fri) (ACHIEVEMENT: 25 completions = New guitar pick set)
-- Walk Steps (CATEGORY: Fitness) (TARGET: 10000 steps) (GOAL: every day) (SCHEDULE: everyday) (ACHIEVEMENT: perfect month = New running shoes)
-- Check Finances (CATEGORY: Finance) (GOAL: 4 times per month) (SCHEDULE: weekends) (ACHIEVEMENT: 20 completions = Financial planning book)
-
----
-
-## Today's Progress
-
-HABITS: day
-
----
-
-## Categories Overview
-
-HABITS: categories
-
----
-
-## Achievements
-
-HABITS: achievements
-
----
-
-## Weekly Goals Progress
-
-HABITS: categories
-
----
-
-## Goal Progress
-
-HABITS: goals
-
----
-
-## This Month's Overview
-
-HABITS: grid, this-month
-
----
-
-## Habit Statistics
-
-HABITS: stats
-
----
-
-## Individual Habit Charts
-
-### Meditation Progress
-HABITS: chart, Meditate, last-30-days
-
-### Reading Progress
-HABITS: chart, Read, last-30-days
-
----
-
-## Future Log (Sample)
-
-FUTURELOG: 6-months
-
-- SCHEDULED: 2025-08-01 Birthday party 🎉
-- SCHEDULED: 2025-09-15 Doctor appointment (SCHEDULED: 2025-09-15)
-- REPEAT: every monday from 2025-07-14 to 2025-09-01 Weekly team meeting
-- REPEAT: 25.12 Christmas
-
----
-
-## Widget Options
-
-### Widget Types
-- \`today\`: Interactive daily tracker
-- \`grid\`: Calendar-style progress grid
-- \`stats\`: Completion rates and streaks
-- \`chart\`: Visual progress chart for specific habits
-- \`categories\`: Category analytics
-- \`goals\`: Goal progress and insights
-- \`achievements\`: Achievement gallery
-- \`futurelog\`: Calendar of upcoming events and repeating items
-
-### Time Periods
-- \`this-week\`, \`this-month\`, \`last-7-days\`, \`last-30-days\`, \`last-90-days\`, \`last-365-days\`, etc.
-
-### Habit Types
-- **Binary Habits**: Simple checkbox (e.g., "Meditate")
-- **Quantified Habits**: Target-based with progress bars (e.g., "Read (TARGET: 30 pages)")
-
-## Tips for Success
-
-- Start with 2-3 habits maximum
-- Make habits specific and measurable
-- Track consistently for at least 21 days
-- Use the [[Daily Journal]] to reflect on your habit progress
-- Celebrate small wins and streaks
-
-## Research-Based Benefits
-
-- **Consistency**: Visual tracking increases habit adherence
-- **Motivation**: Streaks and progress bars provide positive reinforcement
-- **Awareness**: Daily tracking increases mindfulness of behaviors
-- **Accountability**: Written goals and progress create commitment
-
-*Remember: Small, consistent actions compound into remarkable results over time.*
-`;
-# My Daily Habits 🎯
-
-Build consistent daily habits and track your progress with Focal's advanced habit tracking system. Enjoy:
-- **Categories** for organization
-- **Goals** and smart insights
-- **Achievements** and streaks
-- **Targets** for quantified habits
-- **Calendar grid, stats, and charts**
-
-## How to Use
-1. Define your habits using the `HABITS: define` block (see below for examples)
-2. Track daily progress with `HABITS: day`
-3. Visualize your progress with widgets: `categories`, `goals`, `achievements`, `grid`, `stats`, `chart`
-4. Set targets, goals, and achievements for extra motivation
-
----
-
-## Habit Definitions
-
-HABITS: define
-
-- Meditate (CATEGORY: Wellness) (GOAL: every day) (SCHEDULE: everyday) (ACHIEVEMENT: 7 day streak = Movie night)
-- Exercise (CATEGORY: Health) (GOAL: 3 times per week) (SCHEDULE: Mon, Wed, Fri) (ACHIEVEMENT: 30 completions = New workout gear)
-- Read (CATEGORY: Learning) (TARGET: 30 pages) (GOAL: 5 times per week) (SCHEDULE: weekdays) (ACHIEVEMENT: 50 completions = Buy 3 new books)
-- Drink Water (CATEGORY: Health) (TARGET: 8 glasses) (GOAL: 7 days in a row) (ACHIEVEMENT: perfect week = Spa day)
-- Journal Writing (CATEGORY: Personal) (GOAL: 4 times per week) (SCHEDULE: Tue, Thu, Sat) (ACHIEVEMENT: 30 day streak = Beautiful new journal)
-- Practice Guitar (CATEGORY: Creative) (TARGET: 30 minutes) (GOAL: 3 times per week) (SCHEDULE: Mon, Wed, Fri) (ACHIEVEMENT: 25 completions = New guitar pick set)
-- Walk Steps (CATEGORY: Fitness) (TARGET: 10000 steps) (GOAL: every day) (SCHEDULE: everyday) (ACHIEVEMENT: perfect month = New running shoes)
-- Check Finances (CATEGORY: Finance) (GOAL: 4 times per month) (SCHEDULE: weekends) (ACHIEVEMENT: 20 completions = Financial planning book)
-
----
-
-## Today's Progress
-
-HABITS: day
-
----
-
-## Categories Overview
-
-HABITS: categories
-
----
-
-## Achievements
-
-HABITS: achievements
-
----
-
-## Weekly Goals Progress
-
-HABITS: categories
-
----
-
-## Goal Progress
-
-HABITS: goals
-
----
-
-## This Month's Overview
-
-HABITS: grid, this-month
-
----
-
-## Habit Statistics
-
-HABITS: stats
-
----
-
-## Individual Habit Charts
-
-### Meditation Progress
-HABITS: chart, Meditate, last-30-days
-
-### Reading Progress
-HABITS: chart, Read, last-30-days
-
----
-
-## Future Log (Sample)
-
-FUTURELOG: 6-months
-
-- SCHEDULED: 2025-08-01 Birthday party 🎉
-- SCHEDULED: 2025-09-15 Doctor appointment (SCHEDULED: 2025-09-15)
-- REPEAT: every monday from 2025-07-14 to 2025-09-01 Weekly team meeting
-- REPEAT: 25.12 Christmas
-
----
-
-## Widget Options
-
-### Widget Types
-- `today`: Interactive daily tracker
-- `grid`: Calendar-style progress grid
-- `stats`: Completion rates and streaks
-- `chart`: Visual progress chart for specific habits
-- `categories`: Category analytics
-- `goals`: Goal progress and insights
-- `achievements`: Achievement gallery
-- `futurelog`: Calendar of upcoming events and repeating items
-
-### Time Periods
-- `this-week`, `this-month`, `last-7-days`, `last-30-days`, `last-90-days`, `last-365-days`, etc.
-
-### Habit Types
-- **Binary Habits**: Simple checkbox (e.g., "Meditate")
-- **Quantified Habits**: Target-based with progress bars (e.g., "Read (TARGET: 30 pages)")
-
-## Tips for Success
-
-- Start with 2-3 habits maximum
-- Make habits specific and measurable
-- Track consistently for at least 21 days
-- Use the [[Daily Journal]] to reflect on your habit progress
-- Celebrate small wins and streaks
-
-## Research-Based Benefits
-
-- **Consistency**: Visual tracking increases habit adherence
-- **Motivation**: Streaks and progress bars provide positive reinforcement
-- **Awareness**: Daily tracking increases mindfulness of behaviors
-- **Accountability**: Written goals and progress create commitment
-
-*Remember: Small, consistent actions compound into remarkable results over time.*
-    `.trim();
-      touchDragState.dragItem.style.opacity = '';
-      touchDragState.dragItem.style.transform = '';
-      touchDragState.dragItem.style.zIndex = '';
-      touchDragState.dragItem.style.pointerEvents = '';
     }
-    
-    if (touchDragState.placeholder) {
-      touchDragState.placeholder.remove();
-    }
-    
-    // Remove drag-over classes
+  }
+
+ 
+
+  function cleanup() {
+    // Remove all visual styles and placeholders
+    document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
     document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
     
-    // Reset body styles
+    if (dragState.placeholder) {
+      dragState.placeholder.remove();
+    }
+    if (dragState.dragItem) {
+      dragState.dragItem.style.opacity = '';
+    }
     document.body.style.userSelect = '';
-    
-    // Reset state
-    touchDragState = {
+
+    // Remove temporary window listeners for touch
+    window.removeEventListener('pointermove', onPointerMove);
+    window.removeEventListener('pointerup', onPointerUp);
+
+    // Reset the state object for the next operation
+    dragState = {
       isDragging: false,
-      startY: 0,
-      currentY: 0,
-      currentX: 0,
       dragItem: null,
+      dragType: null,
       placeholder: null,
-      initialIndex: null
+      dragTimer: null
     };
-    
-    dragSrcIdx = null;
-    dragType = null;
   }
 }
 
@@ -1045,13 +894,18 @@ Use the checkbox interface in the watchlist to mark movies as watched - they'll 
     const habitsContent = `
 # My Daily Habits 🎯
 
-Build consistent daily habits and track your progress with Focal's comprehensive habit tracking system. Research shows that tracking habits increases success rates by up to 42%.
+Build consistent daily habits and track your progress with Focal's advanced habit tracking system. Enjoy:
+- **Categories** for organization
+- **Goals** and smart insights
+- **Achievements** and streaks
+- **Targets** for quantified habits
+- **Calendar grid, stats, and charts**
 
 ## How to Use
-1. Define your habits using the \`HABITS: define\` block
-2. Track daily progress with \`HABITS: today\` 
-3. Visualize your progress with different widget types
-4. Set targets for quantifiable habits
+1. Define your habits using the \`HABITS: define\` block (see below for examples)
+2. Track daily progress with \`HABITS: day\`
+3. Visualize your progress with widgets: \`categories\`, \`goals\`, \`achievements\`, \`grid\`, \`stats\`, \`chart\`
+4. Set targets, goals, and achievements for extra motivation
 
 ---
 
@@ -1082,15 +936,9 @@ HABITS: categories
 
 ---
 
-## Achievement Gallery
+## Achievements
 
 HABITS: achievements
-
----
-
-## Yesterday's Review
-
-HABITS: day, 2025-07-08
 
 ---
 
@@ -1123,30 +971,36 @@ HABITS: stats
 ### Meditation Progress
 HABITS: chart, Meditate, last-30-days
 
-### Reading Progress  
+### Reading Progress
 HABITS: chart, Read, last-30-days
 
 ---
 
-## Habit Widget Options
+## Future Log (Sample)
+
+FUTURELOG: 6-months
+
+- SCHEDULED: 2025-08-01 Birthday party 🎉
+- SCHEDULED: 2025-09-15 Doctor appointment (SCHEDULED: 2025-09-15)
+- REPEAT: every monday from 2025-07-14 to 2025-09-01 Weekly team meeting
+- REPEAT: 25.12 Christmas
+
+---
+
+## Widget Options
 
 ### Widget Types
 - \`today\`: Interactive daily tracker
 - \`grid\`: Calendar-style progress grid
 - \`stats\`: Completion rates and streaks
 - \`chart\`: Visual progress chart for specific habits
+- \`categories\`: Category analytics
+- \`goals\`: Goal progress and insights
+- \`achievements\`: Achievement gallery
+- \`futurelog\`: Calendar of upcoming events and repeating items
 
 ### Time Periods
-- \`this-week\`: Current week view
-- \`this-month\`: Current month view
-- \`last-three-months\`: Past three months
-- \`last-six-months\`: Past six months
-- \`this-year\`: Current year view
-- \`last-7-days\`: Past week
-- \`last-30-days\`: Past month
-- \`last-90-days\`: Past quarter
-- \`last-180-days\`: Past 180 days
-- \`last-365-days\`: Past 365 days
+- \`this-week\`, \`this-month\`, \`last-7-days\`, \`last-30-days\`, \`last-90-days\`, \`last-365-days\`, etc.
 
 ### Habit Types
 - **Binary Habits**: Simple checkbox (e.g., "Meditate")
@@ -1168,7 +1022,139 @@ HABITS: chart, Read, last-30-days
 - **Accountability**: Written goals and progress create commitment
 
 *Remember: Small, consistent actions compound into remarkable results over time.*
-    `.trim();
+
+# My Daily Habits 🎯
+
+Build consistent daily habits and track your progress with Focal's advanced habit tracking system. Enjoy:
+- **Categories** for organization
+- **Goals** and smart insights
+- **Achievements** and streaks
+- **Targets** for quantified habits
+- **Calendar grid, stats, and charts**
+
+## How to Use
+1. Define your habits using the "HABITS: define" block (see below for examples)
+2. Track daily progress with "HABITS: day"
+3. Visualize your progress with widgets: "categories", "goals", "achievements", "grid", "stats", "chart"
+4. Set targets, goals, and achievements for extra motivation
+
+---
+
+## Habit Definitions
+
+HABITS: define
+
+- Meditate (CATEGORY: Wellness) (GOAL: every day) (SCHEDULE: everyday) (ACHIEVEMENT: 7 day streak = Movie night)
+- Exercise (CATEGORY: Health) (GOAL: 3 times per week) (SCHEDULE: Mon, Wed, Fri) (ACHIEVEMENT: 30 completions = New workout gear)
+- Read (CATEGORY: Learning) (TARGET: 30 pages) (GOAL: 5 times per week) (SCHEDULE: weekdays) (ACHIEVEMENT: 50 completions = Buy 3 new books)
+- Drink Water (CATEGORY: Health) (TARGET: 8 glasses) (GOAL: 7 days in a row) (ACHIEVEMENT: perfect week = Spa day)
+- Journal Writing (CATEGORY: Personal) (GOAL: 4 times per week) (SCHEDULE: Tue, Thu, Sat) (ACHIEVEMENT: 30 day streak = Beautiful new journal)
+- Practice Guitar (CATEGORY: Creative) (TARGET: 30 minutes) (GOAL: 3 times per week) (SCHEDULE: Mon, Wed, Fri) (ACHIEVEMENT: 25 completions = New guitar pick set)
+- Walk Steps (CATEGORY: Fitness) (TARGET: 10000 steps) (GOAL: every day) (SCHEDULE: everyday) (ACHIEVEMENT: perfect month = New running shoes)
+- Check Finances (CATEGORY: Finance) (GOAL: 4 times per month) (SCHEDULE: weekends) (ACHIEVEMENT: 20 completions = Financial planning book)
+
+---
+
+## Today's Progress
+
+HABITS: day
+
+---
+
+## Categories Overview
+
+HABITS: categories
+
+---
+
+## Achievements
+
+HABITS: achievements
+
+---
+
+## Weekly Goals Progress
+
+HABITS: categories
+
+---
+
+## Goal Progress
+
+HABITS: goals
+
+---
+
+## This Month's Overview
+
+HABITS: grid, this-month
+
+---
+
+## Habit Statistics
+
+HABITS: stats
+
+---
+
+## Individual Habit Charts
+
+### Meditation Progress
+HABITS: chart, Meditate, last-30-days
+
+### Reading Progress
+HABITS: chart, Read, last-30-days
+
+---
+
+## Future Log (Sample)
+
+FUTURELOG: 6-months
+
+- SCHEDULED: 2025-08-01 Birthday party 🎉
+- SCHEDULED: 2025-09-15 Doctor appointment (SCHEDULED: 2025-09-15)
+- REPEAT: every monday from 2025-07-14 to 2025-09-01 Weekly team meeting
+- REPEAT: 25.12 Christmas
+
+---
+
+## Widget Options
+
+### Widget Types
+- "today": Interactive daily tracker
+- "grid": Calendar-style progress grid
+- "stats": Completion rates and streaks
+- "chart": Visual progress chart for specific habits
+- "categories": Category analytics
+- "goals": Goal progress and insights
+- "achievements": Achievement gallery
+- "futurelog": Calendar of upcoming events and repeating items
+
+### Time Periods
+- "this-week", "this-month", "last-7-days", "last-30-days", "last-90-days", "last-365-days", etc.
+
+### Habit Types
+- **Binary Habits**: Simple checkbox (e.g., "Meditate")
+- **Quantified Habits**: Target-based with progress bars (e.g., "Read (TARGET: 30 pages)")
+
+## Tips for Success
+
+- Start with 2-3 habits maximum
+- Make habits specific and measurable
+- Track consistently for at least 21 days
+- Use the [[Daily Journal]] to reflect on your habit progress
+- Celebrate small wins and streaks
+
+## Research-Based Benefits
+
+- **Consistency**: Visual tracking increases habit adherence
+- **Motivation**: Streaks and progress bars provide positive reinforcement
+- **Awareness**: Daily tracking increases mindfulness of behaviors
+- **Accountability**: Written goals and progress create commitment
+
+*Remember: Small, consistent actions compound into remarkable results over time.*
+    `
+.trim();
     setStorage('page-My Daily Habits', habitsContent);
 
     // 11. Add sample habit data to demonstrate the habit tracker
@@ -1259,13 +1245,10 @@ HABITS: chart, Read, last-30-days
         'walk-steps': 9000
       }
     };
-
+    const storageKey = 'habit-data-all';
     // Save sample habit data
-    Object.entries(sampleHabitData).forEach(([date, data]) => {
-      setStorage(`habit-data-${date}`, JSON.stringify(data));
-    });
+    setStorage(storageKey, JSON.stringify(sampleHabitData));
 
-    // 13. Set the visited flag
     // 13. Set the visited flag
     localStorage.setItem('focal-journal-visited', 'true');
   }

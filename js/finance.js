@@ -938,9 +938,9 @@ const financeTracker = (() => {
         DOM.financeEntryAmount.value = '';
         DOM.financeEntryDescription.value = '';
         DOM.financeEntryCategory.value = '';
-        
-        // Check the income radio button by default
-        document.getElementById('income-type').checked = true;
+
+        // Check the expense radio button by default
+        document.getElementById('expense-type').checked = true;
         
         // Show modal
         DOM.financeEntryModal.classList.add('active');

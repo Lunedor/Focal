@@ -282,9 +282,9 @@
               <input type="hidden" id="futurelog-entry-date">
             </div>
           </div>
-          <div class="futurelog-form-group" id="repeat-rule-group" style="display: none;">
+          <div class="futurelog-form-group" id="repeat-rule-group">
             <label for="futurelog-entry-repeat">Repeat Rule</label>
-            <select id="futurelog-entry-repeat-type">
+            <select id="futurelog-entry-repeat-type" title="futurelog-entry-repeat-type">
               <option value="weekly">Weekly on a specific day</option>
               <option value="weekly-range">Weekly with date range</option>
               <option value="annual">Annual (specific date)</option>
@@ -292,12 +292,12 @@
               <option value="daily-range">Daily with date range</option>
             </select>
             <div id="daily-options" class="repeat-options">
-              <p style="font-size: 0.875rem; color: var(--color-sidebar-text); margin: 0.5rem 0;">
+              <p>
                 This will create a daily recurring event starting from today.
               </p>
             </div>
-            <div id="daily-range-options" class="repeat-options" style="display: none;">
-              <p style="font-size: 0.875rem; color: var(--color-sidebar-text); margin: 0.5rem 0;">
+            <div id="daily-range-options" class="repeat-options">
+              <p class="repeat-options-desc">
                 Daily recurring event with specific date range.
               </p>
               <div class="date-range-container">
@@ -324,7 +324,7 @@
               </div>
             </div>
             <div id="weekly-options" class="repeat-options">
-              <select id="futurelog-entry-weekday">
+              <select id="futurelog-entry-weekday" title="futurelog-entry-weekday">
                 <option value="monday">Every Monday</option>
                 <option value="tuesday">Every Tuesday</option>
                 <option value="wednesday">Every Wednesday</option>
@@ -334,8 +334,8 @@
                 <option value="sunday">Every Sunday</option>
               </select>
             </div>
-            <div id="weekly-range-options" class="repeat-options" style="display: none;">
-              <select id="futurelog-entry-weekday-range">
+            <div id="weekly-range-options" class="repeat-options">
+              <select id="futurelog-entry-weekday-range" title="futurelog-entry-weekday-range">
                 <option value="monday">Every Monday</option>
                 <option value="tuesday">Every Tuesday</option>
                 <option value="wednesday">Every Wednesday</option>
@@ -367,7 +367,7 @@
                 </div>
               </div>
             </div>
-            <div id="annual-options" class="repeat-options" style="display: none;">
+            <div id="annual-options" class="repeat-options">
               <div class="date-picker-container">
                 <input type="text" id="futurelog-entry-annual-date-display" placeholder="dd/MM (annual)">
                 <button type="button" id="futurelog-entry-annual-date-picker-btn" class="date-picker-button" aria-label="Select annual date" title="Select annual date">

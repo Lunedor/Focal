@@ -437,3 +437,16 @@ input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
+
+#repeat-rule-group,
+#daily-range-options,
+#weekly-range-options,
+#annual-options {
+  display: none;
+}
+
+.repeat-options-desc {
+  font-size: 0.875rem;
+  color: var(--color-sidebar-text);
+  margin: 0.5rem 0;
+}
