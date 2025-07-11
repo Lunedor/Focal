@@ -183,7 +183,12 @@ window.BookTracker = (() => {
 
     // --- PAGINATION FUNCTIONS ---
     function paginateBooks(books, page = 1, perPage = PAGINATION_CONFIG.booksPerPage) {
-        const bookEntries = Object.entries(books);
+    // Sort books by dateAdded descending (newest first)
+    const bookEntries = Object.entries(books).sort((a, b) => {
+        const dateA = new Date(a[1].dateAdded || 0);
+        const dateB = new Date(b[1].dateAdded || 0);
+        return dateB - dateA;
+    });
         const startIndex = (page - 1) * perPage;
         const endIndex = startIndex + perPage;
         const paginatedBooks = bookEntries.slice(startIndex, endIndex);
@@ -257,10 +262,11 @@ window.BookTracker = (() => {
                         <span class="stat">✅ ${stats.finished} finished</span>
                         <span class="stat">📚 ${stats.toRead} to read</span>
                     </div>
-                    <div class="book-search-container">
-                        <input type="text" id="book-search-input" placeholder="Search for books to add..." class="book-search-input">
-                        <div id="book-search-results" class="book-search-results hidden"></div>
-                    </div>
+                    <button class="book-add-btn">Add Book</button>
+                </div>
+                <div class="book-search-container" style="display: none;">
+                    <input type="text" id="book-search-input" placeholder="Search for books to add..." class="book-search-input">
+                    <div id="book-search-results" class="book-search-results hidden"></div>
                 </div>
                 <div class="books-content">
                     ${Object.keys(pagination.books).length === 0 ? 
@@ -316,17 +322,24 @@ window.BookTracker = (() => {
 
     function renderToReadWidget(state) {
         // Fix: state.books is an object, not an array, so we need to get the values
-        const books = Object.entries(state.books).filter(([_, book]) => book.status === 'to-read');
+        const books = Object.entries(state.books)
+            .filter(([_, book]) => book.status === 'to-read')
+            .sort((a, b) => {
+                const dateA = new Date(a[1].dateAdded || 0);
+                const dateB = new Date(b[1].dateAdded || 0);
+                return dateB - dateA;
+            });
 
         if (books.length === 0) {
             return `
                 <div class="books-widget to-read">
                     <div class="books-header">
                         <h3>📚 Books To Read</h3>
-                        <div class="book-search-container">
-                            <input type="text" class="book-search-input" placeholder="Search for books to add...">
-                            <div class="book-search-results hidden"></div>
-                        </div>
+                        <button class="book-add-btn">Add Book</button>
+                    </div>
+                    <div class="book-search-container" style="display: none;">
+                        <input type="text" class="book-search-input" placeholder="Search for books to add...">
+                        <div class="book-search-results hidden"></div>
                     </div>
                     <div class="books-empty">
                         No books in your to-read list yet. Search above to add some!
@@ -349,10 +362,11 @@ window.BookTracker = (() => {
             <div class="books-widget to-read">
                 <div class="books-header">
                     <h3>📚 Books To Read</h3>
-                    <div class="book-search-container">
-                        <input type="text" class="book-search-input" placeholder="Search for books to add...">
-                        <div class="book-search-results hidden"></div>
-                    </div>
+                    <button class="book-add-btn">Add Book</button>
+                </div>
+                <div class="book-search-container" style="display: none;">
+                    <input type="text" class="book-search-input" placeholder="Search for books to add...">
+                    <div class="book-search-results hidden"></div>
                 </div>
                 <div class="books-content">
                     ${booksHtml}
@@ -362,7 +376,13 @@ window.BookTracker = (() => {
     }
 
     function renderCurrentlyReadingWidget(state) {
-        const readingBooks = Object.entries(state.books).filter(([_, data]) => data.status === 'reading');
+        const readingBooks = Object.entries(state.books)
+            .filter(([_, data]) => data.status === 'reading')
+            .sort((a, b) => {
+                const dateA = new Date(a[1].dateAdded || 0);
+                const dateB = new Date(b[1].dateAdded || 0);
+                return dateB - dateA;
+            });
 
         if (readingBooks.length === 0) {
             return `
@@ -387,7 +407,13 @@ window.BookTracker = (() => {
     }
 
     function renderFinishedWidget(state) {
-        const finishedBooks = Object.entries(state.books).filter(([_, data]) => data.status === 'finished');
+        const finishedBooks = Object.entries(state.books)
+            .filter(([_, data]) => data.status === 'finished')
+            .sort((a, b) => {
+                const dateA = new Date(a[1].dateAdded || 0);
+                const dateB = new Date(b[1].dateAdded || 0);
+                return dateB - dateA;
+            });
 
         if (finishedBooks.length === 0) {
             return `
@@ -412,7 +438,12 @@ window.BookTracker = (() => {
     }
 
     function renderBookshelfWidget(state) {
-        const allBooks = Object.entries(state.books);
+        const allBooks = Object.entries(state.books)
+            .sort((a, b) => {
+                const dateA = new Date(a[1].dateAdded || 0);
+                const dateB = new Date(b[1].dateAdded || 0);
+                return dateB - dateA;
+            });
 
         if (allBooks.length === 0) {
             return `
@@ -526,9 +557,32 @@ window.BookTracker = (() => {
     function setupEventListeners(container) {
         // Prevent edit mode on widget container
         container.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
+            // Check if the clicked element is inside the search container or is an interactive element
+            const isInsideSearch = e.target.closest('.book-search-container');
+            const isInteractive = e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT';
+
+            if (!isInsideSearch && !isInteractive) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
         });
+
+        // Add book button - individual listener like movies widget
+        const addBtn = container.querySelector('.book-add-btn');
+        if (addBtn) {
+            addBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const searchContainer = container.querySelector('.book-search-container');
+                if (searchContainer) {
+                    searchContainer.style.display = searchContainer.style.display === 'none' ? 'block' : 'none';
+                    if (searchContainer.style.display === 'block') {
+                        const searchInput = searchContainer.querySelector('.book-search-input');
+                        if (searchInput) searchInput.focus();
+                    }
+                }
+            });
+        }
 
         // Book search
         const searchInput = container.querySelector('#book-search-input, .book-search-input');
@@ -589,6 +643,9 @@ window.BookTracker = (() => {
                                 addBook(bookData.id, bookData, 'to-read');
                                 searchInput.value = '';
                                 searchResults.classList.add('hidden');
+                                // Hide search container after adding book
+                                const searchContainer = container.querySelector('.book-search-container');
+                                if (searchContainer) searchContainer.style.display = 'none';
                             } catch (error) {
                                 console.error('Error parsing book data:', error);
                                 alert('Error adding book. Please try again.');

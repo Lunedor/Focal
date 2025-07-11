@@ -27,21 +27,39 @@
     align-items: center;
     justify-content: space-between;
     margin-bottom: 16px;
-    flex-wrap: wrap;
-    gap: 12px;
 }
 
 .books-header h3 {
     margin: 0;
-    color: var(--color-button);
-    font-size: 1.25rem;
-    font-weight: 600;
+    color: var(--color-text);
+}
+
+.book-add-btn {
+    background: var(--color-button);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.book-add-btn:hover {
+    background: var(--color-button-hover);
+    transform: translateY(-1px);
 }
 
 .book-search-container {
     position: relative;
     flex: 1;
     min-width: 200px;
+    margin-bottom: 16px;
+    background: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 12px;
 }
 
 .book-search-input {
@@ -65,12 +83,13 @@
     top: 100%;
     left: 0;
     right: 0;
+    width: 100%; /* Ensure width is explicitly set */
     background: var(--color-background);
     border: 1px solid var(--color-border);
     border-radius: 6px;
     max-height: 300px;
     overflow-y: auto;
-    z-index: 1000;
+    z-index: 1050; /* Ensure it stacks above other content */
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     margin-top: 4px;
 }
@@ -704,12 +723,13 @@
     top: 100%;
     left: 0;
     right: 0;
+    width: 100%; /* Ensure width is explicitly set */
     background: var(--color-background);
     border: 1px solid var(--color-border);
     border-radius: 6px;
     max-height: 300px;
     overflow-y: auto;
-    z-index: 1000;
+    z-index: 1050; /* Ensure it stacks above other content */
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     margin-top: 4px;
 }

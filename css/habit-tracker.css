@@ -470,14 +470,6 @@
 .habit-header-content {
     flex: 1;
 }
-
-.habit-header h3 {
-    margin: 0 0 4px 0;
-    font-size: 1.1em;
-    color: var(--color-text);
-    font-weight: 600;
-}
-
 .habit-date {
     font-size: 0.9em;
     color: var(--color-sidebar-text);
@@ -1042,7 +1034,7 @@ body.dark-mode .habit-cell.not-scheduled {
     display: flex;
     align-items: center;
     gap: 12px;
-    width: 33vh;
+    width: 75vw;
     justify-content: space-between;
     margin-top: 20px;
 }
@@ -1418,6 +1410,7 @@ body.dark-mode .habit-cell.not-scheduled {
     .habit-header {
         flex-direction: column;
         gap: 10px;
+        align-items: center;
     }
     
     .habit-grid-nav {

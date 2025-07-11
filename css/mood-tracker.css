@@ -569,3 +569,5 @@
 .text-contrast {
     color: white;
 }
+
+#mood-controls-container { margin: 1rem 0; }
