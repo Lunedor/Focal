@@ -31,6 +31,7 @@
   --color-button: #007aff;
   --color-button-hover: #005ecb;
   --color-input-bg: #f0f0f0;
+  --color-bg-muted: rgba(100, 20, 20, 0.5);
 }
 body.dark-mode {
     --color-background: #222;
@@ -449,4 +450,9 @@ input::-webkit-inner-spin-button {
   font-size: 0.875rem;
   color: var(--color-sidebar-text);
   margin: 0.5rem 0;
+}
+
+a.wiki-link.simple-task-link {
+    background-color: transparent !important;
+    border: none !important;
 }

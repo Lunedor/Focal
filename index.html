@@ -109,6 +109,7 @@
       <ul id="planner-nav-list">
         <li><a href="#" data-view="weekly" class="active">Weekly Plan</a></li>
         <li><a href="#" data-view="monthly">Monthly View</a></li>
+       <li><a href="#" data-view="daily">Daily View</a></li>
       </ul>
       <h2>Library</h2>
       <div class="search-container">
@@ -160,6 +161,16 @@
         </nav>
       </header>
       <div id="calendar-grid-container" class="calendar-grid">
+        <!-- JS will populate this -->
+      </div>
+    </div>
+
+    <!-- Daily View -->
+    <div id="daily-view" class="view hidden">
+      <header class="daily-header">
+        <h1 id="daily-title"></h1>
+      </header>
+      <div id="daily-content-wrapper" class="content-wrapper">
         <!-- JS will populate this -->
       </div>
     </div>
@@ -407,7 +418,8 @@
   <script src="js/calendar.js"></script>
   <script src="js/centralizedDatePicker.js"></script>
   <script src="js/sampleData.js"></script>
-  <script src="js/init.js"></script>
+    <script src="js/dailyPlanner.js"></script>
+    <script src="js/init.js"></script>
   <!-- Event handling modules -->
   <script src="js/toolbar.js"></script>
   <script src="js/widgetDropdowns.js"></script>

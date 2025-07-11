@@ -36,19 +36,27 @@ function renderApp() {
 }
 
 function renderView() {
-  DOM.plannerView.classList.remove('active');
-  DOM.libraryView.classList.remove('active');
-  DOM.monthlyCalendarView.classList.remove('active'); // Hide monthly view by default
+  // Hide all views first
+  if (DOM.plannerView) { DOM.plannerView.classList.remove('active'); DOM.plannerView.classList.add('hidden'); }
+  if (DOM.monthlyCalendarView) { DOM.monthlyCalendarView.classList.remove('active'); DOM.monthlyCalendarView.classList.add('hidden'); }
+  if (!DOM.dailyView) { DOM.dailyView = document.getElementById('daily-view'); }
+  if (DOM.dailyView) { DOM.dailyView.classList.remove('active'); DOM.dailyView.classList.add('hidden'); }
+  if (DOM.libraryView) { DOM.libraryView.classList.remove('active'); DOM.libraryView.classList.add('hidden'); }
 
   if (appState.currentView === 'weekly') {
     renderWeeklyPlanner(true);
-    DOM.plannerView.classList.add('active');
-  } else if (appState.currentView === 'monthly') { // Handle monthly view
+    if (DOM.plannerView) { DOM.plannerView.classList.add('active'); DOM.plannerView.classList.remove('hidden'); }
+  } else if (appState.currentView === 'monthly') {
     renderMonthlyCalendar(appState.currentDate);
-    DOM.monthlyCalendarView.classList.add('active');
+    if (DOM.monthlyCalendarView) { DOM.monthlyCalendarView.classList.add('active'); DOM.monthlyCalendarView.classList.remove('hidden'); }
+  } else if (appState.currentView === 'daily') {
+    if (typeof renderDailyPlanner === 'function') {
+      renderDailyPlanner(true);
+    }
+    if (DOM.dailyView) { DOM.dailyView.classList.add('active'); DOM.dailyView.classList.remove('hidden'); }
   } else {
     renderLibraryPage(appState.currentView);
-    DOM.libraryView.classList.add('active');
+    if (DOM.libraryView) { DOM.libraryView.classList.add('active'); DOM.libraryView.classList.remove('hidden'); }
   }
   updateSidebarActiveState();
 }

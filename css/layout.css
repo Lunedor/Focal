@@ -131,3 +131,9 @@
 .dropdown-done-button:hover {
   background: var(--color-success-hover, #45a049);
 }
+a.wiki-link.simple-task-link {
+    color: var(--color-text);
+    font-weight: 500;
+    background-color: transparent;
+    border: none;
+}

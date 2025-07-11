@@ -1,13 +1,15 @@
 /* Rendered markdown, links, checkboxes, etc. */
-.view { 
-  display: none; 
+.view {
+  display: none;
   opacity: 0;
   transition: opacity 0.2s ease;
 }
-.view.active { 
-  display: block; 
+
+.view.active {
+  display: block;
   opacity: 1;
 }
+
 .view-indicator {
   font-size: 0.85em;
   color: var(--color-sidebar-text);
@@ -16,24 +18,44 @@
   align-items: center;
   gap: 0.5rem;
 }
+
 .view-indicator::before {
   content: "📋";
   margin-right: 0.25rem;
 }
+
 .library-page-view .view-indicator::before {
   content: "📄";
 }
-.content-wrapper a { color: var(--color-link); text-decoration: none; }
-.content-wrapper a:hover { text-decoration: underline; }
+
+.content-wrapper a {
+  color: var(--color-link);
+  text-decoration: none;
+}
+
+.content-wrapper a:hover {
+  text-decoration: underline;
+}
+
 .content-wrapper a[data-page-link] {
   background-color: rgba(144, 202, 249, 0.15);
-  border-bottom: 1px solid rgba(144, 202, 249, 0.4);
+  color: var(--color-text);
+  border-bottom: none;
   padding: 0 2px;
   border-radius: 3px;
 }
-.content-wrapper ul { padding-left: 1.5em; }
-.content-wrapper li { margin-bottom: .25em; }
-.content-wrapper input[type="checkbox"] { margin-right: .5em; }
+
+.content-wrapper ul {
+  padding-left: 1.5em;
+}
+
+.content-wrapper li {
+  margin-bottom: .25em;
+}
+
+.content-wrapper input[type="checkbox"] {
+  margin-right: .5em;
+}
 
 /* Enhanced Blockquote Styling */
 .content-wrapper blockquote {
@@ -65,7 +87,7 @@
   text-align: center;
 }
 
-.content-wrapper th, 
+.content-wrapper th,
 .content-wrapper td {
   padding: 0.5rem 0.75rem;
   border: 1px solid var(--color-border);
@@ -199,7 +221,7 @@
 }
 
 /* Enhanced styling for lists */
-.content-wrapper ol, 
+.content-wrapper ol,
 .content-wrapper ul {
   padding-left: 2em;
 }
@@ -207,16 +229,19 @@
 /* Remove custom counter styling for ordered lists as Markdown already generates numbers */
 .content-wrapper ol {
   list-style-position: outside;
-  color: var(--color-link); /* Only the numbers will be colored */
+  color: var(--color-link);
+  /* Only the numbers will be colored */
 }
 
 .content-wrapper ol li {
-  color: var(--color-text); /* Reset text color for list items */
-  padding-left: 0.5em; /* Add a bit of padding after the number */
+  color: var(--color-text);
+  /* Reset text color for list items */
+  padding-left: 0.5em;
+  /* Add a bit of padding after the number */
 }
 
 /* Style for nested lists */
-.content-wrapper ol ol, 
+.content-wrapper ol ol,
 .content-wrapper ul ul,
 .content-wrapper ol ul,
 .content-wrapper ul ol {
@@ -231,7 +256,7 @@
 }
 
 /* Ensure proper spacing between list items with paragraphs */
-.content-wrapper li + li {
+.content-wrapper li+li {
   margin-top: 0.5em;
 }
 

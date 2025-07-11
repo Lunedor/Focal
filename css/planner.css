@@ -1,3 +1,31 @@
+/* --- Planner Dropdowns --- */
+.planner-dropdown {
+  background: var(--color-background, #f9f9f9);
+  color: var(--color-text, #222);
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 1em;
+  min-width: 80px;
+  transition: border-color 0.2s, background 0.2s;
+}
+.planner-dropdown:focus {
+  outline: none;
+  border-color: var(--color-link, #007aff);
+  background: var(--color-sidebar-active-bg, #eef6ff);
+}
+body.dark-mode .planner-dropdown {
+  background: var(--color-sidebar-bg, #22223b);
+  color: var(--color-text, #f9f9f9);
+  border-color: var(--color-border, #444);
+}
+.planner-dropdown-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5em;
+}
 .scheduled-items-scroll input,
 .scheduled-items-scroll button,
 .scheduled-items-scroll a,

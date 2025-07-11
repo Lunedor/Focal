@@ -214,6 +214,11 @@ function handleKeyboardNavigation(e) {
                 appState.currentView = 'monthly';
                 renderApp();
                 break;
+            case 'd':
+                e.preventDefault();
+                appState.currentView = 'daily';
+                renderApp(); // renderApp() will call renderView(), which handles rendering the daily view.
+                break;
             case 'f':
                 e.preventDefault();
                 if (DOM.librarySearch) {
