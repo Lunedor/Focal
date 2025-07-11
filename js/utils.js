@@ -369,6 +369,159 @@ function debounce(fn, delay) {
   };
 }
 
+// Add this near the top, after your imports and before parseMarkdown
+window.getNextRepeatOccurrence = function(rule, start, end) {
+  console.log(`[DEBUG] getNextRepeatOccurrence: Called with rule: "${rule}"`);
+  // Use today's date
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Helper to format date as yyyy-MM-dd
+  function formatDate(d) {
+    if (!d || isNaN(d.getTime())) {
+        console.log(`[DEBUG] getNextRepeatOccurrence: Invalid date passed to formatDate:`, d);
+        return null; // Add check for invalid date
+    }
+    return d.toISOString().slice(0, 10);
+  }
+
+  // Handle "everyday"
+  if (/^everyday$/i.test(rule.trim())) {
+    const next = new Date(today);
+    next.setDate(today.getDate() + 1);
+    const formattedNext = formatDate(next);
+    console.log(`[DEBUG] getNextRepeatOccurrence: "everyday" rule, next occurrence: ${formattedNext}`);
+    return formattedNext;
+  }
+
+  // Handle "everyday" with time(s) - the time part is handled by the regex, not the date calculation
+  if (/^everyday/i.test(rule.trim())) {
+    const next = new Date(today);
+    next.setDate(today.getDate() + 1);
+     const formattedNext = formatDate(next);
+    console.log(`[DEBUG] getNextRepeatOccurrence: "everyday" with time rule, next occurrence: ${formattedNext}`);
+    return formattedNext;
+  }
+
+  // Handle "every <weekday>"
+  const weekdayMatch = rule.match(/^every (monday|tuesday|wednesday|thursday|friday|saturday|sunday)$/i);
+  if (weekdayMatch) {
+    const weekdays = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+    const target = weekdays.indexOf(weekdayMatch[1].toLowerCase());
+    let next = new Date(today);
+    let days = (target - today.getDay() + 7) % 7;
+    if (days === 0) days = 7; // If today is the target day, next occurrence is next week
+    next.setDate(today.getDate() + days);
+     const formattedNext = formatDate(next);
+    console.log(`[DEBUG] getNextRepeatOccurrence: "every weekday" rule, next occurrence: ${formattedNext}`);
+    return formattedNext;
+  }
+
+  // Handle "every <weekday> from <start> to <end>"
+  const rangeMatch = rule.match(/^every (monday|tuesday|wednesday|thursday|friday|saturday|sunday) from ([^ ]+) to ([^ )]+)/i);
+  if (rangeMatch) {
+    const weekdays = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+    const target = weekdays.indexOf(rangeMatch[1].toLowerCase());
+    let startDate = window.parseDateString ? window.parseDateString(rangeMatch[2]) : null;
+    let endDate = window.parseDateString ? window.parseDateString(rangeMatch[3]) : null;
+    if (!startDate || !endDate) {
+        console.log(`[DEBUG] getNextRepeatOccurrence: Invalid start/end dates for weekly range rule.`);
+        return null;
+    }
+    
+    // Ensure start and end dates are at the beginning of the day for comparison
+    startDate.setHours(0, 0, 0, 0);
+    endDate.setHours(0, 0, 0, 0);
+
+    let next = new Date(today > startDate ? today : startDate);
+    next.setHours(0, 0, 0, 0); // Ensure next is at start of day
+
+    // Find the first occurrence on or after 'next' (which is max(today, startDate))
+    while (next.getDay() !== target) {
+        next.setDate(next.getDate() + 1);
+    }
+
+    // If the found date is after the end date, there are no more occurrences in the range
+    if (next > endDate) {
+        console.log(`[DEBUG] getNextRepeatOccurrence: Next occurrence ${formatDate(next)} is after end date ${formatDate(endDate)}.`);
+        return null;
+    }
+    const formattedNext = formatDate(next);
+    console.log(`[DEBUG] getNextRepeatOccurrence: "every weekday from date to date" rule, next occurrence: ${formattedNext}`);
+    return formattedNext;
+  }
+
+  // Handle "everyday from <start> to <end>"
+  const everydayRangeMatch = rule.match(/^everyday from ([^ ]+) to ([^ )]+)/i);
+  if (everydayRangeMatch) {
+    let startDate = window.parseDateString ? window.parseDateString(everydayRangeMatch[1]) : null;
+    let endDate = window.parseDateString ? window.parseDateString(everydayRangeMatch[2]) : null;
+    if (!startDate || !endDate) {
+        console.log(`[DEBUG] getNextRepeatOccurrence: Invalid start/end dates for everyday range rule.`);
+        return null;
+    }
+    
+    // Ensure start and end dates are at the beginning of the day for comparison
+    startDate.setHours(0, 0, 0, 0);
+    endDate.setHours(0, 0, 0, 0);
+
+    let next = new Date(today > startDate ? today : startDate);
+    next.setHours(0, 0, 0, 0); // Ensure next is at start of day
+
+    // If the found date is after the end date, there are no more occurrences in the range
+    if (next > endDate) {
+         console.log(`[DEBUG] getNextRepeatOccurrence: Next occurrence ${formatDate(next)} is after end date ${formatDate(endDate)}.`);
+        return null;
+    }
+    const formattedNext = formatDate(next);
+    console.log(`[DEBUG] getNextRepeatOccurrence: "everyday from date to date" rule, next occurrence: ${formattedNext}`);
+    return formattedNext;
+  }
+
+   // Handle annual (DD-MM or DD.MM or DD/MM) and full date (YYYY-MM-DD)
+  let dateStr = rule.trim();
+  let parsedDate = window.parseDateString ? window.parseDateString(dateStr) : null;
+
+  if (parsedDate && !isNaN(parsedDate.getTime())) {
+      // For both full dates (with year) and annual repeats (without year),
+      // calculate the next occurrence of the month and day on or after today.
+      const targetMonth = parsedDate.getMonth();
+      const targetDay = parsedDate.getDate();
+
+      let year = today.getFullYear();
+      let next = new Date(year, targetMonth, targetDay);
+       console.log(`[DEBUG] getNextRepeatOccurrence: Parsed date "${dateStr}", initial next: ${formatDate(next)}`);
+
+      // If the date this year is in the past, use next year
+      if (next < today) {
+          next.setFullYear(year + 1);
+           console.log(`[DEBUG] getNextRepeatOccurrence: Initial next is in the past, using next year: ${formatDate(next)}`);
+      }
+      const formattedNext = formatDate(next);
+      console.log(`[DEBUG] getNextRepeatOccurrence: Annual/Full date rule, next occurrence: ${formattedNext}`);
+      return formattedNext;
+  }
+
+  // Fallback: try parseDateString (should be covered by the logic above, but keep as a final fallback)
+  if (window.parseDateString) {
+    const d = window.parseDateString(rule);
+    if (d && !isNaN(d.getTime())) {
+        const formattedNext = formatDate(d);
+        console.log(`[DEBUG] getNextRepeatOccurrence: Fallback parseDateString, result: ${formattedNext}`);
+        return formattedNext;
+    }
+  }
+  console.log(`[DEBUG] getNextRepeatOccurrence: No match found for rule: "${rule}"`);
+  return null; // Return null if no format matched or date is invalid
+};
+
+// utils.js
+// Modified REPEAT_REGEX to make the rule capture group greedy
+window.REPEAT_REGEX = /\(REPEAT:\s*(everyday|every(?:\s+\w+)+|\d{4}-\d{2}-\d{2}|\d{2}-\d{2})(?:\s+(\d{4}-\d{2}-\d{2}))?(?:\s+(\d{4}-\d{2}-\d{2}))?(?:\s+(\d{1,2}:\d{2})(?:[-\s](\d{1,2}:\d{2}))?)?\)/gi;
+window.scheduledRegex = new RegExp(
+      `^([-*]\\s*\\[([x ])\\]\\s*)?(.*?)\\(SCHEDULED:\\s*${window.DATE_REGEX_PATTERN}(?:\\s*(\\d{1,2}:\\d{2})(?:-(\\d{1,2}:\\d{2}))?)?\\)`,
+      'i'
+    );
 // Expose functions globally for access from other scripts
 window.exportAllData = exportAllData;
 window.importAllData = importAllData;

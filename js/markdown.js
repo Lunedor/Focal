@@ -715,7 +715,7 @@ const parseMarkdown = (text, options = {}) => {
     </div>`;
   });
   // Make (SCHEDULED: ...) clickable using centralized logic
-  const scheduledRegex = new RegExp(`\\(SCHEDULED: \\s*${window.DATE_REGEX_PATTERN}\\)`, 'gi');
+  const scheduledRegex = window.scheduledRegex
   html = html.replace(/\((SCHEDULED|NOTIFY): ([^)]+)\)/gi, (match, type, content) => {
     const dateStr = content.trim().split(' ')[0];
     const normalizedDate = window.normalizeDateStringToYyyyMmDd(dateStr);
@@ -838,10 +838,16 @@ const parseMarkdown = (text, options = {}) => {
     }
     
     if (parsedDate) {
-      // For full dates (with year), always return that date so it's clickable
+      // For full dates (with year), find the next occurrence after today (annual repeat)
       if (dateStr.match(/\d{4}/)) {
-        // This is a full date with year - always return it (even if past) so it's clickable
-        return parsedDate;
+        const month = parsedDate.getMonth();
+        const day = parsedDate.getDate();
+        const thisYear = today.getFullYear();
+        let nextOccurrence = new Date(thisYear, month, day);
+        if (nextOccurrence < today) {
+          nextOccurrence = new Date(thisYear + 1, month, day);
+        }
+        return nextOccurrence;
       } else {
         // This is an annual repeat (DD.MM format) - calculate next occurrence
         const thisYear = today.getFullYear();
@@ -908,8 +914,7 @@ const parseMarkdown = (text, options = {}) => {
   }
 
   // Make (REPEAT: ...) clickable and normalized for recurring events, including new syntax
-  // Support: (REPEAT: 03.07.1995), (REPEAT: every monday from 30.06.2025 to 30.06.2026), etc.
-  const repeatRegex = /\(REPEAT: ([^)]+)\)/gi;
+const repeatRegex = window.REPEAT_REGEX;
   html = html.replace(repeatRegex, (match, repeatRule) => {
     let tooltip = '';
     let nextOccurrenceDate = calculateNextRepeatOccurrence(repeatRule);

@@ -17,9 +17,38 @@ function buildScheduledItemsHtml(dayDateStr, allScheduled) {
     if (itemsForDay && itemsForDay.length > 0) {
       // Extract time from scheduled items and add to the item object
       const enhancedItems = itemsForDay.map(item => {
-        // Check if there's a time in the originalDate (e.g., "2025-07-05 23:55")
         let timeStr = null;
         let timeMinutes = -1; // For sorting purposes
+
+        if (item.time) {
+          timeStr = item.time;
+          if (item.endTime) {
+            timeStr += '-' + item.endTime;
+          }
+          // For sorting, use the start time
+          const [hours, minutes] = item.time.split(':').map(Number);
+          timeMinutes = hours * 60 + minutes;
+        } else {
+          timeStr = null;
+          timeMinutes = -1;
+        }
+
+        // Fallback: try to extract from originalDate if not present
+        if (!timeStr && item.originalDate && /\d{2}:\d{2}/.test(item.originalDate)) {
+          const match = item.originalDate.match(/(\d{2}:\d{2})(?:-(\d{2}:\d{2}))?/);
+          if (match) {
+            timeStr = match[1];
+            if (match[2]) timeStr += '-' + match[2];
+            const [hours, minutes] = match[1].split(':').map(Number);
+            timeMinutes = hours * 60 + minutes;
+          }
+        }
+
+        // If still not found, fallback to previous logic
+        if (!timeStr) {
+          timeStr = null;
+          timeMinutes = -1;
+        }
         
         const pageContent = getStorage(item.pageKey);
         const lines = pageContent.split('\n');
@@ -126,8 +155,12 @@ function buildScheduledItemsHtml(dayDateStr, allScheduled) {
           if (item.foundIndex === -1) return '';
           
           let prefix = '';
-          if (item.timeStr) {
-            prefix = `${item.timeStr}: `;
+          if (item.time && item.endTime) {
+            prefix = `${item.time} ${item.endTime}: `;
+          } else if (item.time) {
+            prefix = `${item.time}: `;
+          } else if (item.endTime) {
+            prefix = `${item.endTime}: `;
           } else {
             prefix = 'All Day: ';
           }
@@ -318,6 +351,7 @@ function updatePlannerDay(key) {
 function escapeRegExp(string) {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
+
 // --- PLANNER VIEW LOGIC ---
 
 /**
@@ -330,17 +364,17 @@ function escapeRegExp(string) {
 function getAllScheduledItems() {
     const scheduledItems = new Map();
     // SCHEDULED
-    // Allow for optional time after the date (e.g. 2025-07-03 03:22)
-    // Capture checkbox marker if present, then the rest of the text
-    const scheduleRegex = new RegExp(`^([-*]\\s*\\[([x ])\\]\\s*)?(.*?)\\(SCHEDULED:\\s*${window.DATE_REGEX_PATTERN}(?:\\s*(\\d{1,2}:\\d{2}))?\\)`, 'i');
+    // Allow for optional time or time range after the date
+    const scheduleRegex = window.scheduledRegex;
     // NOTIFY
     // Capture both date and time
     const notifyRegex = new RegExp(`^(?:[-*]\\s*\\[[x ]\\]\\s*)?(.*)\\(NOTIFY:\\s*${window.DATE_REGEX_PATTERN}(?:\\s*(\\d{1,2}:\\d{2}))?\\)`, 'i');
     // NOTIFY with only time (attached to an item with SCHEDULED)
     const notifyTimeRegex = /\(NOTIFY:\s*(\d{1,2}:\d{2})\)/i;
     // REPEAT (recurring, new flexible syntax)
-    const repeatRegex = /\(REPEAT: ([^)]+)\)/i;
-
+    // Allow for time or time range after the repeat rule
+    // Accepts: (REPEAT: rule 09:00-10:00), (REPEAT: rule 11:00 12:00), (REPEAT: rule 08:00)
+const repeatRegex = window.REPEAT_REGEX;
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key.startsWith('page-')) {
@@ -355,7 +389,8 @@ function getAllScheduledItems() {
                     const checkboxState = match[2] || '';  // The checkbox state (x or space)
                     const itemText = match[3].trim();
                     const dateStr = match[4];
-                    const timeStr = match[5]; // This will be undefined if no time was specified
+                    const startTime = match[5]; // Start time
+                    const endTime = match[6];   // End time
                     if (!itemText && !checkboxPrefix) return;
                     let normalizedDate = window.normalizeDateStringToYyyyMmDd(dateStr);
                     if (!normalizedDate) return;
@@ -375,8 +410,9 @@ function getAllScheduledItems() {
                         pageKey: key,
                         displayName: pageTitle,
                         recurring: false,
-                        originalDate: timeStr ? `${dateStr} ${timeStr}` : dateStr,
-                        time: timeStr,
+                        originalDate: startTime ? `${dateStr} ${startTime}` : dateStr,
+                        time: startTime,
+                        endTime: endTime,
                         notify: false,
                         hasNotifyTag: hasNotifyTag,
                         notifyTime: notifyTimeMatch ? notifyTimeMatch[1] : null
@@ -406,174 +442,158 @@ function getAllScheduledItems() {
                 const repeatMatch = line.match(repeatRegex);
                 if (repeatMatch) {
                     const repeatRule = repeatMatch[1];
-                    
+                    if (!repeatRule) return;
+                    const repeatStartTime = repeatMatch[2];
+                    const repeatEndTime = repeatMatch[3];
+
                     // Check for checkbox prefix in repeat items
                     const checkboxMatch = line.match(/^([-*]\s*\[([x ])\]\s*)?/);
                     const checkboxPrefix = checkboxMatch ? checkboxMatch[1] || '' : '';
                     const checkboxState = checkboxMatch ? checkboxMatch[2] || '' : '';
                     const isCheckbox = !!checkboxPrefix;
                     const checkboxChecked = checkboxState === 'x';
-                    
+
                     // Extract the clean text without REPEAT and SCHEDULED tags
                     let cleanText = line.replace(/\(REPEAT:[^)]+\)/, '').replace(/\(SCHEDULED:[^)]+\)/, '').trim();
-                    
-                    // Handle "everyday from date to date" format
-                    const everydayRangeMatch = repeatRule.match(/^everyday from ([^ ]+) to ([^ )]+)/i);
-                    if (everydayRangeMatch) {
-                        const startDate = window.normalizeDateStringToYyyyMmDd(everydayRangeMatch[1]);
-                        const endDate = window.normalizeDateStringToYyyyMmDd(everydayRangeMatch[2]);
-                        
-                        if (startDate && endDate) {
-                            let d = dateFns.parseISO(startDate);
-                            const endDateObj = dateFns.parseISO(endDate);
-                            
-                            for (; !dateFns.isAfter(d, endDateObj); d = dateFns.addDays(d, 1)) {
-                                const dayStr = dateFns.format(d, 'yyyy-MM-dd');
-                                if (!scheduledItems.has(dayStr)) scheduledItems.set(dayStr, []);
-                                scheduledItems.get(dayStr).push({
-                                    text: cleanText,
-                                    isCheckbox: isCheckbox,
-                                    checkboxState: checkboxChecked,
-                                    pageKey: key,
-                                    displayName: pageTitle,
-                                    recurring: true,
-                                    recurringKey: 'everyday-range',
-                                    originalDate: startDate,
-                                    notify: false
-                                });
-                            }
-                        }
-                        return;
+
+                    // Helper to add a repeat item for a given date
+                    function addRepeatItem(dayStr, origDate, time, endTime) {
+                        if (!scheduledItems.has(dayStr)) scheduledItems.set(dayStr, []);
+                        scheduledItems.get(dayStr).push({
+                            text: cleanText,
+                            isCheckbox: isCheckbox,
+                            checkboxState: checkboxChecked,
+                            pageKey: key,
+                            displayName: pageTitle,
+                            recurring: true,
+                            recurringKey: repeatRule,
+                            originalDate: origDate,
+                            time: time,
+                            endTime: endTime,
+                            notify: false
+                        });
                     }
                     
-                    const rangeMatch = repeatRule.match(/^every (monday|tuesday|wednesday|thursday|friday|saturday|sunday) from ([^ ]+) to ([^ )]+)/i);
-                    let weekday = null, startDate = null, endDate = null;
-                    if (rangeMatch) {
-                        weekday = rangeMatch[1].toLowerCase();
-                        startDate = window.normalizeDateStringToYyyyMmDd(rangeMatch[2]);
-                        endDate = window.normalizeDateStringToYyyyMmDd(rangeMatch[3]);
-                    }
-                    if (!weekday) {
-                        const everyMatch = repeatRule.match(/^every (monday|tuesday|wednesday|thursday|friday|saturday|sunday)$/i);
-                        if (everyMatch) {
-                            weekday = everyMatch[1].toLowerCase();
-                        }
-                    }
-                    if (weekday) {
-                        if (!startDate) {
-                            const scheduledMatches = [...line.matchAll(/\(SCHEDULED: ([^)]+)\)/g)];
-                            if (scheduledMatches.length > 0) {
-                                startDate = window.normalizeDateStringToYyyyMmDd(scheduledMatches[0][1]);
-                            }
-                        }
-                        if (!startDate) {
-                            // Default to current date if no start date specified
-                            startDate = dateFns.format(new Date(), 'yyyy-MM-dd');
-                        }
-                        if (!endDate) {
-                            const now = new Date();
-                            endDate = new Date(now.getFullYear() + 1, 11, 31); // 1 year ahead
-                        }
-                        const targetIndex = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].indexOf(weekday);
-                        let first = dateFns.parseISO(startDate);
-                        let d = dateFns.startOfDay(first);
-                        while (dateFns.getDay(d) !== ((targetIndex + 1) % 7)) {
-                            d = dateFns.addDays(d, 1);
-                        }
-                        for (; !dateFns.isAfter(d, endDate); d = dateFns.addWeeks(d, 1)) {
-                            if (dateFns.isBefore(d, first)) continue;
-                            const dayStr = dateFns.format(d, 'yyyy-MM-dd');
-                            if (!scheduledItems.has(dayStr)) scheduledItems.set(dayStr, []);
-                            scheduledItems.get(dayStr).push({
-                                text: cleanText,
-                                isCheckbox: isCheckbox,
-                                checkboxState: checkboxChecked,
-                                pageKey: key,
-                                displayName: pageTitle,
-                                recurring: true,
-                                recurringKey: weekday,
-                                originalDate: startDate,
-                                notify: false
-                            });
-                        }
-                    } else if (repeatRule.toLowerCase() === 'everyday') {
-                        // Handle daily recurring events
-                        let startDate = null;
-                        const scheduledMatches = [...line.matchAll(/\(SCHEDULED: ([^)]+)\)/g)];
-                        if (scheduledMatches.length > 0) {
-                            startDate = window.normalizeDateStringToYyyyMmDd(scheduledMatches[0][1]);
-                        }
-                        if (!startDate) {
-                            // Default to current date if no start date specified
-                            startDate = dateFns.format(new Date(), 'yyyy-MM-dd');
-                        }
-                        
-                        const now = new Date();
-                        const endDate = new Date(now.getFullYear() + 1, 11, 31); // 1 year ahead
-                        let d = dateFns.parseISO(startDate);
-                        
-                        for (; !dateFns.isAfter(d, endDate); d = dateFns.addDays(d, 1)) {
-                            const dayStr = dateFns.format(d, 'yyyy-MM-dd');
-                            if (!scheduledItems.has(dayStr)) scheduledItems.set(dayStr, []);
-                            scheduledItems.get(dayStr).push({
-                                text: cleanText,
-                                isCheckbox: isCheckbox,
-                                checkboxState: checkboxChecked,
-                                pageKey: key,
-                                displayName: pageTitle,
-                                recurring: true,
-                                recurringKey: 'everyday',
-                                originalDate: startDate,
-                                notify: false
-                            });
-                        }
-                    } else {
-                        // Handle (REPEAT: <date>) as an annual recurring event (every year on that day)
-                        let dateStr = repeatRule.trim();
-                        let norm = window.normalizeDateStringToYyyyMmDd(dateStr);
-                        if (norm) {
-                            let monthDay = norm.slice(5); // MM-DD
-                            const now = new Date();
-                            let startYear = now.getFullYear() - 10;
-                            let endYear = now.getFullYear() + 10;
-                            for (let y = startYear; y <= endYear; y++) {
-                                let ymd = `${y}-${monthDay}`;
-                                if (!scheduledItems.has(ymd)) scheduledItems.set(ymd, []);
-                                scheduledItems.get(ymd).push({
-                                    text: line.replace(/\(REPEAT:[^)]+\)/, '').replace(/\(SCHEDULED:[^)]+\)/, '').trim(),
-                                    pageKey: key,
-                                    displayName: pageTitle,
-                                    recurring: true,
-                                    recurringKey: monthDay,
-                                    originalDate: norm,
-                                    notify: false
-                                });
-                            }
-                        } else {
-                            // Try to match day/month only
-                            const dm = dateStr.match(/^(\d{2})[./-](\d{2})$/);
-                            if (dm) {
-                                let monthDay = `${dm[2]}-${dm[1]}`;
-                                const now = new Date();
-                                let startYear = now.getFullYear() - 10;
-                                let endYear = now.getFullYear() + 10;
-                                for (let y = startYear; y <= endYear; y++) {
-                                    let ymd = `${y}-${monthDay}`;
-                                    if (!scheduledItems.has(ymd)) scheduledItems.set(ymd, []);
-                                    scheduledItems.get(ymd).push({
-                                        text: line.replace(/\(REPEAT:[^)]+\)/, '').replace(/\(SCHEDULED:[^)]+\)/, '').trim(),
-                                        pageKey: key,
-                                        displayName: pageTitle,
-                                        recurring: true,
-                                        recurringKey: monthDay,
-                                        originalDate: monthDay,
-                                        notify: false
-                                    });
-                                }
-                            }
-                        }
-                    }
+                    // Handle "everyday from date to date" format, with time
+    const everydayRangeMatch = repeatRule.match(/^everyday from ([^ ]+) to ([^ )]+)(?:\s+(\d{1,2}:\d{2})(?:-(\d{1,2}:\d{2}))?)?/i);
+    if (everydayRangeMatch) {
+        const startDate = window.normalizeDateStringToYyyyMmDd(everydayRangeMatch[1]);
+        const endDate = window.normalizeDateStringToYyyyMmDd(everydayRangeMatch[2]);
+        const time = everydayRangeMatch[3] || repeatStartTime;
+        const endTime = everydayRangeMatch[4] || repeatEndTime;
+        if (startDate && endDate) {
+            let d = dateFns.parseISO(startDate);
+            const endDateObj = dateFns.parseISO(endDate);
+            for (; !dateFns.isAfter(d, endDateObj); d = dateFns.addDays(d, 1)) {
+                const dayStr = dateFns.format(d, 'yyyy-MM-dd');
+                addRepeatItem(dayStr, startDate, time, endTime);
+            }
+        }
+        return;
+    }
+
+    // Handle "every <weekday> from <date> to <date> [time]" format
+    const rangeMatch = repeatRule.match(/^every (monday|tuesday|wednesday|thursday|friday|saturday|sunday) from ([^ ]+) to ([^ )]+)(?:\s+(\d{1,2}:\d{2})(?:-(\d{1,2}:\d{2}))?)?/i);
+    let weekday = null, startDate = null, endDate = null, time = null, endTime = null;
+    if (rangeMatch) {
+        weekday = rangeMatch[1].toLowerCase();
+        startDate = window.normalizeDateStringToYyyyMmDd(rangeMatch[2]);
+        endDate = window.normalizeDateStringToYyyyMmDd(rangeMatch[3]);
+        time = rangeMatch[4] || repeatStartTime;
+        endTime = rangeMatch[5] || repeatEndTime;
+    }
+    if (!weekday) {
+        const everyMatch = repeatRule.match(/^every (monday|tuesday|wednesday|thursday|friday|saturday|sunday)(?:\s+(\d{1,2}:\d{2})(?:-(\d{1,2}:\d{2}))?)?$/i);
+        if (everyMatch) {
+            weekday = everyMatch[1].toLowerCase();
+            time = everyMatch[2] || repeatStartTime;
+            endTime = everyMatch[3] || repeatEndTime;
+        }
+    }
+    if (weekday) {
+        if (!startDate) {
+            const scheduledMatches = [...line.matchAll(/\(SCHEDULED: ([^)]+)\)/g)];
+            if (scheduledMatches.length > 0) {
+                startDate = window.normalizeDateStringToYyyyMmDd(scheduledMatches[0][1]);
+            }
+        }
+        if (!startDate) {
+            startDate = dateFns.format(new Date(), 'yyyy-MM-dd');
+        }
+        if (!endDate) {
+            const now = new Date();
+            endDate = dateFns.format(new Date(now.getFullYear() + 1, 11, 31), 'yyyy-MM-dd');
+        }
+        const targetIndex = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].indexOf(weekday);
+        let first = dateFns.parseISO(startDate);
+        let d = dateFns.startOfDay(first);
+        while (dateFns.getDay(d) !== ((targetIndex + 1) % 7)) {
+            d = dateFns.addDays(d, 1);
+        }
+        const endDateObj = dateFns.parseISO(endDate);
+        for (; !dateFns.isAfter(d, endDateObj); d = dateFns.addWeeks(d, 1)) {
+            if (dateFns.isBefore(d, first)) continue;
+            const dayStr = dateFns.format(d, 'yyyy-MM-dd');
+            addRepeatItem(dayStr, startDate, time, endTime);
+        }
+    } else if (repeatRule.toLowerCase().startsWith('everyday')) {
+        // Handle daily recurring events with optional time and range
+        let startDate = null, time = repeatStartTime, endTime = repeatEndTime;
+        const scheduledMatches = [...line.matchAll(/\(SCHEDULED: ([^)]+)\)/g)];
+        if (scheduledMatches.length > 0) {
+            startDate = window.normalizeDateStringToYyyyMmDd(scheduledMatches[0][1]);
+        }
+        if (!startDate) {
+            startDate = dateFns.format(new Date(), 'yyyy-MM-dd');
+        }
+        // Try to extract time from repeatRule if present
+        const timeMatch = repeatRule.match(/everyday(?:\s+(\d{1,2}:\d{2})(?:-(\d{1,2}:\d{2}))?)?/i);
+        if (timeMatch) {
+            time = timeMatch[1] || time;
+            endTime = timeMatch[2] || endTime;
+        }
+        const now = new Date();
+        const endDate = dateFns.format(new Date(now.getFullYear() + 1, 11, 31), 'yyyy-MM-dd');
+        let d = dateFns.parseISO(startDate);
+        const endDateObj = dateFns.parseISO(endDate);
+        for (; !dateFns.isAfter(d, endDateObj); d = dateFns.addDays(d, 1)) {
+            const dayStr = dateFns.format(d, 'yyyy-MM-dd');
+            addRepeatItem(dayStr, startDate, time, endTime);
+        }
+    } else {
+        // Handle (REPEAT: <date>) as an annual recurring event (every year on that day)
+        let dateAndTime = repeatRule.trim().split(/\s+/); // e.g. ["2001-07-05", "15:00"]
+        let dateStr = dateAndTime[0];
+        let timeStr = dateAndTime[1] || repeatStartTime;
+        let endTimeStr = dateAndTime[2] || repeatEndTime;
+
+        let norm = window.normalizeDateStringToYyyyMmDd(dateStr);
+        if (norm) {
+        // Start from the original year, not just the current year
+            const startYear = parseInt(norm.slice(0, 4), 10);
+            const today = new Date();
+            const endYear = today.getFullYear() + 10;
+            for (let y = startYear; y <= endYear; y++) {
+                let ymd = `${y}-${norm.slice(5)}`;
+                // Set originalDate to the actual date for this year
+                addRepeatItem(ymd, ymd, timeStr, endTimeStr);
+            }
+        } else {
+            // Try to match day/month only (e.g. 01-07)
+            const dm = dateStr.match(/^(\d{2})[./-](\d{2})$/);
+            if (dm) {
+                let monthDay = `${dm[2]}-${dm[1]}`;
+                const now = new Date();
+                let startYear = now.getFullYear() - 10;
+                let endYear = now.getFullYear() + 10;
+                for (let y = startYear; y <= endYear; y++) {
+                    let ymd = `${y}-${monthDay}`;
+                    addRepeatItem(ymd, monthDay, timeStr, endTimeStr);
                 }
+            }
+        }
+    }
+}
             });
         }
     }

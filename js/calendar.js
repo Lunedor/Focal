@@ -5,8 +5,9 @@
  */
 function scanForDataWithDates() {
   const datesWithData = new Set();
-  const scheduledRegex = new RegExp(`\\(SCHEDULED: \\s*${window.DATE_REGEX_PATTERN}\\)`, 'g');
-  const repeatRegex = /\(REPEAT: ([^)]+)\)/g;
+  const scheduledRegex = window.scheduledRegex
+  // Accepts: (REPEAT: rule 09:00-10:00), (REPEAT: rule 11:00 12:00), (REPEAT: rule 08:00)
+const repeatRegex = window.REPEAT_REGEX;
 
   // For REPEAT expansion, get the visible calendar range (for efficiency)
   let calendarStart = null, calendarEnd = null;

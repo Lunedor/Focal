@@ -66,9 +66,7 @@ function findBacklinks(targetTitle) {
           backlinks.push({ sourceTitle, snippet, plannerKey });
         }
         // --- Backlink for scheduled tasks ---
-        // Accepts (SCHEDULED: 2025-06-24), (SCHEDULED: 31.12.2025), (SCHEDULED: 31/12/2025)
-        // e.g. - [ ] Task (SCHEDULED: 2025-06-24) ... [[Target Title]]
-        const scheduledRegex = new RegExp(`\\(SCHEDULED: \\s*${window.DATE_REGEX_PATTERN}\\)`, 'i');
+        const scheduledRegex = window.scheduledRegex
         if (scheduledRegex.test(line) && wikiLinkRegex.test(line)) {
           // For planner keys, show a nice date
           let sourceTitle, plannerKey = null;
