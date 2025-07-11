@@ -517,11 +517,11 @@ window.getNextRepeatOccurrence = function(rule, start, end) {
 
 // utils.js
 // Modified REPEAT_REGEX to make the rule capture group greedy
-window.REPEAT_REGEX = /\(REPEAT:\s*(everyday|every(?:\s+\w+)+|\d{4}-\d{2}-\d{2}|\d{2}-\d{2})(?:\s+(\d{4}-\d{2}-\d{2}))?(?:\s+(\d{4}-\d{2}-\d{2}))?(?:\s+(\d{1,2}:\d{2})(?:[-\s](\d{1,2}:\d{2}))?)?\)/gi;
+window.REPEAT_REGEX = /\(REPEAT:\s*([^)]+)\)/gi;
 window.scheduledRegex = new RegExp(
-      `^([-*]\\s*\\[([x ])\\]\\s*)?(.*?)\\(SCHEDULED:\\s*${window.DATE_REGEX_PATTERN}(?:\\s*(\\d{1,2}:\\d{2})(?:-(\\d{1,2}:\\d{2}))?)?\\)`,
-      'i'
-    );
+  `^([-*]\\s*\\[([x ])\\]\\s*)?(.*?)\\(SCHEDULED:\\s*${window.DATE_REGEX_PATTERN}(?:\\s*(\\d{1,2}:\\d{2})(?:[- ](\\d{1,2}:\\d{2}))?)?\\)`,
+  'i'
+);
 // Expose functions globally for access from other scripts
 window.exportAllData = exportAllData;
 window.importAllData = importAllData;
