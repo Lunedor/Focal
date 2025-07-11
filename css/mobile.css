@@ -313,6 +313,10 @@
 
   .habit-header .finance-widget-controls {
     justify-content: space-between;
-    width: 35vh;
+    width: 33vh;
+  }
+
+  .habit-widget{
+    padding: 8px !important;
   }
 }
