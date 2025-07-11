@@ -1570,6 +1570,21 @@ const HabitTracker = (function() {
     }
     
     function renderDayWidget(dateString) {
+        // If no dateString is provided, try to extract it from the command
+        if (!dateString) {
+            const pageWrapper = placeholder && placeholder.closest('[data-key]');
+            if (pageWrapper) {
+                const key = pageWrapper.dataset.key;
+                const content = getStorage(key);
+                if (content) {
+                    // Extract date from HABITS: day, YYYY-MM-DD
+                    const match = content.match(/HABITS:\s*day(?:,\s*(\d{4}-\d{2}-\d{2}))?/i);
+                    if (match) {
+                        dateString = match[1] || formatDate(new Date());
+                    }
+                }
+            }
+        }
         const selectedDate = dateString ? new Date(dateString + 'T00:00:00') : new Date();
         const dayData = getHabitData(selectedDate);
         const definitions = getHabitDefinitions();
@@ -4670,6 +4685,14 @@ function renderAchievementsWidget() {
         // Trigger full page re-render
         if (typeof renderApp === 'function') {
             setTimeout(() => renderApp(), 0);
+        } else {
+            // Fallback: directly re-render the day widget if possible
+            if (typeof renderDayWidget === 'function') {
+                const dayWidgetContainer = document.querySelector('.habit-widget.day');
+                if (dayWidgetContainer) {
+                    dayWidgetContainer.innerHTML = renderDayWidget(newDate);
+                }
+            }
         }
     }
     
