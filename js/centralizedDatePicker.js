@@ -566,22 +566,30 @@ const CentralizedDatePicker = (() => {
             list.appendChild(item);
         });
 
-        selected.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const wasVisible = list.style.display === 'block';
-            list.style.display = wasVisible ? 'none' : 'block';
-            
-            // Apply smart positioning when showing the dropdown
-            if (!wasVisible && window.DropdownPositioning) {
-                // Use relative positioning to the wrapper element
-                window.DropdownPositioning.applyMobileOptimizedPosition(wrapper, list, {
-                    offsetX: 0,
-                    offsetY: wrapper.offsetHeight + 2,
-                    margin: 5,
-                    zIndex: '10001'
-                });
-            }
-        });
+  selected.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const wasVisible = list.style.display === 'block';
+    list.style.display = wasVisible ? 'none' : 'block';
+
+    // Only use smart positioning if not inside a toolbar picker
+    const isToolbarPicker = wrapper.closest('.fj-date-picker-popup');
+    if (!wasVisible && window.DropdownPositioning && !isToolbarPicker) {
+      // Use relative positioning to the wrapper element
+      window.DropdownPositioning.applyMobileOptimizedPosition(wrapper, list, {
+        offsetX: 0,
+        offsetY: wrapper.offsetHeight + 2,
+        margin: 5,
+        zIndex: '10001'
+      });
+    } else {
+      // For toolbar pickers, let the dropdown list appear directly below
+      list.style.left = 0;
+      list.style.top = '110%';
+      list.style.right = 0;
+      list.style.position = 'absolute';
+      list.style.transform = '';
+    }
+  });
         
         wrapper.addEventListener('blur', () => {
             setTimeout(() => { list.style.display = 'none'; }, 100);
