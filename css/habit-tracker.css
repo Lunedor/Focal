@@ -1042,6 +1042,9 @@ body.dark-mode .habit-cell.not-scheduled {
     display: flex;
     align-items: center;
     gap: 12px;
+    width: 35vh;
+    justify-content: space-between;
+    margin-top: 20px;
 }
 
 .habit-nav-btn {
@@ -1080,7 +1083,6 @@ body.dark-mode .habit-cell.not-scheduled {
     gap: 4px;
     font-size: 0.85em;
     font-weight: 500;
-    margin: 0 8px;
 }
 
 .habit-today-btn:hover {
@@ -1497,7 +1499,6 @@ body.dark-mode .habit-cell.not-scheduled {
 
 .habit-date-display {
     text-align: center;
-    min-width: 170px;
 }
 
 .habit-date-main {

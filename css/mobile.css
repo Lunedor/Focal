@@ -12,21 +12,24 @@
     background: var(--color-sidebar-bg);
     z-index: 1001;
     transform: translateX(-100%);
-    transition: transform 0.3s cubic-bezier(.4,0,.2,1);
-    box-shadow: 2px 0 16px rgba(0,0,0,0.08);
+    transition: transform 0.3s cubic-bezier(.4, 0, .2, 1);
+    box-shadow: 2px 0 16px rgba(0, 0, 0, 0.08);
     border-right: 1px solid var(--color-border);
     border-bottom: none;
     padding: 1.2rem 1rem 1rem 1.2rem;
     display: flex;
     flex-direction: column;
   }
+
   body.sidebar-open #sidebar {
     transform: translateX(0);
   }
+
   #sidebar::after {
     content: '';
     display: none;
   }
+
   .hamburger-menu {
     display: flex;
     position: fixed;
@@ -40,36 +43,44 @@
     padding: 0.5rem 0.7rem;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
     cursor: pointer;
   }
+
   .hamburger-menu i {
     width: 24px;
     height: 24px;
   }
+
   .hamburger-menu {
     /* Only show on mobile */
     display: flex;
   }
+
   #sidebar {
     /* Hide sidebar by default on mobile */
     display: flex;
   }
+
   /* Hide sidebar and show hamburger */
   #sidebar {
     pointer-events: none;
   }
+
   body.sidebar-open #sidebar {
     pointer-events: auto;
   }
+
   .hamburger-menu {
     display: flex;
   }
+
   /* Hide sidebar when not open */
   body:not(.sidebar-open) #sidebar {
     transform: translateX(-100%);
     pointer-events: none;
   }
+
   /* Overlay for sidebar */
   #sidebar-overlay {
     display: block;
@@ -78,20 +89,25 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(0,0,0,0.18);
+    background: rgba(0, 0, 0, 0.18);
     z-index: 1000;
     opacity: 1;
     transition: opacity 0.2s;
   }
+
   body:not(.sidebar-open) #sidebar-overlay {
     display: none;
     opacity: 0;
   }
+
   /* Hide sidebar and overlay on desktop */
   @media (min-width: 769px) {
-    .hamburger-menu, #sidebar-overlay {
+
+    .hamburger-menu,
+    #sidebar-overlay {
       display: none !important;
     }
+
     #sidebar {
       position: relative;
       transform: none !important;
@@ -112,35 +128,47 @@
     gap: 0.5rem;
     height: auto;
   }
+
   .planner-note {
     flex: 0 0 100%;
     box-sizing: border-box;
   }
-  .planner-header, .calendar-header {
+
+  .planner-header,
+  .calendar-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
     padding-bottom: 0.5rem;
     margin-bottom: 1rem;
   }
-  .planner-header h1, .calendar-header h1 {
+
+  .planner-header h1,
+  .calendar-header h1 {
     font-size: 1.1rem;
   }
-  .planner-nav, .calendar-nav {
+
+  .planner-nav,
+  .calendar-nav {
     gap: 0.2rem;
   }
-  .planner-nav a, .calendar-nav a {
+
+  .planner-nav a,
+  .calendar-nav a {
     font-size: 0.9rem;
     padding: 0.4rem 0.6rem;
   }
+
   .calendar-grid {
     grid-gap: 0.2rem;
   }
+
   .calendar-day {
     min-height: 48px;
     padding: 0.4rem;
     font-size: 0.95rem;
   }
+
   .day-names {
     font-size: 0.7em;
     margin-bottom: 0.2rem;
@@ -155,106 +183,136 @@
     left: 0;
     width: 100vw !important;
     height: 100vh !important;
-    background: rgba(0,0,0,0.18) !important;
+    background: rgba(0, 0, 0, 0.18) !important;
     z-index: 1200 !important;
     align-items: center;
     justify-content: center;
     /* No forced display or pointer-events, let app logic control */
   }
+
   .settings-modal {
     width: 90vw !important;
     max-width: 340px !important;
     min-height: 60vh !important;
     border-radius: 16px !important;
-    box-shadow: 0 4px 32px rgba(0,0,0,0.18);
+    box-shadow: 0 4px 32px rgba(0, 0, 0, 0.18);
     background: var(--color-background);
     padding: 1.2rem 1rem 1rem 1.2rem;
     /* No forced display, let app logic control */
   }
+
   .settings-modal-header {
     padding-bottom: 0.5rem;
   }
+
   .settings-modal-body button {
     width: 100%;
     margin-bottom: 0.5rem;
   }
+
   .markdown-toolbar {
     flex-direction: column;
   }
+
   .library-page-item .page-actions {
     opacity: 1;
     pointer-events: auto;
   }
+
   .mood-palette {
     padding: 0.5rem 0.25rem;
   }
-   .mood-palette-buttons {
+
+  .mood-palette-buttons {
     gap: 0.125rem !important;
   }
+
   .mood-button {
     width: 2.25rem !important;
     height: 2.5rem !important;
   }
+
   .mood-emoji {
     font-size: 1.25rem !important;
   }
-  .calendar-widget, .chart-widget {
-      max-height: 900px;
+
+  .calendar-widget,
+  .chart-widget {
+    max-height: 900px;
   }
+
   .mood-tracker-wrapper {
     overflow-x: hidden;
     padding: 0 !important;
     margin: -15px !important;
   }
+
   .mood-interaction-bar {
     font-size: small;
   }
 
-.finance-chart-bar {
+  .finance-chart-bar {
     position: absolute;
     width: 15px !important;
-}
+  }
 
-.finance-transaction-list table {
+  .finance-transaction-list table {
     min-width: 270px !important;
-}
-.finance-transaction-list td {
+  }
+
+  .finance-transaction-list td {
     padding: 4px !important;
     font-size: 0.6em !important;
-}
-.finance-transaction-list th {
+  }
+
+  .finance-transaction-list th {
     padding: 4px !important;
     font-size: 0.85em !important;
   }
-.year-header {
+
+  .year-header {
     width: 70% !important;
     margin-bottom: -5rem !important;
   }
-.year-grid-container {
+
+  .year-grid-container {
     transform: scale(0.8);
     padding: 0 !important;
     margin: 0 !important;
   }
+
   #mood-controls-container {
     transform: scale(0.9);
   }
-  .day-row{
+
+  .day-row {
     height: 25px !important;
   }
+
   .pixel-cell {
     height: 25px !important;
     width: 25px !important;
   }
-  
-.circular-widget {
-  transform: scale(0.9);
+
+  .circular-widget {
+    transform: scale(0.9);
   }
+
   .widget-header {
     max-width: 300px !important;
   }
+
   .mood-color-splotch {
     width: 30px !important;
     height: 30px !important;
   }
-  #library-nav-list {max-height: 530px;}
+
+  #library-nav-list {
+    max-height: 530px;
+  }
+
+  .habit-header .finance-widget-controls {
+    justify-content: space-between;
+    width: 35vh;
+  }
 }
