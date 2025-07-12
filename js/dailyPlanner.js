@@ -20,7 +20,7 @@ function renderDailyPlanner(scrollToToday = false) {
     let endHour = parseInt(localStorage.getItem('dailyPlannerEndHour') || '24', 10);
 
     // Set title
-    dailyTitle.textContent = `Daily Planner – ${dateFns.format(today, 'yyyy-MM-dd')}`;
+    dailyTitle.textContent = `Daily Planner`;
 
     // --- Render Controls ---
     dailyContent.innerHTML = `
@@ -38,8 +38,71 @@ function renderDailyPlanner(scrollToToday = false) {
         <select id="end-hour-select" class="planner-dropdown time-picker-select"></select>
       </div>
     </div>
+    <div class="daily-date-nav-row" id="planner-date-nav-row">
+      <div class="daily-date-nav">
+      <button class="daily-nav-btn" id="planner-prev-day-btn" title="Previous day">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15,18 9,12 15,6"></polyline></svg>
+      </button>
+      <div class="daily-date-display">
+        <div class="daily-date-main" id="planner-date-main">${dateFns.format(today, 'yyyy-MM-dd')}</div>
+        <div class="daily-date-info" id="planner-date-info">${dateFns.isToday(today) ? 'Today' : dateFns.isFuture(today) ? 'Future' : 'Past'}</div>
+      </div>
+      <button class="daily-nav-btn" id="planner-next-day-btn" title="Next day">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9,18 15,12 9,6"></polyline></svg>
+      </button>
+      </div>
+      <div class="daily-date-nav-actions">
+      <button class="planner-today-btn" id="planner-today-btn" title="Go to today" style="display:${dateFns.isToday(today) ? 'none' : 'inline-flex'}">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12,6 12,12 16,14"></polyline></svg>
+        Today
+      </button>
+      <button class="planner-date-picker-button" id="planner-date-picker-btn" title="Pick a date">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+        Date
+      </button>
+      </div>
+    </div>
     <div id="daily-main-content"></div>
     `;
+    // --- Date Navigation Handlers ---
+    const prevDayBtn = document.getElementById('planner-prev-day-btn');
+    const nextDayBtn = document.getElementById('planner-next-day-btn');
+    const todayBtn = document.getElementById('planner-today-btn');
+    const datePickerBtn = document.getElementById('planner-date-picker-btn');
+    const dateMain = document.getElementById('planner-date-main');
+    const dateInfo = document.getElementById('planner-date-info');
+
+    function setPlannerDate(newDate) {
+      appState.currentDate = newDate;
+      renderDailyPlanner();
+    }
+
+    prevDayBtn.addEventListener('click', function() {
+      const d = new Date(today);
+      d.setDate(d.getDate() - 1);
+      setPlannerDate(d);
+    });
+    nextDayBtn.addEventListener('click', function() {
+      const d = new Date(today);
+      d.setDate(d.getDate() + 1);
+      setPlannerDate(d);
+    });
+    todayBtn.addEventListener('click', function() {
+      setPlannerDate(new Date());
+    });
+    datePickerBtn.addEventListener('click', function() {
+      window.CentralizedDatePicker.showModalDatePicker({
+        anchorElement: datePickerBtn,
+        initialDate: today,
+        theme: 'unified',
+        onDateSelected: function(pickedDateObj) {
+          // CentralizedDatePicker returns { isoDate, displayDate, pickedDate }
+          if (pickedDateObj && pickedDateObj.pickedDate) {
+            setPlannerDate(pickedDateObj.pickedDate);
+          }
+        }
+      });
+    });
 
     // --- Setup Time Pickers ---
     function setupTimePickers() {

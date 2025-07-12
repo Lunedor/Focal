@@ -8,7 +8,6 @@
 /* --- General & Controls --- */
 .planner-dropdown-group {
     max-width: 900px;
-    margin: auto;
     margin-bottom: 1em;
     display: flex;
     flex-wrap: wrap;
@@ -234,4 +233,187 @@
     color: var(--color-muted);
     font-weight: 500;
     margin-left: 10px;
+}
+
+.daily-planner-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start; /* Align items to the top */
+    margin-bottom: 1em;
+    padding-bottom: 0.5em;
+    border-bottom: 1px solid var(--border-color);
+    flex-wrap: wrap; /* Allow wrapping on smaller screens */
+    gap: 1em; /* Add some space between left and right sections when they wrap */
+}
+
+.daily-planner-header-top {
+        display: flex;
+        flex-direction: column; /* Stack title and date controls vertically */
+        gap: 0.5em; /* Space between title and date controls */
+}
+
+.daily-planner-header-down {
+    display: flex;
+    flex-direction: column; /* Stack title and controls vertically */
+    align-items: flex-end; /* Align right section content to the right */
+    gap: 0.5em; /* Space between title and controls */
+}
+
+.daily-planner-header-down-title {
+    font-size: 1em; /* Smaller title */
+    font-weight: normal;
+    color: var(--text-color-light); /* Maybe a lighter color */
+    margin-bottom: 0.5em; /* Space below the smaller title */
+}
+
+.daily-date-controls {
+    display: flex;
+    flex-direction: column; /* Stack date nav row and action buttons row vertically */
+    gap: 0.5em; /* Space between date nav and action buttons */
+}
+
+.daily-date-nav-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.2em;
+    margin: 1em 0 1.5em 0;
+    padding: 0.7em 0 0.7em 0;
+    background: transparent;
+    border-radius: 8px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+    margin-left: 0;
+    margin-right: auto;
+    max-width: 900px;
+}
+
+.daily-date-nav-actions {
+    display: flex;
+}
+
+.daily-action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
+
+.daily-nav-btn,
+.planner-today-btn,
+.planner-date-picker-button {
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 0.3em 0.6em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.3em;
+    color: var(--text-color);
+    transition: background-color 0.2s ease;
+}
+
+.daily-nav-btn:hover,
+.planner-today-btn:hover,
+.planner-date-picker-button:hover {
+    background-color: var(--hover-background);
+}
+
+.daily-nav-btn svg,
+.planner-today-btn svg,
+.planner-date-picker-button svg {
+    width: 1em;
+    height: 1em;
+}
+
+.daily-date-display {
+    text-align: center;
+    min-width: 140px;
+    padding: 0 0.7em;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.daily-date-main {
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.daily-date-info {
+    font-size: 0.8em;
+    color: var(--text-color-light);
+}
+
+.planner-widget-controls {
+    display: flex;
+    align-items: center;
+    gap: 1em;
+    flex-wrap: wrap;
+}
+
+.planner-control-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
+
+.planner-dropdown,
+.time-picker-select {
+    padding: 0.3em 0.6em;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background-color: var(--background-color);
+    color: var(--text-color);
+    cursor: pointer;
+}
+
+.time-picker-label {
+    font-size: 0.9em;
+    color: var(--text-color-light);
+}
+
+.daily-date-nav {
+    display: flex;
+    width: 300px;
+    justify-content: space-between;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .daily-planner-header {
+        flex-direction: column;
+        align-items: center; /* Center content on small screens */
+        gap: 1em;
+    }
+
+    .daily-planner-header-top,
+    .daily-planner-header-down {
+        width: 100%;
+        align-items: center; /* Center content on small screens */
+    }
+
+    .daily-date-controls {
+        align-items: center;
+    }
+
+    .daily-date-nav-row,
+    .daily-action-buttons,
+    .planner-widget-controls {
+        justify-content: center;
+    }
+
+    .planner-widget-controls {
+        gap: 0.5em;
+    }
+
+    .planner-control-group {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.2em;
+    }
+
+    .time-picker-label {
+        width: 100%;
+        text-align: left;
+    }
 }

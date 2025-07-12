@@ -213,121 +213,31 @@ const taskSummaryExtension = {
 const futurelogExtension = {
   name: 'futurelog',
   level: 'block',
-  start(src) { return src.match(/^FUTURELOG:/)?.index; },
+  start(src) { return src.match(/(^```futurelog|FUTURELOG:)/)?.index; },
   tokenizer(src, tokens) {
-    const lines = src.split('\n');
-    const firstLine = lines[0];
-    const futurelogMatch = /^FUTURELOG:\s*(.*)/.exec(firstLine);
+    // This tokenizer is now simple. It just finds the command block and extracts the raw content.
+    const fenceRule = /^```futurelog\n([\s\S]+?)\n```/;
+    const simpleRule = /^(FUTURELOG:[\s\S]*?)(?=\n(?:GOAL:|TASKS:|FINANCE:|MOOD:|BOOKS:|MOVIES:|HABITS:|---|\S)|$)/;
 
-    if (!futurelogMatch) return false;
-    let currentLineIndex = 1;
-    const items = [];
-    let hasFoundContent = false;
-
-    // Collect all lines until we hit a meaningful delimiter
-    while (currentLineIndex < lines.length) {
-      const line = lines[currentLineIndex].trim();
-      // Skip initial blank lines, but stop at blank line after we've found content
-      if (!line) {
-        if (hasFoundContent) {
-          break;
-        } else {
-          currentLineIndex++;
-          continue;
-        }
-      }
-
-      // Stop at new heading, horizontal rule, or another widget
-      if (line.match(/^#{1,6}\s/) ||
-        line.match(/^---+$/) ||
-        line.match(/^(TASKS|GOAL|FINANCE|MOOD|BOOKS|MOVIES|HABITS|FUTURELOG):/)) {
-        break;
-      }
-
-      hasFoundContent = true;
-
-      // Look for lines with SCHEDULED dates
-      const scheduledMatch = line.match(/\(SCHEDULED:\s*([^)]+)\)/i);
-      const repeatMatch = line.match(/\(REPEAT:\s*([^)]+)\)/i);
-
-      if (scheduledMatch || repeatMatch) {
-        // Extract the text without the SCHEDULED/REPEAT part
-        const itemText = line.replace(/\(SCHEDULED:\s*[^)]+\)/i, '').replace(/\(REPEAT:\s*[^)]+\)/i, '').trim();
-        // Check if it's a checkbox item before removing the checkbox syntax
-        const hasCheckbox = /^[-*+]\s*\[\s*[xX]?\s*\]/.test(itemText);
-        const isChecked = /^[-*+]\s*\[\s*[xX]\s*\]/.test(itemText);
-        // Remove leading list markers and checkbox syntax
-        const cleanText = itemText.replace(/^[-*+]\s*/, '').replace(/^\[\s*[xX]?\s*\]\s*/, '');
-
-        if (scheduledMatch) {
-          items.push({
-            text: cleanText,
-            dateStr: scheduledMatch[1].trim(),
-            fullLine: line,
-            type: 'scheduled',
-            hasCheckbox: hasCheckbox,
-            isChecked: isChecked
-          });
-        }
-
-        if (repeatMatch) {
-          items.push({
-            text: cleanText,
-            repeatRule: repeatMatch[1].trim(),
-            fullLine: line,
-            type: 'repeat',
-            hasCheckbox: hasCheckbox,
-            isChecked: isChecked
-          });
-        }
-      }
-
-      currentLineIndex++;
+    let match = src.match(fenceRule);
+    if (match) {
+        // For ```futurelog ... ``` blocks
+        // The command is the full text, which the widget will parse.
+        return { type: 'futurelog', raw: match, command: `FUTURELOG:\n${match[1]}` };
     }
-
-    const consumedLines = currentLineIndex;
-    const raw = lines.slice(0, consumedLines).join('\n');
-
-    return {
-      type: 'futurelog',
-      raw: raw,
-      options: futurelogMatch[1].trim(),
-      items: items
-    };
+    
+    match = src.match(simpleRule);
+    if (match) {
+        // FIX: The bug was here. `match` is an array. We must pass the matched string, `match[0]`.
+        // The `command` property must be a string for the renderer to use .replace() on it.
+        return { type: 'futurelog', raw: match[0], command: match[0] };
+    }
   },
   renderer(token) {
-    // Clean the items to only include necessary data for the widget
-    const cleanItems = token.items.map(item => {
-      if (item.type === 'scheduled') {
-        return {
-          text: item.text,
-          dateStr: item.dateStr,
-          type: 'scheduled',
-          hasCheckbox: item.hasCheckbox || false,
-          isChecked: item.isChecked || false
-        };
-      } else if (item.type === 'repeat') {
-        return {
-          text: item.text,
-          repeatRule: item.repeatRule,
-          type: 'repeat',
-          hasCheckbox: item.hasCheckbox || false,
-          isChecked: item.isChecked || false
-        };
-      }
-      // Fallback for legacy format
-      return {
-        text: item.text,
-        dateStr: item.dateStr,
-        type: 'scheduled',
-        hasCheckbox: false,
-        isChecked: false
-      };
-    });
-
-    const optionsStr = JSON.stringify(token.options).replace(/"/g, '&quot;');
-    const itemsStr = JSON.stringify(cleanItems).replace(/"/g, '&quot;');
-    return `<div class="widget-placeholder futurelog-placeholder" data-widget-type="futurelog" data-options="${optionsStr}" data-items="${itemsStr}"></div>`;
+    // Escape single quotes inside the command to prevent breaking the HTML attribute.
+    // This now works because the tokenizer correctly passes a string.
+    const safeCommand = token.command.replace(/\'/g, "'");
+    return `<div class="widget-placeholder futurelog-placeholder" data-widget-type="futurelog" data-command='${safeCommand}'></div>`;
   }
 };
 
@@ -369,187 +279,6 @@ const habitsExtension = {
     return `<div class="widget-placeholder habits-placeholder" data-widget-type="habits" data-config='${token.config}'></div>`;
   }
 };
-
-// Add this function before the DOMContentLoaded event listener
-// Update the setupTableCheckboxes function to be independent for table vs list checkboxes
-const setupTableCheckboxes = () => {
-  // Process table checkboxes
-  document.querySelectorAll('td.checkbox-cell input[type="checkbox"], th.checkbox-cell input[type="checkbox"], input.table-checkbox').forEach(checkbox => {
-    if (!checkbox.dataset.initialized) {
-      // Remove any existing event listeners first
-      const oldCheckbox = checkbox.cloneNode(true);
-      checkbox.parentNode.replaceChild(oldCheckbox, checkbox);
-      checkbox = oldCheckbox;
-
-      checkbox.addEventListener('change', (e) => {
-        // Stop event propagation to prevent interaction with list checkboxes
-        e.stopPropagation();
-
-        // Get the current page content
-        const contentWrapper = e.target.closest('.content-wrapper');
-        if (!contentWrapper) return;
-
-        const key = contentWrapper.dataset.key;
-        if (!key) return;
-
-        // Signal that content has been modified
-        if (typeof window.markLocalDataAsModified === 'function') {
-          window.markLocalDataAsModified();
-        }
-
-        // Optional: trigger sync to cloud
-        if (typeof debouncedSyncWithCloud === 'function') {
-          debouncedSyncWithCloud();
-        }
-      });
-      checkbox.dataset.initialized = 'true';
-    }
-  });
-
-  // Process list checkboxes separately
-  document.querySelectorAll('li.task-list-item input[type="checkbox"], input.list-checkbox').forEach(checkbox => {
-    if (!checkbox.dataset.initialized) {
-      // Remove any existing event listeners first
-      const oldCheckbox = checkbox.cloneNode(true);
-      checkbox.parentNode.replaceChild(oldCheckbox, checkbox);
-      checkbox = oldCheckbox;
-
-      checkbox.addEventListener('change', (e) => {
-        // Stop event propagation
-        e.stopPropagation();
-
-        const contentWrapper = e.target.closest('.content-wrapper');
-        if (!contentWrapper) return;
-
-        const key = contentWrapper.dataset.key;
-        if (!key) return;
-
-        if (typeof window.markLocalDataAsModified === 'function') {
-          window.markLocalDataAsModified();
-        }
-
-        if (typeof debouncedSyncWithCloud === 'function') {
-          debouncedSyncWithCloud();
-        }
-      });
-      checkbox.dataset.initialized = 'true';
-    }
-  });
-};
-
-// Process table
-function processTableCheckboxes() {
-  // Find all table checkboxes
-  const tableCheckboxes = document.querySelectorAll('td.checkbox-cell input[type="checkbox"], th.checkbox-cell input[type="checkbox"], input.table-checkbox');
-
-  // Clear existing event listeners and reassign them
-  tableCheckboxes.forEach(checkbox => {
-    // Create a fresh clone without event listeners
-    const newCheckbox = checkbox.cloneNode(false);
-
-    // Copy all attributes and state
-    newCheckbox.checked = checkbox.checked;
-
-    // Add the event listener directly to the new checkbox
-    newCheckbox.addEventListener('change', function (e) {
-      e.stopPropagation();
-      e.preventDefault();
-
-      // Explicitly toggle the checkbox state
-      this.checked = !this.checked;
-
-      // Get the current page content
-      const contentWrapper = this.closest('.content-wrapper');
-      if (!contentWrapper) return;
-
-      const key = contentWrapper.dataset.key;
-      if (!key) return;
-
-      // Signal content modification
-      if (typeof window.markLocalDataAsModified === 'function') {
-        window.markLocalDataAsModified();
-      }
-
-      if (typeof debouncedSyncWithCloud === 'function') {
-        debouncedSyncWithCloud();
-      }
-    });
-
-    // Replace the old checkbox
-    if (checkbox.parentNode) {
-      checkbox.parentNode.replaceChild(newCheckbox, checkbox);
-    }
-
-    // Mark as initialized
-    newCheckbox.dataset.initialized = 'true';
-  });
-}
-
-// Update your document.addEventListener('DOMContentLoaded') function
-document.addEventListener('DOMContentLoaded', function () {
-  // Function to process code blocks in rendered content
-  const enhanceCodeBlocks = () => {
-    // Find all code blocks in the rendered content
-    document.querySelectorAll('.rendered-content pre code[class^="language-"]').forEach(codeBlock => {
-      const pre = codeBlock.parentElement;
-      if (!pre.dataset.enhanced) {
-        // Extract language from class name
-        const language = codeBlock.className.replace('language-', '');
-
-        // Add language tag
-        pre.dataset.language = language;
-
-        // Add line numbers class if needed
-        const lineCount = (codeBlock.textContent.match(/\n/g) || []).length;
-        if (lineCount > 3) {
-          pre.classList.add('line-numbers');
-        }
-
-        // Add copy button
-        const copyButton = document.createElement('button');
-        copyButton.className = 'copy-button';
-        copyButton.textContent = 'Copy';
-        copyButton.addEventListener('click', function (e) {
-          // Prevent event from bubbling up and triggering content editing
-          e.stopPropagation();
-          e.preventDefault();
-
-          navigator.clipboard.writeText(codeBlock.textContent.trim())
-            .then(() => {
-              const originalText = copyButton.textContent;
-              copyButton.textContent = 'Copied!';
-              setTimeout(() => {
-                copyButton.textContent = originalText;
-              }, 2000);
-            })
-            .catch(err => {
-              console.error('Failed to copy code: ', err);
-            });
-        });
-
-        pre.appendChild(copyButton);
-        pre.dataset.enhanced = 'true';
-      }
-    });
-  };
-
-  // Call both functions at load
-  enhanceCodeBlocks();
-  setupTableCheckboxes();
-
-  // Update your MutationObserver to also call setupTableCheckboxes
-  const observer = new MutationObserver(mutations => {
-    mutations.forEach(mutation => {
-      if (mutation.addedNodes.length) {
-        enhanceCodeBlocks();
-        setupTableCheckboxes();
-      }
-    });
-  });
-
-  // Start observing the document body for DOM changes
-  observer.observe(document.body, { childList: true, subtree: true });
-});
 
 const renderer = new marked.Renderer();
 renderer.listitem = (text, task, checked) => {
@@ -638,67 +367,96 @@ marked.use({
   renderer: renderer
 });
 
-
-
+// --- MARKDOWN PARSING LOGIC ---
 // --- All PROGRESS parsing logic must be inside analyzeGoalProgress ---
 
+/**
+ * Takes raw HTML and enhances it by converting ALL date/repeat/notify text into interactive links.
+ * This is the single source of truth for creating clickable date links.
+ */
+function renderScheduledAndRepeatLinks(html) {
+    // 1. Enhance (SCHEDULED:...) and (NOTIFY:...) links
+    const scheduledRegexWithParens = /(\((?:SCHEDULED|NOTIFY):[^)]+\))/gi;
+    html = html.replace(scheduledRegexWithParens, (fullMatch) => {
+        // Find the inner content of the tag (e.g., "2025-08-15 10:00")
+        const dateContentMatch = fullMatch.match(/(?:SCHEDULED|NOTIFY):\s*([^)]+)/);
+        
+        // *** THE FIX IS HERE ***
+        // First, check if the match and the captured group [1] exist.
+        if (!dateContentMatch || !dateContentMatch[1]) {
+            return fullMatch; // If not, return the original text to prevent errors.
+        }
 
+        // Now, correctly access the captured string at index [1] before trimming.
+        const contentString = dateContentMatch[1].trim();
+        const dateStr = contentString.split(' '); // Get just the date part
+        const normalizedDate = window.normalizeDateStringToYyyyMmDd(dateStr[0]);
+        
+        if (!normalizedDate) {
+            return fullMatch; // Return original if date is not valid
+        }
 
+        // Add a bell icon for NOTIFY tags
+        let displayTag = fullMatch;
+        if (fullMatch.toUpperCase().includes('(NOTIFY:')) {
+            displayTag = displayTag.replace(/(\(NOTIFY:)/i, '(🔔 NOTIFY:');
+        }
+
+        return `<span class="scheduled-link" data-planner-date="${normalizedDate}">${displayTag}</span>`;
+    });
+
+    // 2. Enhance (REPEAT:...) links (this part was already correct)
+    const repeatRegexWithParens = /(\(REPEAT:[^)]+\))/gi;
+    html = html.replace(repeatRegexWithParens, (fullMatch) => {
+        const ruleMatch = fullMatch.match(/REPEAT:\s*([^)]+)/);
+        if (!ruleMatch || !ruleMatch[1]) return fullMatch;
+
+        const item = { repeatRule: ruleMatch[1].trim() };
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const rangeEnd = dateFns.addYears(today, 2);
+        
+        const occurrences = window.expandRecurrence(item, { rangeStart: today, rangeEnd });
+        
+        const nextOccurrenceDate = occurrences.length > 0 ? occurrences[0] : null;
+        
+        if (nextOccurrenceDate) {
+            const formattedDate = dateFns.format(nextOccurrenceDate, 'yyyy-MM-dd');
+            const tooltip = `Repeats. Next: ${dateFns.format(nextOccurrenceDate, 'MMM d, yyyy')}`;
+            const displayTag = `🔁 ${fullMatch}`;
+            return `<span class="repeat-link scheduled-link" data-planner-date="${formattedDate}" title="${tooltip}">${displayTag}</span>`;
+        } else {
+            return `<span class="repeat-link" title="Repeats (no upcoming occurrences found)">🔁 ${fullMatch}</span>`;
+        }
+    });
+
+    return html;
+}
+
+/**
+ * The main markdown parsing function for the application.
+ */
 const parseMarkdown = (text, options = {}) => {
   if (!text) return '';
 
-  // Track line indices if provided
-  const lines = text.split('\n');
-  const lineMap = new Map(); // Maps content to line indices
-
-  if (options.trackLineIndices) {
-    lines.forEach((line, index) => {
-      if (line.trim()) {
-        lineMap.set(line.trim(), index);
-      }
-    });
-  }
-
+  // Step 1: Convert raw markdown to basic HTML.
+  // This correctly processes wiki-links, lists, tables, etc., into their HTML counterparts.
   let html = marked.parse(text, { breaks: true });
 
-  // Remove disabled attribute from all checkboxes
-  html = html.replace(/(<input[^>]*type="checkbox"[^>]*)\s*disabled[^>]*>/g, '$1>');
+  // Step 2: Enhance the generated HTML.
+  // This finds any date/repeat text within the HTML and wraps it in our clickable spans.
+  html = renderScheduledAndRepeatLinks(html);
 
-  // Handle checkbox text in tables that didn't get properly converted
+  // Step 3: Perform final minor cleanups and widget rendering (logic is unchanged).
+  html = html.replace(/(<input[^>]*type="checkbox"[^>]*)\s*disabled[^>]*>/g, '$1>');
   html = html.replace(/<td>([\s\n]*)(?:-\s+)?\[([ xX])\]([\s\n]*)<\/td>/gi, (match, before, checked, after) => {
     const isChecked = checked.toLowerCase() === 'x';
-    const id = 'table-checkbox-' + Math.random().toString(36).substring(2, 15);
-
-    // Add line index if tracking is enabled
-    let lineIndexAttr = '';
-    if (options.trackLineIndices && options.currentLineIndex !== undefined) {
-      lineIndexAttr = ` data-line-index="${options.currentLineIndex}"`;
-    }
-
-    return `<td class="checkbox-cell">${before}<input type="checkbox" id="${id}" class="table-checkbox"${lineIndexAttr} ${isChecked ? 'checked' : ''}>${after}</td>`;
+    return `<td class="checkbox-cell">${before}<input type="checkbox" class="table-checkbox" ${isChecked ? 'checked' : ''}>${after}</td>`;
   });
-
-  // Also look for basic [] or [x] without dash
   html = html.replace(/<td>([\s\n]*)\[([ xX])\]([\s\n]*)<\/td>/gi, (match, before, checked, after) => {
     const isChecked = checked.toLowerCase() === 'x';
-    const id = 'table-checkbox-' + Math.random().toString(36).substring(2, 15);
-
-    // Add line index if tracking is enabled
-    let lineIndexAttr = '';
-    if (options.trackLineIndices && options.currentLineIndex !== undefined) {
-      lineIndexAttr = ` data-line-index="${options.currentLineIndex}"`;
-    }
-
-    return `<td class="checkbox-cell">${before}<input type="checkbox" id="${id}" class="table-checkbox"${lineIndexAttr} ${isChecked ? 'checked' : ''}>${after}</td>`;
+    return `<td class="checkbox-cell">${before}<input type="checkbox" class="table-checkbox" ${isChecked ? 'checked' : ''}>${after}</td>`;
   });
-
-  // Additional table-specific enhancements for checkboxes in tables (keep these)
-  html = html.replace(/<td>(\s*)<input type="checkbox"/g, '<td class="checkbox-cell">$1<input type="checkbox"');
-  html = html.replace(/<th>(\s*)<input type="checkbox"/g, '<th class="checkbox-cell">$1<input type="checkbox"');
-
-  if (html.includes('[object Object]')) {
-    html = html.replace(/\[object Object\]/g, '');
-  }
   html = html.replace(/<div class="widget-placeholder task-summary-placeholder" data-widget-type="task" data-label="([^"]*)">/g, (match, label) => {
     const taskStats = calculateTaskStats(text, label);
     const allCompleted = taskStats.total > 0 && taskStats.completed === taskStats.total;
@@ -714,324 +472,10 @@ const parseMarkdown = (text, options = {}) => {
       </div>
     </div>`;
   });
-  // Make (SCHEDULED: ...) clickable using centralized logic
-  const scheduledRegex = window.scheduledRegex
-  html = html.replace(/\((SCHEDULED|NOTIFY): ([^)]+)\)/gi, (match, type, content) => {
-    const dateStr = content.trim().split(' ')[0];
-    const normalizedDate = window.normalizeDateStringToYyyyMmDd(dateStr);
-    let displayMatch = match;
-    if (type === 'NOTIFY') {
-      // Add a bell icon for visual distinction
-      displayMatch = `(🔔 NOTIFY: ${content})`;
-    }
-    return `<span class="scheduled-link" data-planner-date="${normalizedDate || dateStr}">${displayMatch}</span>`;
-  });
 
-  // Helper function to calculate next occurrence of REPEAT items
-  function calculateNextRepeatOccurrence(repeatRule) {
-    if (!repeatRule || typeof repeatRule !== 'string') return null;
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // Handle "everyday from <start> to <end>" syntax
-    const everydayRangeMatch = repeatRule.match(/^everyday from ([^ ]+) to ([^ )]+)/i);
-    if (everydayRangeMatch) {
-      const startDateStr = everydayRangeMatch[1];
-      const endDateStr = everydayRangeMatch[2];
-
-      // Parse start and end dates
-      let startDate = parseDate(startDateStr);
-      let endDate = parseDate(endDateStr);
-
-      if (!startDate || !endDate) return null;
-
-      // Find the next occurrence (tomorrow or start date, whichever is later)
-      let nextOccurrence = new Date(Math.max(today.getTime() + 24 * 60 * 60 * 1000, startDate.getTime()));
-
-      // Return the next occurrence if it's within the range
-      return (nextOccurrence <= endDate) ? nextOccurrence : null;
-    }
-
-    // Handle "every <weekday> from <start> to <end>" syntax
-    const rangeMatch = repeatRule.match(/^every (monday|tuesday|wednesday|thursday|friday|saturday|sunday) from ([^ ]+) to ([^ )]+)/i);
-    if (rangeMatch) {
-      const weekdayName = rangeMatch[1].toLowerCase();
-      const startDateStr = rangeMatch[2];
-      const endDateStr = rangeMatch[3];
-
-      // Parse start and end dates
-      let startDate = parseDate(startDateStr);
-      let endDate = parseDate(endDateStr);
-
-      if (!startDate || !endDate) return null;
-
-      const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-      const targetWeekday = weekdays.indexOf(weekdayName);
-      if (targetWeekday === -1) return null;
-
-      // Find the first occurrence of the target weekday on or after the start date
-      let nextOccurrence = new Date(startDate);
-      while (nextOccurrence.getDay() !== targetWeekday) {
-        nextOccurrence.setDate(nextOccurrence.getDate() + 1);
-      }
-
-      // If we're past today, find the next occurrence within the range
-      if (nextOccurrence <= today) {
-        while (nextOccurrence <= today && nextOccurrence <= endDate) {
-          nextOccurrence.setDate(nextOccurrence.getDate() + 7);
-        }
-      }
-
-      // Return the next occurrence if it's within the range
-      return (nextOccurrence <= endDate) ? nextOccurrence : null;
-    }
-
-    // Handle "every <weekday>" syntax (weekly recurring), with optional time
-    const weekdayTimeMatch = repeatRule.match(/^every (monday|tuesday|wednesday|thursday|friday|saturday|sunday)(?:\s+(\d{1,2}:\d{2})(?:-(\d{1,2}:\d{2}))?)?$/i);
-    if (weekdayTimeMatch) {
-      const weekdayName = weekdayTimeMatch[1].toLowerCase();
-      const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-      const targetWeekday = weekdays.indexOf(weekdayName);
-      if (targetWeekday === -1) return null;
-
-      // Find the next occurrence of this weekday
-      let nextOccurrence = new Date(today);
-      let daysUntilTarget = (targetWeekday - today.getDay() + 7) % 7;
-      if (daysUntilTarget === 0) {
-        daysUntilTarget = 7; // If today is the target day, show next week
-      }
-      nextOccurrence.setDate(today.getDate() + daysUntilTarget);
-      return nextOccurrence;
-    }
-
-    // Handle "everyday" syntax (daily recurring), with optional time
-    const everydayTimeMatch = repeatRule.match(/^everyday(?:\s+(\d{1,2}:\d{2})(?:-(\d{1,2}:\d{2}))?)?$/i);
-    if (everydayTimeMatch) {
-      // If time is present, still link to tomorrow (or today)
-      const tomorrow = new Date(today);
-      tomorrow.setDate(today.getDate() + 1);
-      return tomorrow;
-    }
-
-    // Handle annual repeats (birthdays, anniversaries) and full dates
-    let dateStr = repeatRule.trim();
-
-    // First try using the centralized date parsing function for full dates like "2025-06-15"
-    let parsedDate = null;
-    if (window.parseDateString) {
-      parsedDate = window.parseDateString(dateStr);
-    }
-
-    // If that didn't work, try the local parseDate function
-    if (!parsedDate) {
-      parsedDate = parseDate(dateStr);
-    }
-
-    // Also handle DD.MM format specifically (for annual events)
-    if (!parsedDate) {
-      const ddmmMatch = dateStr.match(/^(\d{1,2})[./-](\d{1,2})$/);
-      if (ddmmMatch) {
-        const day = parseInt(ddmmMatch[1]);
-        const month = parseInt(ddmmMatch[2]) - 1; // JavaScript months are 0-based
-        parsedDate = new Date(2000, month, day); // Use any year for reference
-      }
-    }
-
-    if (parsedDate) {
-      // For full dates (with year), find the next occurrence after today (annual repeat)
-      if (dateStr.match(/\d{4}/)) {
-        const month = parsedDate.getMonth();
-        const day = parsedDate.getDate();
-        const thisYear = today.getFullYear();
-        let nextOccurrence = new Date(thisYear, month, day);
-        if (nextOccurrence < today) {
-          nextOccurrence = new Date(thisYear + 1, month, day);
-        }
-        return nextOccurrence;
-      } else {
-        // This is an annual repeat (DD.MM format) - calculate next occurrence
-        const thisYear = today.getFullYear();
-        const nextYear = thisYear + 1;
-
-        // Try this year first
-        let thisYearDate = new Date(thisYear, parsedDate.getMonth(), parsedDate.getDate());
-        if (thisYearDate > today) {
-          return thisYearDate;
-        }
-
-        // Otherwise next year
-        return new Date(nextYear, parsedDate.getMonth(), parsedDate.getDate());
-      }
-    }
-
-    return null;
-  }
-
-  // Helper function to parse various date formats
-  function parseDate(dateStr) {
-    if (!dateStr) return null;
-
-    // Try ISO format first (YYYY-MM-DD)
-    let match = dateStr.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-    if (match) {
-      let year = parseInt(match[1]);
-      let month = parseInt(match[2]) - 1; // JavaScript months are 0-based
-      let day = parseInt(match[3]);
-      return new Date(year, month, day);
-    }
-
-    // Try DD.MM.YYYY or DD.MM.YY
-    match = dateStr.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2,4})$/);
-    if (match) {
-      let day = parseInt(match[1]);
-      let month = parseInt(match[2]) - 1; // JavaScript months are 0-based
-      let year = parseInt(match[3]);
-      if (year < 100) year += (year < 50 ? 2000 : 1900);
-      return new Date(year, month, day);
-    }
-
-    // Try DD/MM/YYYY or DD/MM/YY
-    match = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
-    if (match) {
-      let day = parseInt(match[1]);
-      let month = parseInt(match[2]) - 1;
-      let year = parseInt(match[3]);
-      if (year < 100) year += (year < 50 ? 2000 : 1900);
-      return new Date(year, month, day);
-    }
-
-    // Try DD-MM-YYYY or DD-MM-YY
-    match = dateStr.match(/^(\d{1,2})-(\d{1,2})-(\d{2,4})$/);
-    if (match) {
-      let day = parseInt(match[1]);
-      let month = parseInt(match[2]) - 1;
-      let year = parseInt(match[3]);
-      if (year < 100) year += (year < 50 ? 2000 : 1900);
-      return new Date(year, month, day);
-    }
-
-    return null;
-  }
-
-  // Make (REPEAT: ...) clickable and normalized for recurring events, including new syntax
-  const repeatRegex = window.REPEAT_REGEX;
-  html = html.replace(repeatRegex, (match, repeatRule) => {
-    let tooltip = '';
-    let nextOccurrenceDate = calculateNextRepeatOccurrence(repeatRule);
-    let recurringIcon = '🔁';
-
-    // Try to parse new syntax: everyday from <start> to <end>
-    const everydayRangeMatch = repeatRule.match(/^everyday from ([^ ]+) to ([^ )]+)/i);
-    if (everydayRangeMatch) {
-      const from = everydayRangeMatch[1];
-      const to = everydayRangeMatch[2];
-      tooltip = `Repeats every day from ${from} to ${to}`;
-    } else {
-      // Try to parse new syntax: every <weekday> from <start> to <end>
-      const rangeMatch = repeatRule.match(/^every (monday|tuesday|wednesday|thursday|friday|saturday|sunday) from ([^ ]+) to ([^ )]+)/i);
-      if (rangeMatch) {
-        const weekday = rangeMatch[1];
-        const from = rangeMatch[2];
-        const to = rangeMatch[3];
-        tooltip = `Repeats every ${weekday} from ${from} to ${to}`;
-      } else {
-        // Check for simple weekday format (e.g., "every monday")
-        const weekdayMatch = repeatRule.match(/^every (monday|tuesday|wednesday|thursday|friday|saturday|sunday)$/i);
-        if (weekdayMatch) {
-          const weekday = weekdayMatch[1];
-          tooltip = `Repeats every ${weekday}`;
-        } else if (repeatRule.toLowerCase() === 'everyday') {
-          tooltip = `Repeats every day`;
-        } else {
-          // Fallback: try to normalize as a date or MM-DD
-          let dateStr = repeatRule.trim();
-
-          // Check if it's a full date with year (one-time event)
-          if (dateStr.match(/\d{4}/)) {
-            let parsedFullDate = null;
-            if (window.parseDateString) {
-              parsedFullDate = window.parseDateString(dateStr);
-            }
-            if (!parsedFullDate) {
-              parsedFullDate = parseDate(dateStr);
-            }
-
-            if (parsedFullDate) {
-              const isPast = parsedFullDate < new Date();
-              tooltip = `Scheduled for ${dateFns.format(parsedFullDate, 'MMM d, yyyy')}${isPast ? ' (past)' : ''}`;
-            } else {
-              tooltip = `Scheduled for ${dateStr}`;
-            }
-          } else {
-            // Annual repeat (DD.MM format)
-            let norm = window.normalizeDateStringToYyyyMmDd(dateStr);
-            if (!norm) {
-              const dm = dateStr.match(/^(\d{1,2})[./-](\d{1,2})$/);
-              if (dm) {
-                norm = `${dm[2]}-${dm[1]}`;
-                tooltip = `Repeats annually on ${dm[1]}.${dm[2]}`;
-              } else {
-                norm = dateStr;
-                tooltip = `Repeats on ${norm}`;
-              }
-            } else {
-              tooltip = `Repeats annually on ${dateStr}`;
-            }
-          }
-        }
-      }
-    }
-
-    // Make REPEAT items clickable like SCHEDULED items
-    if (nextOccurrenceDate) {
-      const formattedDate = dateFns.format(nextOccurrenceDate, 'yyyy-MM-dd');
-      return `<span class="repeat-link scheduled-link" data-planner-date="${formattedDate}" title="${tooltip} (next: ${dateFns.format(nextOccurrenceDate, 'MMM d, yyyy')})" style="background:rgba(255, 242, 59, 0.2);border-radius:4px;padding:0 3px;">${recurringIcon} ${match}</span>`;
-    } else {// ...existing code...
-      // Fallback: try to extract a start date from the rule for linking
-      let fallbackDate = null;
-      // Try "from <date>"
-      const fromMatch = repeatRule.match(/from ([^ )]+)/i);
-      if (fromMatch) {
-        fallbackDate = window.normalizeDateStringToYyyyMmDd(fromMatch[1]);
-      }
-      // Try to extract date before time (e.g., "15-07 15:00" or "2025-07-15 15:00")
-      if (!fallbackDate) {
-        // Match date at start of rule, possibly followed by time/range
-        const datePartMatch = repeatRule.match(/^(\d{4}-\d{2}-\d{2}|\d{2}[./-]\d{2})(?:\s+\d{1,2}:\d{2}(?:-\d{1,2}:\d{2})?)?/);
-        if (datePartMatch) {
-          fallbackDate = window.normalizeDateStringToYyyyMmDd(datePartMatch[1]);
-        }
-      }
-      // Try to parse as a date (for rules like "everyday 18:00" or "every monday 18:00" fallback to today)
-      if (!fallbackDate) {
-  // Match date at start of rule, possibly followed by time/range
-  const datePartMatch = repeatRule.match(/^(\d{4}-\d{2}-\d{2}|\d{2}[./-]\d{2})(?:\s+\d{1,2}:\d{2}(?:-\d{1,2}:\d{2})?)?/);
-  if (datePartMatch) {
-    let dateStr = datePartMatch[1];
-    // If dateStr is DD-MM or DD.MM, prepend current year
-    if (/^\d{2}[./-]\d{2}$/.test(dateStr)) {
-      const currentYear = new Date().getFullYear();
-      dateStr = `${dateStr}-${currentYear}`;
-      // Convert to yyyy-MM-dd for normalization
-      const parts = dateStr.match(/^(\d{2})[./-](\d{2})-(\d{4})$/);
-      if (parts) {
-        dateStr = `${parts[3]}-${parts[2]}-${parts[1]}`;
-      }
-    }
-    fallbackDate = window.normalizeDateStringToYyyyMmDd(dateStr);
-  }
-      }
-      if (fallbackDate) {
-        return `<span class="repeat-link scheduled-link" data-planner-date="${fallbackDate}" title="${tooltip}" style="background:rgba(255, 242, 59, 0.2);border-radius:4px;padding:0 3px;">${recurringIcon} ${match}</span>`;
-      }
-      // Otherwise, just show as non-clickable
-      return `<span class="repeat-link" title="${tooltip}" style="background:rgba(255, 242, 59, 0.2);border-radius:4px;padding:0 3px;">${recurringIcon} ${match}</span>`;
-      // ...existing code...
-    }
-  });
   return html;
 };
+
 
 const calculateTaskStats = (text, taskLabel) => {
   if (!text) return { completed: 0, total: 0, percentage: 0 };

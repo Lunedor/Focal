@@ -461,14 +461,16 @@
 .habit-header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
     margin-bottom: 16px;
     padding-bottom: 8px;
     border-bottom: 1px solid var(--color-border);
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
 }
 
 .habit-header-content {
-    flex: 1;
+    width: 100%;
 }
 .habit-date {
     font-size: 0.9em;
@@ -1034,8 +1036,8 @@ body.dark-mode .habit-cell.not-scheduled {
     display: flex;
     align-items: center;
     gap: 12px;
-    width: 75vw;
     justify-content: space-between;
+    margin: auto;
     margin-top: 20px;
 }
 
@@ -1407,12 +1409,6 @@ body.dark-mode .habit-cell.not-scheduled {
         gap: 8px;
     }
 
-    .habit-header {
-        flex-direction: column;
-        gap: 10px;
-        align-items: center;
-    }
-    
     .habit-grid-nav {
         justify-content: center;
     }

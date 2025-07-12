@@ -116,7 +116,185 @@ function findScheduledLineIndex(lines, text, normalizedDate) {
     }
     return -1;
 }
+// Update the setupTableCheckboxes function to be independent for table vs list checkboxes
+const setupTableCheckboxes = () => {
+  // Process table checkboxes
+  document.querySelectorAll('td.checkbox-cell input[type="checkbox"], th.checkbox-cell input[type="checkbox"], input.table-checkbox').forEach(checkbox => {
+    if (!checkbox.dataset.initialized) {
+      // Remove any existing event listeners first
+      const oldCheckbox = checkbox.cloneNode(true);
+      checkbox.parentNode.replaceChild(oldCheckbox, checkbox);
+      checkbox = oldCheckbox;
 
+      checkbox.addEventListener('change', (e) => {
+        // Stop event propagation to prevent interaction with list checkboxes
+        e.stopPropagation();
+
+        // Get the current page content
+        const contentWrapper = e.target.closest('.content-wrapper');
+        if (!contentWrapper) return;
+
+        const key = contentWrapper.dataset.key;
+        if (!key) return;
+
+        // Signal that content has been modified
+        if (typeof window.markLocalDataAsModified === 'function') {
+          window.markLocalDataAsModified();
+        }
+
+        // Optional: trigger sync to cloud
+        if (typeof debouncedSyncWithCloud === 'function') {
+          debouncedSyncWithCloud();
+        }
+      });
+      checkbox.dataset.initialized = 'true';
+    }
+  });
+
+  // Process list checkboxes separately
+  document.querySelectorAll('li.task-list-item input[type="checkbox"], input.list-checkbox').forEach(checkbox => {
+    if (!checkbox.dataset.initialized) {
+      // Remove any existing event listeners first
+      const oldCheckbox = checkbox.cloneNode(true);
+      checkbox.parentNode.replaceChild(oldCheckbox, checkbox);
+      checkbox = oldCheckbox;
+
+      checkbox.addEventListener('change', (e) => {
+        // Stop event propagation
+        e.stopPropagation();
+
+        const contentWrapper = e.target.closest('.content-wrapper');
+        if (!contentWrapper) return;
+
+        const key = contentWrapper.dataset.key;
+        if (!key) return;
+
+        if (typeof window.markLocalDataAsModified === 'function') {
+          window.markLocalDataAsModified();
+        }
+
+        if (typeof debouncedSyncWithCloud === 'function') {
+          debouncedSyncWithCloud();
+        }
+      });
+      checkbox.dataset.initialized = 'true';
+    }
+  });
+};
+
+// Process table
+function processTableCheckboxes() {
+  // Find all table checkboxes
+  const tableCheckboxes = document.querySelectorAll('td.checkbox-cell input[type="checkbox"], th.checkbox-cell input[type="checkbox"], input.table-checkbox');
+
+  // Clear existing event listeners and reassign them
+  tableCheckboxes.forEach(checkbox => {
+    // Create a fresh clone without event listeners
+    const newCheckbox = checkbox.cloneNode(false);
+
+    // Copy all attributes and state
+    newCheckbox.checked = checkbox.checked;
+
+    // Add the event listener directly to the new checkbox
+    newCheckbox.addEventListener('change', function (e) {
+      e.stopPropagation();
+      e.preventDefault();
+
+      // Explicitly toggle the checkbox state
+      this.checked = !this.checked;
+
+      // Get the current page content
+      const contentWrapper = this.closest('.content-wrapper');
+      if (!contentWrapper) return;
+
+      const key = contentWrapper.dataset.key;
+      if (!key) return;
+
+      // Signal content modification
+      if (typeof window.markLocalDataAsModified === 'function') {
+        window.markLocalDataAsModified();
+      }
+
+      if (typeof debouncedSyncWithCloud === 'function') {
+        debouncedSyncWithCloud();
+      }
+    });
+
+    // Replace the old checkbox
+    if (checkbox.parentNode) {
+      checkbox.parentNode.replaceChild(newCheckbox, checkbox);
+    }
+
+    // Mark as initialized
+    newCheckbox.dataset.initialized = 'true';
+  });
+}
+
+// Update your document.addEventListener('DOMContentLoaded') function
+document.addEventListener('DOMContentLoaded', function () {
+  // Function to process code blocks in rendered content
+  const enhanceCodeBlocks = () => {
+    // Find all code blocks in the rendered content
+    document.querySelectorAll('.rendered-content pre code[class^="language-"]').forEach(codeBlock => {
+      const pre = codeBlock.parentElement;
+      if (!pre.dataset.enhanced) {
+        // Extract language from class name
+        const language = codeBlock.className.replace('language-', '');
+
+        // Add language tag
+        pre.dataset.language = language;
+
+        // Add line numbers class if needed
+        const lineCount = (codeBlock.textContent.match(/\n/g) || []).length;
+        if (lineCount > 3) {
+          pre.classList.add('line-numbers');
+        }
+
+        // Add copy button
+        const copyButton = document.createElement('button');
+        copyButton.className = 'copy-button';
+        copyButton.textContent = 'Copy';
+        copyButton.addEventListener('click', function (e) {
+          // Prevent event from bubbling up and triggering content editing
+          e.stopPropagation();
+          e.preventDefault();
+
+          navigator.clipboard.writeText(codeBlock.textContent.trim())
+            .then(() => {
+              const originalText = copyButton.textContent;
+              copyButton.textContent = 'Copied!';
+              setTimeout(() => {
+                copyButton.textContent = originalText;
+              }, 2000);
+            })
+            .catch(err => {
+              console.error('Failed to copy code: ', err);
+            });
+        });
+
+        pre.appendChild(copyButton);
+        pre.dataset.enhanced = 'true';
+      }
+    });
+  };
+
+  // Call both functions at load
+  enhanceCodeBlocks();
+  setupTableCheckboxes();
+
+  // Update your MutationObserver to also call setupTableCheckboxes
+  const observer = new MutationObserver(mutations => {
+    mutations.forEach(mutation => {
+      if (mutation.addedNodes.length) {
+        enhanceCodeBlocks();
+        setupTableCheckboxes();
+      }
+    });
+  });
+
+  // Start observing the document body for DOM changes
+  observer.observe(document.body, { childList: true, subtree: true });
+});
 // Initialize checkbox handlers
 function initializeCheckboxHandlers() {
     setupCheckboxHandlers();

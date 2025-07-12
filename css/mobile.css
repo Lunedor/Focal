@@ -319,4 +319,7 @@
   .habit-widget{
     padding: 8px !important;
   }
+  .habit-date-nav {
+    width: 75vw;
+  }
 }
