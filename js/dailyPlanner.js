@@ -8,8 +8,6 @@ function renderDailyPlanner(scrollToToday = false) {
     // This function is only responsible for populating its content.
     if (!dailyTitle || !dailyContent) return;
 
-    // --- START OF CHANGE ---
-
     // Get persisted user preferences
     const today = appState.currentDate || new Date();
     let mode = localStorage.getItem('dailyPlannerMode') || 'hourly';
@@ -86,13 +84,41 @@ function renderDailyPlanner(scrollToToday = false) {
     // Initialize the time pickers
     setupTimePickers();
 
-    // --- END OF CHANGE ---
-
     // Get today's date string
     const todayDateStr = dateFns.format(today, 'yyyy-MM-dd');
     // Get all scheduled/repeated/checkbox items for today
     const allScheduled = typeof getAllScheduledItems === 'function' ? getAllScheduledItems() : new Map();
     let itemsForToday = allScheduled.get(todayDateStr) || [];
+
+    // --- Enhance items with checkbox metadata (like week view) ---
+    itemsForToday = itemsForToday.map(item => {
+        let isCheckboxTask = false;
+        let foundIndex = -1;
+        let checked = false;
+        if (item.pageKey) {
+            const pageContent = getStorage(item.pageKey);
+            const lines = pageContent.split('\n');
+            for (let idx = 0; idx < lines.length; idx++) {
+                if (!lines[idx].includes(item.text)) continue;
+                // For scheduled items, match date
+                if (item.originalDate) {
+                    const dateMatch = lines[idx].match(new RegExp(window.DATE_REGEX_PATTERN));
+                    const lineNormDate = dateMatch ? window.normalizeDateStringToYyyyMmDd(dateMatch[0]) : null;
+                    if (lineNormDate !== todayDateStr) continue;
+                }
+                isCheckboxTask = /^[-*]\s*\[[ x]\]/.test(lines[idx]);
+                foundIndex = idx;
+                checked = /\[x\]/i.test(lines[idx]);
+                break;
+            }
+        }
+        return {
+            ...item,
+            isCheckboxTask,
+            foundIndex,
+            checked
+        };
+    });
 
     // Sort items: all-day events first, then by start time.
     itemsForToday.sort((a, b) => {
@@ -113,9 +139,26 @@ function renderDailyPlanner(scrollToToday = false) {
         const allDayTasks = itemsForToday.filter(item => !item.time);
         if (allDayTasks.length > 0) {
             html += `<tr class="hour-row all-day-row"><td class="hour-label">All Day</td><td class="task-cell">`;
-            html += allDayTasks.map(item => `<div class="task-block" style="background:var(--color-bg-highlight);color:var(--color-primary-text);border-radius:6px;padding:0.3em 0.7em;"><span>${(item.source ? `<a href="#" class="wiki-link" data-source="${item.source}">${item.text || item.source}</a>` : (item.text || ''))}</span></div>`).join('');
-            html += `</td><td class="status-cell">`;
-            html += allDayTasks.map(item => item.checked ? '✔' : '⏳').join(' ');
+            html += allDayTasks.map((item, idx) => {
+                const content = item.displayName
+                    ? `<a href='#' class='wiki-link simple-task-link' data-page-link='${item.displayName}'>${item.text || ''}</a>`
+                    : (item.text || '');
+                return `<div class="task-block" style="background:var(--color-bg-highlight);color:var(--color-primary-text);border-radius:6px;padding:0.3em 0.7em; border-left: 3px solid #F5B041; border-right: 3px solid #F5B041;">
+                    <span>${content}</span>
+                </div>`;
+            }).join('');
+            html += `</td><td class="status-cell" style="vertical-align: top;">`;
+            
+            html += allDayTasks.map((item, idx) => {
+                let statusIndicator;
+                if (item.isCheckboxTask && item.pageKey && typeof item.foundIndex === 'number') {
+                    statusIndicator = `<input type="checkbox" class="hourly-checkbox" data-key="${item.pageKey}" data-line-index="${item.foundIndex}" ${item.checked ? 'checked' : ''} />`;
+                } else {
+                    statusIndicator = item.checked ? '✔' : '🔁';
+                }
+                return `<div style="padding: 0.3em 0.7em; text-align: center;">${statusIndicator}</div>`;
+            }).join('');
+    
             html += `</td></tr>`;
         }
 
@@ -141,10 +184,8 @@ function renderDailyPlanner(scrollToToday = false) {
         }
 
         const renderedTaskRows = new Set();
-        // --- START OF CHANGE ---
         // Loop from the selected start to end hour
         for (let hour = startHour; hour < endHour; hour++) {
-        // --- END OF CHANGE ---
             const hourStart = hour * 60;
             const hourEnd = (hour + 1) * 60;
             let foundTask = null;
@@ -156,10 +197,16 @@ function renderDailyPlanner(scrollToToday = false) {
                     break;
                 }
             }
+            
+            // --- START OF FIX ---
+            // Declare showDetails here, so it's available for both task and status cells in this row.
+            let showDetails = false;
+            // --- END OF FIX ---
+
             html += `<tr class="hour-row ${hour % 2 === 0 ? 'even-row' : 'odd-row'}"> <td class="hour-label">${hour.toString().padStart(2, '0')}:00</td> <td class="task-cell" style="position:relative;">`;
             if (foundTask) {
                 let showBar = false;
-                let showDetails = false;
+                // Note: 'showDetails' is NOT declared here anymore.
                 let barLeft = 0,
                     barWidth = 0;
                 if (foundTask.time && foundTask.endTime) {
@@ -176,19 +223,23 @@ function renderDailyPlanner(scrollToToday = false) {
                          barLeft = ((currentBarStart - hourStart) / 60) * 100;
                          barWidth = ((currentBarEnd - currentBarStart) / 60) * 100;
                          if (hour === firstEventHour) {
-                             showDetails = true;
+                             showDetails = true; // We now set the showDetails variable that was declared outside this `if` block.
                          }
                     }
                 } else if(foundTask.time) {
                     if(hour === new Date(`1970-01-01T${foundTask.time}`).getHours()) {
-                       showDetails = true;
+                       showDetails = true; // Same here.
                     }
                 }
                 if (showBar) {
                     html += `<div class="gantt-bar" style="position:absolute; left:${barLeft}%; top:8px; height:32px; width:${barWidth}%; background:${getColor(foundTaskIdx)}; border-radius:8px; opacity:0.5; z-index:0;"></div>`;
                 }
             if (showDetails && !renderedTaskRows.has(foundTaskIdx)) {
-                html += `<div class="task-block" style="position:relative; z-index:1;"> <span style="font-weight:bold;">${foundTask.time}${foundTask.endTime ? ' - ' + foundTask.endTime : ''}</span> `;
+                let taskBlockStyle = "position:relative; z-index:1;";
+                if (foundTask.time && !foundTask.endTime) {
+                    taskBlockStyle += "border-left: 3px solid #5DADE2; padding: 0.2em 0.5em; border-radius: 4px;";
+                }
+                html += `<div class="task-block" style="${taskBlockStyle}"> <span style="font-weight:bold;">${foundTask.time}${foundTask.endTime ? ' - ' + foundTask.endTime : ''}</span> `;
                 if (foundTask.displayName) {
                     html += `<a href='#' class='wiki-link simple-task-link' data-page-link='${foundTask.displayName}'>${foundTask.text || ''}</a>`;
                 } else {
@@ -201,45 +252,67 @@ function renderDailyPlanner(scrollToToday = false) {
                 html += '<span class="no-task" style="color:var(--color-muted);"></span>';
             }
             html += `</td> <td class="status-cell">`;
-            if (foundTask && !renderedTaskRows.has(foundTaskIdx)) {
-                html += foundTask.checked ? '✔' : '⏳';
+
+            // This check now works correctly because showDetails is in scope.
+            if (foundTask && showDetails) {
+                if (foundTask.isCheckboxTask && foundTask.pageKey && typeof foundTask.foundIndex === 'number') {
+                    html += `<input type="checkbox" class="hourly-checkbox" data-key="${foundTask.pageKey}" data-line-index="${foundTask.foundIndex}" ${foundTask.checked ? 'checked' : ''} />`;
+                } else {
+                    html += foundTask.checked ? '✔' : '🔁';
+                }
             }
             html += `</td></tr>`;
         }
         html += '</tbody></table>';
         mainContent.innerHTML = html;
         mainContent.querySelectorAll('.wiki-link').forEach(link => { link.addEventListener('click', function(e) { e.preventDefault(); const source = this.getAttribute('data-source'); if (source && typeof navigateToWiki === 'function') { navigateToWiki(source); } }); });
+
+        // --- Attach checkbox event handlers for hourly view ---
+        mainContent.querySelectorAll('.hourly-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function(e) {
+                const cb = e.target;
+                const dataKey = cb.getAttribute('data-key');
+                const dataLineIndex = cb.getAttribute('data-line-index');
+                if (!dataKey || dataLineIndex === null) return;
+                // Get source content
+                const fullText = getStorage(dataKey);
+                const lines = fullText.split('\n');
+                const idx = parseInt(dataLineIndex, 10);
+                if (isNaN(idx) || !lines[idx]) return;
+                // Toggle checkbox state in source
+                lines[idx] = lines[idx].includes('[ ]')
+                    ? lines[idx].replace('[ ]', '[x]')
+                    : lines[idx].replace(/\[x\]/i, '[ ]');
+                setStorage(dataKey, lines.join('\n'));
+                debouncedSyncWithCloud && debouncedSyncWithCloud();
+                // Re-render daily planner to reflect change
+                renderDailyPlanner();
+            });
+        });
     } else if (mode === 'gantt') {
-        // --- START OF CHANGE ---
-        // Adjust timeline constants based on selected hour range
+        // (The Gantt mode logic remains unchanged)
         const timelineStart = startHour * 60;
         const timelineEnd = endHour * 60;
         const timelineDuration = timelineEnd - timelineStart;
 
-        // Filter items that are visible in the current time window
         const itemsInView = itemsForToday.filter(item => {
-            if (!item.time) return true; // Always show all-day events
+            if (!item.time) return true;
             const [itemStartH] = item.time.split(':').map(Number);
-            if (!item.endTime) { // Point event
+            if (!item.endTime) {
                 return itemStartH >= startHour && itemStartH < endHour;
             }
-            // Duration event
             const [itemEndH, itemEndM] = item.endTime.split(':').map(Number);
             const effectiveEndH = (itemEndH === 0 && itemEndM === 0) ? 24 : itemEndH;
-            // Check for overlap: event starts before view ends AND event ends after view starts
             return itemStartH < endHour && effectiveEndH > startHour;
         });
-        // --- END OF CHANGE ---
 
         function getColor(idx) {
             const palette = ['#5DADE2', '#58D68D', '#F5B041', '#AF7AC5', '#EC7063', '#48C9B0', '#F7DC6F', '#AAB7B8'];
-            return palette[itemsForToday.indexOf(itemsInView[idx]) % palette.length]; // Use original index for consistent color
+            return palette[itemsForToday.indexOf(itemsInView[idx]) % palette.length];
         }
 
         let hourLabels = '';
         if (timelineDuration > 0) {
-            // --- START OF CHANGE ---
-            // Render hour labels for the selected range
             for (let h = startHour; h <= endHour; h++) {
                 const hourLeftPercent = ((h * 60 - timelineStart) / timelineDuration) * 100;
                 let transformStyle = 'translateX(-50%)';
@@ -247,7 +320,6 @@ function renderDailyPlanner(scrollToToday = false) {
                 else if (h === endHour) transformStyle = 'translateX(-100%)';
                 hourLabels += `<span style="position: absolute; left: ${hourLeftPercent}%; top: 0; transform: ${transformStyle};">${h.toString().padStart(2, '0')}:00</span>`;
             }
-            // --- END OF CHANGE ---
         }
 
         html = `<div style="width:100%; padding:1em 0; display:flex;">
@@ -256,7 +328,14 @@ function renderDailyPlanner(scrollToToday = false) {
             html += `<div style="color:#bbb;text-align:center;padding:2em;">No tasks in this time range</div>`;
         } else {
             itemsInView.forEach(item => {
-                html += `<div class="task-label-col" style="font-size:0.95em; color:var(--color-primary); padding-left: 1em; padding-right: 1em; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; height:32px; display:flex; align-items:center;">`;
+                let labelStyle = "font-size:0.95em; color:var(--color-primary); padding-left: 1em; padding-right: 1em; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; height:32px; display:flex; align-items:center;";
+                if (!item.time) { labelStyle += "border-left: 3px solid #F5B041;"; }
+                else if (item.time && !item.endTime) { labelStyle += "border-left: 3px solid #5DADE2;"; }
+                html += `<div class="task-label-col" style="${labelStyle}">`;
+                // --- Add checkbox before task name if applicable ---
+                if (item.isCheckboxTask && item.pageKey && typeof item.foundIndex === 'number') {
+                    html += `<input type="checkbox" class="gantt-checkbox" data-key="${item.pageKey}" data-line-index="${item.foundIndex}" ${item.checked ? 'checked' : ''} style="margin-right:0.7em; vertical-align:middle;" />`;
+                }
                 if (item.displayName) {
                     html += `<a href='#' class='wiki-link simple-task-link' data-page-link='${item.displayName}'>${item.text || ''}</a>`;
                 } else {
@@ -273,16 +352,14 @@ function renderDailyPlanner(scrollToToday = false) {
                 let color = getColor(idx);
                 let rowHtml = `<div class="timeline-row" style="position:relative; height:32px; margin-bottom:0; border:1px solid var(--color-bg-muted, #e5e5e5);padding:0; display:flex; align-items:center;">`;
                 
-                // --- START OF CHANGE ---
-                // Add vertical hour lines based on the zoomed timeline
                 for (let h = startHour + 1; h < endHour; h++) {
                     let hourLeft = ((h * 60 - timelineStart) / timelineDuration) * 100;
                     rowHtml += `<div style="position:absolute; left:${hourLeft}%; top:0; bottom:0; width:1px; background:var(--color-bg-muted, #e5e5e5); z-index:0;"></div>`;
                 }
 
-                if (!item.time) { // All-day event
-                    rowHtml += `<div style="position:absolute; left:0; width:100%; height:70%; background:${color}; border-radius:8px; display:flex; align-items:center; justify-content:center; box-shadow: 0 2px 5px rgba(0,0,0,0.15);"><span style="color:white; font-weight:500;">All Day</span></div>`;
-                } else if (item.time && item.endTime) { // Duration event
+                if (!item.time) {
+                    rowHtml += `<div style="position:absolute; left:0; width:100%; height:70%; background:${color}; border-radius:8px; display:flex; align-items:center; justify-content:center; box-shadow: 0 2px 5px rgba(0,0,0,0.15); border: 1px solid #F5B041;"><span style="color:white; font-weight:500;">All Day</span></div>`;
+                } else if (item.time && item.endTime) {
                     const [startH, startM] = item.time.split(':').map(Number);
                     const startTotal = startH * 60 + (startM || 0);
                     const [endH, endM] = item.endTime.split(':').map(Number);
@@ -299,15 +376,14 @@ function renderDailyPlanner(scrollToToday = false) {
                                   <div style="position:absolute; left:${leftPercent}%; width:${widthPercent}%; height:70%; background:${color}; border-radius:8px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);"></div>
                                   <span style='font-size:0.9em; color:var(--color-muted); font-weight:500; position:absolute; left:calc(${leftPercent + widthPercent}% + 8px); top:50%; transform:translateY(-50%);'>${item.endTime}</span>`;
                     }
-                } else if (item.time) { // Point event
+                } else if (item.time) {
                     const [startH, startM] = item.time.split(':').map(Number);
                     const startTotal = startH * 60 + (startM || 0);
                     const leftPercent = ((startTotal - timelineStart) / timelineDuration) * 100;
                     rowHtml += `<div style="position:absolute; left:calc(${leftPercent}% - 8px); top:50%; transform:translateY(-50%); display:flex; align-items:center;">
-                                <div style="width:16px; height:16px; background:${color}; border-radius:50%;"></div>
+                                <div style="width:16px; height:16px; background:${color}; border-radius:50%; border: 2px solid #fff; box-shadow: 0 0 0 2px ${color};"></div>
                                 <span style='font-size:0.9em; color:var(--color-muted); font-weight:500; margin-left:10px;'>${item.time}</span></div>`;
                 }
-                // --- END OF CHANGE ---
                 rowHtml += `</div>`;
                 html += rowHtml;
             });
@@ -315,5 +391,28 @@ function renderDailyPlanner(scrollToToday = false) {
         html += `</div></div></div>`;
         mainContent.innerHTML = html;
         mainContent.querySelectorAll('.wiki-link').forEach(link => { link.addEventListener('click', function(e) { e.preventDefault(); const source = this.getAttribute('data-source'); if (source && typeof navigateToWiki === 'function') { navigateToWiki(source); } }); });
+
+        // --- Attach checkbox event handlers for gantt view ---
+        mainContent.querySelectorAll('.gantt-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function(e) {
+                const cb = e.target;
+                const dataKey = cb.getAttribute('data-key');
+                const dataLineIndex = cb.getAttribute('data-line-index');
+                if (!dataKey || dataLineIndex === null) return;
+                // Get source content
+                const fullText = getStorage(dataKey);
+                const lines = fullText.split('\n');
+                const idx = parseInt(dataLineIndex, 10);
+                if (isNaN(idx) || !lines[idx]) return;
+                // Toggle checkbox state in source
+                lines[idx] = lines[idx].includes('[ ]')
+                    ? lines[idx].replace('[ ]', '[x]')
+                    : lines[idx].replace(/\[x\]/i, '[ ]');
+                setStorage(dataKey, lines.join('\n'));
+                debouncedSyncWithCloud && debouncedSyncWithCloud();
+                // Re-render daily planner to reflect change
+                renderDailyPlanner();
+            });
+        });
     }
 }
