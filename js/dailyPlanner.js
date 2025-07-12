@@ -19,9 +19,8 @@ function renderDailyPlanner(scrollToToday = false) {
 
     // Render controls including mode and time range dropdowns
     dailyContent.innerHTML = `
-    <div class="planner-dropdown-group" style="margin-bottom:1em; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1.5em;">
+    <div class="planner-dropdown-group" style="max-width:900px;margin:auto;margin-bottom:1em; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1.5em;">
       <div style="display:flex; align-items:center; gap:1em;">
-        <label for="daily-mode-select" style="margin-right:0.5em;">View Mode:</label>
         <select id="daily-mode-select" class="planner-dropdown" style="min-width:120px;">
           <option value="hourly"${mode === 'hourly' ? ' selected' : ''}>Hourly Table</option>
           <option value="gantt"${mode === 'gantt' ? ' selected' : ''}>Gantt Timeline</option>
@@ -133,7 +132,7 @@ function renderDailyPlanner(scrollToToday = false) {
     // Render main content based on mode
     const mainContent = document.getElementById('daily-main-content');
     if (mode === 'hourly') {
-        let html = `<table class="hourly-table app-table" style="width:100%;border-collapse:collapse;">
+        let html = `<table class="hourly-table app-table" style="max-width:900px;margin:auto;border-collapse:collapse;">
       <thead><tr><th class="hour-col">Time</th><th class="task-col">Task</th><th class="status-col">Status</th></tr></thead><tbody>`;
 
         const allDayTasks = itemsForToday.filter(item => !item.time);

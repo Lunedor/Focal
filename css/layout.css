@@ -137,3 +137,6 @@ a.wiki-link.simple-task-link {
     background-color: transparent;
     border: none;
 }
+#daily-view{
+  max-width: 1200px;
+}
