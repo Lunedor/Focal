@@ -60,30 +60,76 @@ FUTURELOG: 12-months
 ```
 
 **Features:**
-- Visual calendar for 6 or 12 months
-- Add scheduled or recurring events (supports checkboxes)
-- Remove or edit items via the UI
-- Click a month to jump to that view
-- Markdown export/import compatible
-
-See the sample data for a demonstration.
-
-
-## 🚀 Getting Started
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/Lunedor/Focal.git
-   ```
+## ✨ Features
+- **Weekly, Daily & Monthly Planner:** Plan your week, day, and month with flexible, markdown-powered entries. Hourly and Gantt timeline views for daily planning.
+- **Future Log Widget:** Visualize and manage long-term plans, recurring events, and scheduled tasks with a dedicated future log calendar widget. Supports adding, editing, and removing future events, recurring rules, and scheduled items.
+- **Task Management:** Create and track tasks with checkboxes, summaries, and status indicators. Interactive checkboxes sync with source content in all views.
+- **Goal Tracking:** Set goals, track progress, visualize achievements, and link goals to tasks.
+- **Habit Tracker:** Build routines, set targets, track streaks, earn rewards, and visualize habits with widgets and charts.
+- **Mood Tracker:** Log daily moods and visualize patterns (calendar, chart, circular, emoji/color/all modes).
+- **Finance Tracker:** Track income/expenses, categorize transactions, view charts, and summaries.
+- **Book Tracker:** Manage your reading list, progress, stats, and integrate with Google Books.
+- **Movie Tracker:** Build your watchlist, track watched/favorites, stats, and integrate with TMDB.
+- **Wiki-Style Notes:** Use `[[links]]` to connect pages and build a personal knowledge base. Backlinks and page navigation.
+- **Push Notifications:** Set reminders for tasks and events with NOTIFY syntax and receive browser notifications.
+- **Recurring Events:** Use REPEAT syntax for flexible recurring tasks/events in all planner views.
+- **Scheduled Items:** Use SCHEDULED syntax to add tasks/events to any date, visible in all planner views.
+- **Drag-and-Drop Sidebar:** Pin/unpin, reorder pages with mouse or touch (mobile-friendly).
+- **Local-First & Private:** All data is stored in your browser by default.
+- **Cloud Sync (Optional):** Securely sync across devices with Firebase.
+- **Customizable Themes:** Choose from multiple light/dark themes.
+- **Keyboard Shortcuts:** Designed for fast, keyboard-first navigation.
+- **Mobile & Desktop UI:** Responsive design, gesture support, and sidebar overlays for mobile.
+- **Markdown Extensions:** Rich widgets for goals, habits, moods, finance, books, movies, future log, and more.
 2. **Navigate to the directory:**
-   ```bash
-   cd Focal
-   ```
-3. **Open index.html in your browser.**
+## 📝 Example Usage & Sample Data
 
-> For Google Sign-In and Cloud Sync, use a local server (e.g., VS Code Live Server or `python -m http.server`).
+```
+# Sample page: Weekly Planner
+# Tasks for the week
+- [ ] Finish project report (SCHEDULED: 2025-07-14)
+- [x] Submit tax forms (SCHEDULED: 2025-07-15)
+- [ ] Call Alice (REPEAT: every friday)
 
-## 📝 Example Usage
+# Goals
+GOAL: Run 10km by end of July
+GOAL: Read 3 books this month
+
+# Habits
+HABITS: define
+- Drink water
+- Meditate
+- Exercise
+HABITS: today|grid|stats|chart
+
+# Mood
+MOOD: calendar, emoji, 2025-07-12:😊
+
+# Finance
+FINANCE: summary, USD, this-month
+
+# Books
+BOOKS: to-read|stats
+- The Pragmatic Programmer
+- Atomic Habits
+
+# Movies
+MOVIES: watchlist|favorites
+- Inception
+- The Matrix
+
+# Future Log
+FUTURELOG: 12-months
+- [ ] Renew passport (SCHEDULED: 2025-09-01)
+- Team meeting (REPEAT: every monday)
+- Project deadline (SCHEDULED: 2025-08-15)
+
+# Notifications
+- [ ] Dentist appointment (NOTIFY: 2025-07-20 09:00)
+```
+
+Now you can access the app at http://localhost:8000.
+Created by Lunedor. For more, see the Screenshots and sample data in sampleData.js and init.js.
 
 ```
 # From within the project directory
