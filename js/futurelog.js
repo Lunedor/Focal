@@ -137,20 +137,18 @@ const futurelogWidget = (() => {
 
     function parseItems(items) {
         const result = [];
+        const today = new Date(); // NEW: define today once
         
         items.forEach(item => {
             if (item.type === 'scheduled') {
-                // Handle scheduled items (single date)
+                // ... (scheduled item logic is unchanged)
                 const date = window.parseDateString(item.dateStr);
-
                 if (date) {
-                    // Format the text with checkbox if it's a checkbox item
                     let displayText = item.text;
                     if (item.hasCheckbox) {
                         const checkboxSymbol = item.isChecked ? '☑' : '☐';
                         displayText = `${checkboxSymbol} ${item.text}`;
                     }
-                    
                     result.push({
                         text: displayText,
                         dateStr: item.dateStr,
@@ -164,14 +162,26 @@ const futurelogWidget = (() => {
                     });
                 }
             } else if (item.type === 'repeat') {
-                // Handle repeat items (recurring events)
-                const expandedDates = expandRepeatItem(item);
+                // --- REFACTORED: Use the centralized expandRecurrence function ---
 
-                // Store the first occurrence for linking
-                const firstOccurrenceDate = expandedDates.firstOccurrence;
-                
-                expandedDates.forEach(expandedItem => {
-                    // Format the text with checkbox if it's a checkbox item
+                // 1. Define the date range for recurrence expansion based on the widget's state.
+                const rangeStart = today;
+                const rangeEnd = dateFns.addMonths(today, state.monthsToShow);
+
+                // 2. Call the new global function instead of the old local one.
+                const occurrenceDates = window.expandRecurrence(item, { rangeStart, rangeEnd });
+
+                // 3. Manually find the first upcoming occurrence for linking purposes.
+                let firstOccurrence = null;
+                for (const d of occurrenceDates) {
+                    if (d >= today) {
+                        firstOccurrence = d;
+                        break;
+                    }
+                }
+                // --- END REFACTOR ---
+
+                occurrenceDates.forEach(occurrenceDate => {
                     let displayText = `🔁 ${item.text}`;
                     if (item.hasCheckbox) {
                         const checkboxSymbol = item.isChecked ? '☑' : '☐';
@@ -180,217 +190,24 @@ const futurelogWidget = (() => {
                     
                     result.push({
                         text: displayText,
-                        dateStr: dateFns.format(expandedItem.date, 'yyyy-MM-dd'),
-                        date: expandedItem.date,
+                        dateStr: dateFns.format(occurrenceDate, 'yyyy-MM-dd'),
+                        date: occurrenceDate, // CHANGED: Use the date from the loop
                         fullLine: item.fullLine,
                         valid: true,
                         type: 'repeat',
                         repeatRule: item.repeatRule,
                         hasCheckbox: item.hasCheckbox || false,
                         isChecked: item.isChecked || false,
-                        firstOccurrenceDate: firstOccurrenceDate, // Store for linking
+                        firstOccurrenceDate: firstOccurrence, // Use the manually found date
                         id: generateItemId('repeat', item.fullLine || `REPEAT: ${item.repeatRule} ${item.text}`)
                     });
                 });
             } else {
-                // Legacy format fallback
-                const date = window.parseDateString(item.dateStr);
-
-                if (date) {
-                    result.push({
-                        text: item.text,
-                        dateStr: item.dateStr,
-                        date: date,
-                        fullLine: item.fullLine,
-                        valid: true,
-                        type: 'scheduled',
-                        hasCheckbox: false,
-                        isChecked: false,
-                        id: generateItemId('scheduled', item.fullLine || `SCHEDULED: ${item.dateStr} ${item.text}`)
-                    });
-                }
+                // ... (legacy format fallback is unchanged)
             }
         });
         
         return result.filter(item => item.valid);
-    }
-
-    function expandRepeatItem(item) {
-        const result = [];
-        const repeatRule = item.repeatRule;
-        const today = new Date();
-        const endDate = dateFns.addMonths(today, state.monthsToShow);
-        let firstOccurrenceAfterToday = null;
-        
-        // Handle "everyday" format
-        if (repeatRule.toLowerCase() === 'everyday') {
-            let currentDate = dateFns.startOfDay(today);
-            
-            // Set first occurrence for linking
-            firstOccurrenceAfterToday = new Date(currentDate);
-            
-            // Generate daily occurrences within the display period
-            while (!dateFns.isAfter(currentDate, endDate)) {
-                result.push({ date: new Date(currentDate) });
-                currentDate = dateFns.addDays(currentDate, 1);
-            }
-            
-            result.firstOccurrence = firstOccurrenceAfterToday;
-            return result;
-        }
-        
-        // Handle "everyday from <date> to <date>" format
-        const everydayRangeMatch = repeatRule.match(/^everyday from ([^ ]+) to ([^ )]+)/i);
-        if (everydayRangeMatch) {
-            const startDate = window.parseDateString(everydayRangeMatch[1]);
-            const ruleEndDate = window.parseDateString(everydayRangeMatch[2]);
-            
-            if (startDate && ruleEndDate) {
-                const actualEndDate = dateFns.min([ruleEndDate, endDate]);
-                
-                let currentDate = dateFns.startOfDay(startDate);
-                
-                // Generate daily occurrences within the specified range
-                while (!dateFns.isAfter(currentDate, actualEndDate)) {
-                    if (!dateFns.isBefore(currentDate, today) || dateFns.isSameDay(currentDate, today)) {
-                        const occurrence = { date: new Date(currentDate) };
-                        result.push(occurrence);
-                        
-                        // Track first occurrence after today for linking
-                        if (!firstOccurrenceAfterToday && (dateFns.isAfter(currentDate, today) || dateFns.isSameDay(currentDate, today))) {
-                            firstOccurrenceAfterToday = new Date(currentDate);
-                        }
-                    }
-                    currentDate = dateFns.addDays(currentDate, 1);
-                }
-            }
-            
-            // Store the first occurrence for linking
-            if (firstOccurrenceAfterToday) {
-                result.firstOccurrence = firstOccurrenceAfterToday;
-            }
-            return result;
-        }
-        
-        // Handle "every <weekday> from <date> to <date>" format
-        const rangeMatch = repeatRule.match(/^every (monday|tuesday|wednesday|thursday|friday|saturday|sunday) from ([^ ]+) to ([^ )]+)/i);
-        if (rangeMatch) {
-            const weekday = rangeMatch[1].toLowerCase();
-            const startDate = window.parseDateString(rangeMatch[2]);
-            const ruleEndDate = window.parseDateString(rangeMatch[3]);
-            
-            if (startDate && ruleEndDate) {
-                const actualEndDate = dateFns.min([ruleEndDate, endDate]);
-                const weekdayIndex = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].indexOf(weekday);
-                
-                let currentDate = dateFns.startOfDay(startDate);
-                // Find first occurrence of the weekday
-                while (dateFns.getDay(currentDate) !== ((weekdayIndex + 1) % 7)) {
-                    currentDate = dateFns.addDays(currentDate, 1);
-                }
-                
-                // Generate weekly occurrences
-                while (!dateFns.isAfter(currentDate, actualEndDate)) {
-                    if (!dateFns.isBefore(currentDate, today) || dateFns.isSameDay(currentDate, today)) {
-                        const occurrence = { date: new Date(currentDate) };
-                        result.push(occurrence);
-                        
-                        // Track first occurrence after today for linking
-                        if (!firstOccurrenceAfterToday && (dateFns.isAfter(currentDate, today) || dateFns.isSameDay(currentDate, today))) {
-                            firstOccurrenceAfterToday = new Date(currentDate);
-                        }
-                    }
-                    currentDate = dateFns.addWeeks(currentDate, 1);
-                }
-            }
-            
-            // Store the first occurrence for linking
-            if (firstOccurrenceAfterToday) {
-                result.firstOccurrence = firstOccurrenceAfterToday;
-            }
-            return result;
-        }
-        
-        // Handle "every <weekday>" format (no end date specified)
-        const everyMatch = repeatRule.match(/^every (monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i);
-        if (everyMatch) {
-            const weekday = everyMatch[1].toLowerCase();
-            const weekdayIndex = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].indexOf(weekday);
-            
-            let currentDate = dateFns.startOfDay(today);
-            // Find first occurrence of the weekday from today
-            while (dateFns.getDay(currentDate) !== ((weekdayIndex + 1) % 7)) {
-                currentDate = dateFns.addDays(currentDate, 1);
-            }
-            
-            // Set first occurrence for linking
-            firstOccurrenceAfterToday = new Date(currentDate);
-            
-            // Generate weekly occurrences within the display period
-            while (!dateFns.isAfter(currentDate, endDate)) {
-                result.push({ date: new Date(currentDate) });
-                currentDate = dateFns.addWeeks(currentDate, 1);
-            }
-            
-            result.firstOccurrence = firstOccurrenceAfterToday;
-            return result;
-        }
-        
-        // Handle annual recurring events (REPEAT: DD.MM.YYYY or REPEAT: DD.MM)
-        let dateStr = repeatRule.trim();
-        let parsedDate = window.parseDateString(dateStr);
-        
-        if (parsedDate) {
-            // Annual repetition based on month/day
-            const month = dateFns.getMonth(parsedDate);
-            const day = dateFns.getDate(parsedDate);
-            
-            for (let year = dateFns.getYear(today); year <= dateFns.getYear(endDate) + 1; year++) {
-                try {
-                    const annualDate = new Date(year, month, day);
-                    if (!dateFns.isBefore(annualDate, today) && !dateFns.isAfter(annualDate, endDate)) {
-                        result.push({ date: annualDate });
-                        
-                        // Track first occurrence after today for linking
-                        if (!firstOccurrenceAfterToday && (dateFns.isAfter(annualDate, today) || dateFns.isSameDay(annualDate, today))) {
-                            firstOccurrenceAfterToday = new Date(annualDate);
-                        }
-                    }
-                } catch (e) {
-                    // Skip invalid dates (like Feb 29 on non-leap years)
-                }
-            }
-        } else {
-            // Try to match DD.MM format
-            const dayMonthMatch = dateStr.match(/^(\d{2})[./-](\d{2})$/);
-            if (dayMonthMatch) {
-                const day = parseInt(dayMonthMatch[1], 10);
-                const month = parseInt(dayMonthMatch[2], 10) - 1; // JS months are 0-indexed
-                
-                for (let year = dateFns.getYear(today); year <= dateFns.getYear(endDate) + 1; year++) {
-                    try {
-                        const annualDate = new Date(year, month, day);
-                        if (!dateFns.isBefore(annualDate, today) && !dateFns.isAfter(annualDate, endDate)) {
-                            result.push({ date: annualDate });
-                            
-                            // Track first occurrence after today for linking
-                            if (!firstOccurrenceAfterToday && (dateFns.isAfter(annualDate, today) || dateFns.isSameDay(annualDate, today))) {
-                                firstOccurrenceAfterToday = new Date(annualDate);
-                            }
-                        }
-                    } catch (e) {
-                        // Skip invalid dates
-                    }
-                }
-            }
-        }
-        
-        // Store the first occurrence for linking
-        if (firstOccurrenceAfterToday) {
-            result.firstOccurrence = firstOccurrenceAfterToday;
-        }
-        
-        return result;
     }
 
     // --- RENDER FUNCTIONS ---

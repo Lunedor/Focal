@@ -456,3 +456,7 @@ a.wiki-link.simple-task-link {
     background-color: transparent !important;
     border: none !important;
 }
+
+button{
+  cursor: pointer;
+}

@@ -13,75 +13,6 @@ function setTheme(mode) {
   }
 }
 // --- UTILITIES ---
-// --- DATE UTILITIES ---
-/**
- * Parses a date string from various supported formats.
- * @param {string} dateStr The date string to parse.
- * @returns {Date|null} A Date object if parsing is successful, otherwise null.
- */
-function parseDateString(dateStr) {
-  if (!dateStr || !window.dateFns) return null;
-  // Try ISO parsing first as it's the most common and unambiguous
-  try {
-    const isoDate = window.dateFns.parseISO(dateStr);
-    if (window.dateFns.isValid(isoDate)) {
-      return isoDate;
-    }
-  } catch(e) {}
-
-  // Try date+time formats first
-  const dateTimeFormats = [
-    'dd.MM.yyyy HH:mm', // 03.07.2025 16:20
-    'dd/MM/yyyy HH:mm', // 03/07/2025 16:22
-    'dd-MM-yyyy HH:mm', // 03-07-2025 16:21
-    'yyyy-MM-dd HH:mm', // 2025-07-03 16:15
-  ];
-  for (const format of dateTimeFormats) {
-    try {
-      const date = window.dateFns.parse(dateStr, format, new Date());
-      if (window.dateFns.isValid(date)) {
-        return date;
-      }
-    } catch (e) {
-      // Ignore parsing errors and try the next format
-    }
-  }
-
-  // Try date-only formats
-  const dateOnlyFormats = [
-    'dd.MM.yyyy', // For 31.12.2025
-    'dd/MM/yyyy', // For 31/12/2025
-    'dd-MM-yyyy', // For 31-12-2025
-    'yyyy-MM-dd', // For 2025-07-03
-  ];
-  for (const format of dateOnlyFormats) {
-    try {
-      const date = window.dateFns.parse(dateStr, format, new Date());
-      if (window.dateFns.isValid(date)) {
-        return date;
-      }
-    } catch (e) {
-      // Ignore parsing errors and try the next format
-    }
-  }
-  return null; // Return null if no format matched
-}
-
-/**
- * Normalizes a date string from various formats to 'yyyy-MM-dd'.
- * @param {string} dateStr The date string to normalize.
- * @returns {string|null} The normalized date string or null if invalid.
- */
-function normalizeDateStringToYyyyMmDd(dateStr) {
-  const date = parseDateString(dateStr);
-  if (date) {
-    return window.dateFns.format(date, 'yyyy-MM-dd');
-  }
-  return null;
-}
-
-// A more robust regex to find all your supported formats
-const DATE_REGEX_PATTERN = '(\\d{4}-\\d{2}-\\d{2}|\\d{2}[./-]\\d{2}[./-]\\d{4})';
 
 // --- PLANNER KEY PARSER ---
 /**
@@ -107,13 +38,8 @@ function parsePlannerKeyToDate(plannerKey) {
 }
 
 // Expose date utilities globally for use in other scripts (after all functions and code are defined)
-window.DATE_REGEX_PATTERN = DATE_REGEX_PATTERN;
-window.parseDateString = parseDateString;
-window.normalizeDateStringToYyyyMmDd = normalizeDateStringToYyyyMmDd;
-window.parsePlannerKeyToDate = parsePlannerKeyToDate;
 const getWeekKey = (date) => `${dateFns.getISOWeekYear(date)}-W${dateFns.getISOWeek(date)}`;
 const getStorage = (key) => localStorage.getItem(key) || '';
-// This function is probably in your main app.js or a utils.js file
 
 function setStorage(key, value) {
   localStorage.setItem(key, value);
@@ -522,6 +448,313 @@ window.scheduledRegex = new RegExp(
   `^([-*]\\s*\\[([x ])\\]\\s*)?(.*?)\\(SCHEDULED:\\s*${window.DATE_REGEX_PATTERN}(?:\\s*(\\d{1,2}:\\d{2})(?:[- ](\\d{1,2}:\\d{2}))?)?\\)`,
   'i'
 );
-// Expose functions globally for access from other scripts
+
+
+// --- /js/utils.js ---
+
+// =================================================================================
+//  SHARED CONSTANTS (Single Source of Truth for Regex)
+// =================================================================================
+
+// Matches [[wiki links]]
+window.WIKI_LINK_REGEX = /\[\[([^\]]+)\]\]/g;
+
+// Matches various date formats like YYYY-MM-DD, DD.MM.YYYY, etc.
+window.DATE_REGEX_PATTERN = '(\\d{4}-\\d{2}-\\d{2}|\\d{2}[./-]\\d{2}[./-]\\d{4})';
+
+// Matches (SCHEDULED: <date> [time])
+window.SCHEDULED_REGEX = new RegExp(
+  // Optional checkbox prefix: ` - [ ] `
+  `^([-*]\\s*\\[([x ])\\]\\s*)?` +
+  // The task text (non-greedy)
+  `(.*?)` +
+  // The SCHEDULED tag, capturing date, optional start time, and optional end time
+  `\\(SCHEDULED:\\s*${window.DATE_REGEX_PATTERN}(?:\\s*(\\d{1,2}:\\d{2})(?:[- ](\\d{1,2}:\\d{2}))?)?\\)`,
+  'i'
+);
+
+// Matches (REPEAT: <rule>)
+window.REPEAT_REGEX = /\(REPEAT:\s*([^)]+)\)/gi;
+
+// Matches (NOTIFY: <date> [time])
+window.NOTIFY_REGEX = new RegExp(
+    `^(?:[-*]\\s*\\[[x ]\\]\\s*)?(.*)\\(NOTIFY:\\s*${window.DATE_REGEX_PATTERN}(?:\\s*(\\d{1,2}:\\d{2}))?\\)`,
+    'i'
+);
+
+
+// =================================================================================
+//  CENTRALIZED DATE & RECURRENCE PARSING
+// =================================================================================
+
+/**
+ * The single, authoritative function for parsing a date string from various formats.
+ * @param {string} dateStr The date string to parse.
+ * @returns {Date|null} A Date object or null.
+ */
+function parseDateString(dateStr) {
+  if (!dateStr || !window.dateFns) return null;
+  // Define formats from most specific (datetime) to least specific (date)
+  const formats = [
+    'dd.MM.yyyy HH:mm', 'dd/MM/yyyy HH:mm', 'dd-MM-yyyy HH:mm',
+    'yyyy-MM-dd HH:mm', 'yyyy-MM-dd', 'dd.MM.yyyy', 'dd/MM/yyyy', 'dd-MM-yyyy'
+  ];
+  for (const format of formats) {
+    try {
+      const date = window.dateFns.parse(dateStr, format, new Date());
+      if (window.dateFns.isValid(date)) return date;
+    } catch (e) { /* continue */ }
+  }
+  // Final attempt with ISO parsing
+  try {
+      const isoDate = window.dateFns.parseISO(dateStr);
+      if (window.dateFns.isValid(isoDate)) return isoDate;
+  } catch(e) {}
+  return null;
+}
+
+/**
+ * Normalizes a date string from various formats to the universal 'yyyy-MM-dd' format.
+ * @param {string} dateStr The date string to normalize.
+ * @returns {string|null} The normalized date string or null if invalid.
+ */
+function normalizeDateStringToYyyyMmDd(dateStr) {
+  const date = parseDateString(dateStr);
+  return date ? window.dateFns.format(date, 'yyyy-MM-dd') : null;
+}
+
+// --- /js/utils.js (REVISED expandRecurrence function) ---
+
+/**
+ * The single, authoritative function to expand a recurrence rule into an array of dates.
+ * This is a robust version that handles all formats supported by the application.
+ * @param {object} item - An object containing the repeatRule and other context.
+ * @param {object} options - An object with { rangeStart, rangeEnd } Dates for the expansion window.
+ * @returns {Date[]} An array of Date objects for each occurrence.
+ */
+function expandRecurrence(item, options) {
+    const { repeatRule } = item;
+    const { rangeStart, rangeEnd } = options;
+    const results = [];
+    if (!repeatRule || !rangeStart || !rangeEnd) return results;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // --- Logic ported from futurelog.js ---
+
+    // 1. Handle "everyday"
+    if (repeatRule.toLowerCase() === 'everyday') {
+        let current = new Date(rangeStart);
+        while (current <= rangeEnd) {
+            results.push(new Date(current));
+            current = dateFns.addDays(current, 1);
+        }
+        return results;
+    }
+
+    // 2. Handle "everyday from <date> to <date>"
+    const everydayRangeMatch = repeatRule.match(/^everyday from ([^ ]+) to ([^ )]+)/i);
+    if (everydayRangeMatch) {
+        let current = window.parseDateString(everydayRangeMatch[1]);
+        const ruleEndDate = window.parseDateString(everydayRangeMatch[2]);
+        if (!current || !ruleEndDate) return results;
+        
+        while (current <= ruleEndDate) {
+            if (current >= rangeStart && current <= rangeEnd) {
+                results.push(new Date(current));
+            }
+            current = dateFns.addDays(current, 1);
+        }
+        return results;
+    }
+    
+    // 3. Handle "every <weekday>" (with or without a date range)
+    const weeklyMatch = repeatRule.match(/^every (monday|tuesday|wednesday|thursday|friday|saturday|sunday)(?: from ([^ ]+) to ([^ )]+))?/i);
+    if (weeklyMatch) {
+        const weekday = weeklyMatch[1].toLowerCase();
+        const weekdayIndex = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].indexOf(weekday);
+        
+        // Determine the start and end for iteration
+        const iterationStart = weeklyMatch[2] ? window.parseDateString(weeklyMatch[2]) : new Date(rangeStart);
+        const iterationEnd = weeklyMatch[3] ? window.parseDateString(weeklyMatch[3]) : new Date(rangeEnd);
+
+        if (!iterationStart || !iterationEnd) return results;
+
+        let current = new Date(iterationStart);
+        
+        // Find the first valid weekday on or after the iteration start date
+        while (current.getDay() !== weekdayIndex) {
+            current = dateFns.addDays(current, 1);
+        }
+        
+        // Generate weekly occurrences within the date range
+        while (current <= iterationEnd) {
+            if (current >= rangeStart && current <= rangeEnd) {
+                 results.push(new Date(current));
+            }
+            current = dateFns.addWeeks(current, 1);
+        }
+        return results;
+    }
+
+    // 4. Handle annual recurring events (REPEAT: DD.MM.YYYY or REPEAT: DD.MM)
+    let parsedDate = window.parseDateString(repeatRule);
+    
+    // If parsing fails, try DD.MM format specifically
+    if (!parsedDate) {
+        const dayMonthMatch = repeatRule.match(/^(\d{2})[./-](\d{2})$/);
+        if (dayMonthMatch) {
+            const day = parseInt(dayMonthMatch[1], 10);
+            const month = parseInt(dayMonthMatch[2], 10) - 1; // JS months are 0-indexed
+            // Use a placeholder year; we only care about month and day
+            parsedDate = new Date(2000, month, day);
+        }
+    }
+    
+    if (parsedDate) {
+        const month = parsedDate.getMonth();
+        const day = parsedDate.getDate();
+        
+        for (let year = rangeStart.getFullYear(); year <= rangeEnd.getFullYear(); year++) {
+            try {
+                const annualDate = new Date(year, month, day);
+                // Ensure the generated date is valid (e.g., handles leap years)
+                if (annualDate.getMonth() === month && annualDate.getDate() === day) {
+                    if (annualDate >= rangeStart && annualDate <= rangeEnd) {
+                        results.push(annualDate);
+                    }
+                }
+            } catch (e) { /* Skip invalid dates */ }
+        }
+    }
+
+    return results;
+}
+
+/**
+ * The single, authoritative function to get all scheduled and recurring items.
+ * This should be the ONLY function that iterates through localStorage to find tasks.
+ * @returns {Map<string, Array<object>>} A map where keys are 'YYYY-MM-DD' and values are arrays of item objects.
+ */
+function getAllScheduledItems() {
+  const scheduledItems = new Map();
+  const rangeStart = dateFns.subYears(new Date(), 5);
+  const rangeEnd = dateFns.addYears(new Date(), 5);
+
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key.startsWith('page-')) continue;
+
+    const content = localStorage.getItem(key);
+    const pageTitle = key.substring(5);
+    const lines = content.split('\n');
+
+    lines.forEach((line, lineIndex) => {
+      const baseItem = {
+        pageKey: key,
+        displayName: pageTitle,
+        lineIndex: lineIndex,
+        isCheckbox: /^[-*]\s*\[[ x]\]/.test(line),
+        checkboxState: /\[x\]/i.test(line),
+      };
+
+      const addItem = (date, itemDetails) => {
+        const dateStr = dateFns.format(date, 'yyyy-MM-dd');
+        if (!scheduledItems.has(dateStr)) scheduledItems.set(dateStr, []);
+        scheduledItems.get(dateStr).push({ ...baseItem, ...itemDetails });
+      };
+      
+      const scheduleMatch = line.match(window.SCHEDULED_REGEX);
+      const notifyMatch = line.match(window.NOTIFY_REGEX);
+      const repeatMatches = [...line.matchAll(window.REPEAT_REGEX)];
+
+      if (scheduleMatch) {
+        // ... (SCHEDULED logic is unchanged and correct)
+        const date = window.parseDateString(scheduleMatch[4]);
+        if (date) {
+          addItem(date, {
+            text: scheduleMatch[3].trim(),
+            time: scheduleMatch[5] || null,
+            endTime: scheduleMatch[6] || null,
+            recurring: false,
+            notify: false,
+            originalDate: scheduleMatch[4],
+          });
+        }
+      }
+      
+      if (repeatMatches.length > 0) {
+        repeatMatches.forEach(repeatMatch => {
+          const fullRepeatRule = repeatMatch[1];
+          let ruleForDateExpansion = fullRepeatRule;
+          let startTime = null;
+          let endTime = null;
+
+          const timeRegex = /\b(\d{1,2}:\d{2})(?:-(\d{1,2}:\d{2}))?\s*$/;
+          const timeMatch = fullRepeatRule.match(timeRegex);
+          
+          if (timeMatch) {
+            startTime = timeMatch[1];
+            // *** FIX: Provide a default end time for the Gantt chart ***
+            // If an explicit end time (timeMatch[2]) exists, use it.
+            // Otherwise, if a start time exists, calculate a default end time (e.g., 1 hour later).
+            if (timeMatch[2]) {
+                endTime = timeMatch[2];
+            } else if (startTime) {
+                // Create a date object to safely add an hour.
+                const start = dateFns.parse(startTime, 'HH:mm', new Date());
+                if (dateFns.isValid(start)) {
+                    const end = dateFns.addHours(start, 1);
+                    endTime = dateFns.format(end, 'HH:mm');
+                }
+            }
+            // *** END FIX ***
+            
+            ruleForDateExpansion = fullRepeatRule.replace(timeRegex, '').trim();
+          }
+          
+          const itemToExpand = { repeatRule: ruleForDateExpansion, fullLine: line };
+          const occurrences = expandRecurrence(itemToExpand, { rangeStart, rangeEnd });
+          
+          occurrences.forEach(occurrenceDate => {
+              const cleanText = line.replace(/\(SCHEDULED:[^)]+\)/gi, '').replace(/\(REPEAT:[^)]+\)/gi, '').replace(/^[-*]\s*\[[ x]\]\s*/, '').trim();
+              addItem(occurrenceDate, {
+                  text: cleanText,
+                  recurring: true,
+                  notify: false,
+                  recurringKey: itemToExpand.repeatRule,
+                  time: startTime,
+                  endTime: endTime, // Now this will have a value if startTime exists
+              });
+          });
+        });
+      }
+      // 3. Handle NOTIFY items
+      if (notifyMatch) {
+          const date = window.parseDateString(notifyMatch[2]);
+          if(date) {
+              addItem(date, {
+                  text: notifyMatch[1].trim(),
+                  time: notifyMatch[3] || null,
+                  recurring: false,
+                  notify: true,
+                  originalDate: notifyMatch[2]
+              });
+          }
+      }
+    });
+  }
+  return scheduledItems;
+}
+
+// Expose globally
+window.parseDateString = parseDateString;
+window.normalizeDateStringToYyyyMmDd = normalizeDateStringToYyyyMmDd;
+window.getAllScheduledItems = getAllScheduledItems;
 window.exportAllData = exportAllData;
 window.importAllData = importAllData;
+window.DATE_REGEX_PATTERN = DATE_REGEX_PATTERN;
+window.parseDateString = parseDateString;
+window.normalizeDateStringToYyyyMmDd = normalizeDateStringToYyyyMmDd;
+window.parsePlannerKeyToDate = parsePlannerKeyToDate;
