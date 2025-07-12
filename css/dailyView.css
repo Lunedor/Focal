@@ -1,0 +1,237 @@
+/* --- /css/dailyPlanner.css --- */
+
+/* ====================================================================================
+    DAILY PLANNER STYLES
+    This file contains all the styles for the Daily Planner component.
+==================================================================================== */
+
+/* --- General & Controls --- */
+.planner-dropdown-group {
+    max-width: 900px;
+    margin: auto;
+    margin-bottom: 1em;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5em;
+}
+
+.planner-control-group {
+    display: flex;
+    align-items: center;
+    gap: 1em;
+}
+
+#daily-mode-select {
+    min-width: 120px;
+}
+
+.time-picker-label.start {
+    margin-right: 0.5em;
+}
+
+.time-picker-label.end {
+    margin-left: 1em;
+    margin-right: 0.5em;
+}
+
+.time-picker-select {
+    min-width: 80px;
+}
+
+/* ====================================================================================
+    HOURLY TABLE VIEW
+==================================================================================== */
+.hourly-table {
+    max-width: 900px;
+    margin: auto;
+    border-collapse: collapse;
+}
+
+.hourly-table .task-cell {
+    position: relative;
+}
+
+.all-day-row .status-cell {
+    vertical-align: top;
+}
+
+.all-day-task-block {
+    background: var(--color-bg-highlight);
+    color: var(--color-primary-text);
+    border-radius: 6px;
+    padding: 0.3em 0.7em;
+    border-left: 3px solid #F5B041;
+    border-right: 3px solid #F5B041;
+}
+
+.all-day-status {
+    padding: 0.3em 0.7em;
+    text-align: center;
+}
+
+.hourly-gantt-bar {
+    position: absolute;
+    top: 0;
+    height: 38px;
+    border-radius: 8px;
+    opacity: 0.5;
+    z-index: 0;
+}
+
+.hourly-task-block {
+    position: relative;
+    z-index: 1;
+}
+
+.hourly-task-time {
+    font-weight: bold;
+}
+
+/* ====================================================================================
+    GANTT TIMELINE VIEW
+==================================================================================== */
+.gantt-container {
+    width: 100%;
+    padding: 1em 0;
+    display: flex;
+}
+
+.gantt-labels-column {
+    flex: 0 0 220px;
+    display: flex;
+    flex-direction: column;
+}
+
+.gantt-header-spacer {
+    height: 40px;
+}
+
+.gantt-task-label {
+    font-size: 0.95em;
+    color: var(--color-primary);
+    padding-left: 1em;
+    padding-right: 1em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    height: 40px;
+    display: flex;
+    align-items: center;
+}
+
+/* Modifier classes for task label borders */
+.gantt-task-label.type-allday {
+    border-left: 3px solid #F5B041;
+}
+
+.gantt-task-label.type-point {
+    border-left: 3px solid #5DADE2;
+}
+
+.gantt-checkbox {
+    margin-right: 0.7em;
+    vertical-align: middle;
+}
+
+.gantt-timeline-column {
+    flex: 1 1 auto;
+    overflow-x: auto;
+    padding-bottom: 1em;
+}
+
+.gantt-timeline-inner {
+    width: 1920px; /* Fixed width for horizontal scrolling content */
+    min-width: 1920px;
+}
+
+.gantt-hour-labels {
+    position: relative;
+    height: 1.5em;
+    font-size: 0.8em;
+    color: var(--color-muted);
+    margin-bottom: 1.5em;
+}
+
+.gantt-hour-label {
+    position: absolute;
+    top: 0;
+}
+
+.gantt-timeline-row {
+    position: relative;
+    height: 40px;
+    margin-bottom: 0;
+    border: 1px solid var(--color-bg-muted, #e5e5e5);
+    padding: 0;
+    display: flex;
+    align-items: center;
+}
+
+.gantt-hour-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--color-bg-muted, #e5e5e5);
+    z-index: 0;
+}
+
+.gantt-bar-allday {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 70%;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    border: 1px solid #F5B041;
+}
+
+.gantt-bar-allday-text {
+    color: white;
+    font-weight: 500;
+}
+
+.gantt-bar-time-label {
+    font-size: 0.9em;
+    color: var(--color-muted);
+    font-weight: 500;
+    position: absolute;
+    width: 70px;
+    text-align: right;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.gantt-bar-timed {
+    position: absolute;
+    height: 80%;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+}
+
+.gantt-point-container {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+}
+
+.gantt-point-marker {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+}
+
+.gantt-point-label {
+    font-size: 0.9em;
+    color: var(--color-muted);
+    font-weight: 500;
+    margin-left: 10px;
+}

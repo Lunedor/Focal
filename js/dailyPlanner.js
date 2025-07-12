@@ -1,4 +1,4 @@
-// --- /js/dailyPlanner.js (Refactored) ---
+// --- /js/dailyPlanner.js (Refactored for CSS file) ---
 
 // ====================================================================================
 //  DAILY PLANNER VIEW LOGIC
@@ -22,26 +22,26 @@ function renderDailyPlanner(scrollToToday = false) {
     // Set title
     dailyTitle.textContent = `Daily Planner – ${dateFns.format(today, 'yyyy-MM-dd')}`;
 
-    // --- Render Controls (unchanged) ---
+    // --- Render Controls ---
     dailyContent.innerHTML = `
-    <div class="planner-dropdown-group" style="max-width:900px;margin:auto;margin-bottom:1em; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1.5em;">
-      <div style="display:flex; align-items:center; gap:1em;">
-        <select id="daily-mode-select" class="planner-dropdown" style="min-width:120px;">
+    <div class="planner-dropdown-group">
+      <div class="planner-control-group">
+        <select id="daily-mode-select" class="planner-dropdown">
           <option value="hourly"${mode === 'hourly' ? ' selected' : ''}>Hourly Table</option>
           <option value="gantt"${mode === 'gantt' ? ' selected' : ''}>Gantt Timeline</option>
         </select>
       </div>
-      <div style="display:flex; align-items:center; gap:1em;">
-        <label for="start-hour-select" style="margin-right:0.5em;">From:</label>
-        <select id="start-hour-select" class="planner-dropdown" style="min-width:80px;"></select>
-        <label for="end-hour-select" style="margin-left:1em; margin-right:0.5em;">To:</label>
-        <select id="end-hour-select" class="planner-dropdown" style="min-width:80px;"></select>
+      <div class="planner-control-group">
+        <label for="start-hour-select" class="time-picker-label start">From:</label>
+        <select id="start-hour-select" class="planner-dropdown time-picker-select"></select>
+        <label for="end-hour-select" class="time-picker-label end">To:</label>
+        <select id="end-hour-select" class="planner-dropdown time-picker-select"></select>
       </div>
     </div>
     <div id="daily-main-content"></div>
     `;
 
-    // --- Setup Time Pickers (unchanged) ---
+    // --- Setup Time Pickers ---
     function setupTimePickers() {
         const startSelect = document.getElementById('start-hour-select');
         const endSelect = document.getElementById('end-hour-select');
@@ -83,15 +83,12 @@ function renderDailyPlanner(scrollToToday = false) {
 
     setupTimePickers();
 
-    // --- REFACTORED: Get all data from the centralized function ---
+    // --- Get all data from the centralized function ---
     const todayDateStr = dateFns.format(today, 'yyyy-MM-dd');
     const allScheduled = window.getAllScheduledItems();
     let itemsForToday = allScheduled.get(todayDateStr) || [];
 
-    // REMOVED: The entire itemsForToday.map(...) block for enhancing data is no longer needed.
-    // The data from getAllScheduledItems is already fully processed.
-
-    // --- Sort items (unchanged) ---
+    // --- Sort items ---
     itemsForToday.sort((a, b) => {
         const aIsAllDay = !a.time;
         const bIsAllDay = !b.time;
@@ -110,7 +107,7 @@ function renderDailyPlanner(scrollToToday = false) {
     // --- Render main content based on mode ---
     const mainContent = document.getElementById('daily-main-content');
     if (mode === 'hourly') {
-        let html = `<table class="hourly-table app-table" style="max-width:900px;margin:auto;border-collapse:collapse;">
+        let html = `<table class="hourly-table app-table">
       <thead><tr><th class="hour-col">Time</th><th class="task-col">Task</th><th class="status-col">Status</th></tr></thead><tbody>`;
 
         const allDayTasks = itemsForToday.filter(item => !item.time);
@@ -118,27 +115,26 @@ function renderDailyPlanner(scrollToToday = false) {
             html += `<tr class="hour-row all-day-row"><td class="hour-label">All Day</td><td class="task-cell">`;
             html += allDayTasks.map((item) => {
                 const content = item.displayName ? `<a href='#' class='wiki-link simple-task-link' data-page-link='${item.displayName}'>${item.text || ''}</a>` : (item.text || '');
-                return `<div class="task-block" style="background:var(--color-bg-highlight);color:var(--color-primary-text);border-radius:6px;padding:0.3em 0.7em; border-left: 3px solid #F5B041; border-right: 3px solid #F5B041;">
+                return `<div class="task-block all-day-task-block">
                     <span>${content}</span>
                 </div>`;
             }).join('');
-            html += `</td><td class="status-cell" style="vertical-align: top;">`;
+            html += `</td><td class="status-cell">`;
             
             html += allDayTasks.map((item) => {
                 let statusIndicator;
-                // CHANGED: Use consistent property names from the centralized function
                 if (item.isCheckbox) {
                     statusIndicator = `<input type="checkbox" class="hourly-checkbox" data-key="${item.pageKey}" data-line-index="${item.lineIndex}" ${item.checkboxState ? 'checked' : ''} />`;
                 } else {
                     statusIndicator = item.checkboxState ? '✔' : '🔁';
                 }
-                return `<div style="padding: 0.3em 0.7em; text-align: center;">${statusIndicator}</div>`;
+                return `<div class="all-day-status">${statusIndicator}</div>`;
             }).join('');
     
             html += `</td></tr>`;
         }
 
-        // --- The rest of the hourly rendering logic remains the same, but we update property names ---
+        // --- The rest of the hourly rendering logic ---
         const occupied = {};
         itemsForToday.forEach((item, idx) => {
             if (item.time) {
@@ -176,7 +172,7 @@ function renderDailyPlanner(scrollToToday = false) {
             
             let showDetails = false;
 
-            html += `<tr class="hour-row ${hour % 2 === 0 ? 'even-row' : 'odd-row'}"> <td class="hour-label">${hour.toString().padStart(2, '0')}:00</td> <td class="task-cell" style="position:relative;">`;
+            html += `<tr class="hour-row ${hour % 2 === 0 ? 'even-row' : 'odd-row'}"> <td class="hour-label">${hour.toString().padStart(2, '0')}:00</td> <td class="task-cell">`;
             if (foundTask) {
                 let showBar = false;
                 let barLeft = 0, barWidth = 0;
@@ -199,21 +195,26 @@ function renderDailyPlanner(scrollToToday = false) {
                     if(hour === new Date(`1970-01-01T${foundTask.time}`).getHours()) showDetails = true;
                 }
                 if (showBar) {
-                    html += `<div class="gantt-bar" style="position:absolute; left:${barLeft}%; top:8px; height:32px; width:${barWidth}%; background:${getColor(foundTaskIdx)}; border-radius:8px; opacity:0.5; z-index:0;"></div>`;
+                    html += `<div class="hourly-gantt-bar" style="left:${barLeft}%; width:${barWidth}%; background:${getColor(foundTaskIdx)};"></div>`;
                 }
                 if (showDetails && !renderedTaskRows.has(foundTaskIdx)) {
-                    // ... (time display logic is unchanged)
                     let timeDisplay = foundTask.time ? (foundTask.endTime ? `${foundTask.time}-${foundTask.endTime}`: foundTask.time) : 'All Day';
-                    html += `<div class="task-block" style="position:relative; z-index:1;"> <span style="font-weight:bold;">${timeDisplay}</span> `;
-                    html += foundTask.displayName ? `<a href='#' class='wiki-link simple-task-link' data-page-link='${foundTask.displayName}'>${foundTask.text || ''}</a>` : `<span>${foundTask.text || ''}</span>`;
-                    html += `</div>`;
+                    // If event has only start time, wrap the whole block with a left border like all-day events
+                    if (!foundTask.endTime && foundTask.time) {
+                        html += `<div class="task-block hourly-task-block" style="border-left: 3px solid #5DADE2; border-radius:6px; padding: 0.3em 0.7em;"> <span class="hourly-task-time">${timeDisplay}</span> `;
+                        html += foundTask.displayName ? `<a href='#' class='wiki-link simple-task-link' data-page-link='${foundTask.displayName}'>${foundTask.text || ''}</a>` : `<span>${foundTask.text || ''}</span>`;
+                        html += `</div>`;
+                    } else {
+                        html += `<div class="task-block hourly-task-block"> <span class="hourly-task-time">${timeDisplay}</span> `;
+                        html += foundTask.displayName ? `<a href='#' class='wiki-link simple-task-link' data-page-link='${foundTask.displayName}'>${foundTask.text || ''}</a>` : `<span>${foundTask.text || ''}</span>`;
+                        html += `</div>`;
+                    }
                     renderedTaskRows.add(foundTaskIdx);
                 }
             }
             html += `</td> <td class="status-cell">`;
 
             if (foundTask && showDetails) {
-                 // CHANGED: Use consistent property names
                 if (foundTask.isCheckbox) {
                     html += `<input type="checkbox" class="hourly-checkbox" data-key="${foundTask.pageKey}" data-line-index="${foundTask.lineIndex}" ${foundTask.checkboxState ? 'checked' : ''} />`;
                 } else {
@@ -225,7 +226,7 @@ function renderDailyPlanner(scrollToToday = false) {
         html += '</tbody></table>';
         mainContent.innerHTML = html;
 
-        // Attach event handlers (checkbox logic is unchanged, just needs correct data attributes)
+        // Attach event handlers
         mainContent.querySelectorAll('.hourly-checkbox').forEach(checkbox => {
             checkbox.addEventListener('change', function(e) {
                 const cb = e.target;
@@ -244,7 +245,7 @@ function renderDailyPlanner(scrollToToday = false) {
         });
 
     } else if (mode === 'gantt') {
-        // --- Gantt rendering logic is mostly unchanged, just update property names ---
+        // --- Gantt rendering logic ---
         const timelineStart = startHour * 60;
         const timelineEnd = endHour * 60;
         const timelineDuration = timelineEnd - timelineStart;
@@ -263,7 +264,6 @@ function renderDailyPlanner(scrollToToday = false) {
             return palette[itemsForToday.indexOf(itemsInView[idx]) % palette.length];
         }
         
-        // ... (hourLabels rendering is unchanged)
         let hourLabels = '';
         if (timelineDuration > 0) {
             for (let h = startHour; h <= endHour; h++) {
@@ -271,42 +271,41 @@ function renderDailyPlanner(scrollToToday = false) {
                 let transformStyle = 'translateX(-50%)';
                 if (h === startHour) transformStyle = 'translateX(0)';
                 else if (h === endHour) transformStyle = 'translateX(-100%)';
-                hourLabels += `<span style="position: absolute; left: ${hourLeftPercent}%; top: 0; transform: ${transformStyle};">${h.toString().padStart(2, '0')}:00</span>`;
+                hourLabels += `<span class="gantt-hour-label" style="left: ${hourLeftPercent}%; transform: ${transformStyle};">${h.toString().padStart(2, '0')}:00</span>`;
             }
         }
         
-        html = `<div style="width:100%; padding:1em 0; display:flex;"><div style="flex:0 0 220px; display:flex; flex-direction:column;"><div style="height:32px;"></div>`;
+        html = `<div class="gantt-container"><div class="gantt-labels-column"><div class="gantt-header-spacer"></div>`;
         if (itemsInView.length > 0) {
             itemsInView.forEach(item => {
-                let labelStyle = "font-size:0.95em; color:var(--color-primary); padding-left: 1em; padding-right: 1em; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; height:32px; display:flex; align-items:center;";
-                if (!item.time) { labelStyle += "border-left: 3px solid #F5B041;"; }
-                else if (item.time && !item.endTime) { labelStyle += "border-left: 3px solid #5DADE2;"; }
-                html += `<div class="task-label-col" style="${labelStyle}">`;
-                // CHANGED: Use consistent property names for checkbox rendering
+                let labelClass = "gantt-task-label";
+                if (!item.time) { labelClass += " type-allday"; }
+                else if (item.time && !item.endTime) { labelClass += " type-point"; }
+
+                html += `<div class="${labelClass}">`;
                 if (item.isCheckbox) {
-                    html += `<input type="checkbox" class="gantt-checkbox" data-key="${item.pageKey}" data-line-index="${item.lineIndex}" ${item.checkboxState ? 'checked' : ''} style="margin-right:0.7em; vertical-align:middle;" />`;
+                    html += `<input type="checkbox" class="gantt-checkbox" data-key="${item.pageKey}" data-line-index="${item.lineIndex}" ${item.checkboxState ? 'checked' : ''} />`;
                 }
                 html += item.displayName ? `<a href='#' class='wiki-link simple-task-link' data-page-link='${item.displayName}'>${item.text || ''}</a>` : `<span>${item.text || ''}</span>`;
                 html += `</div>`;
             });
         }
-        html += `</div><div style="flex:1 1 auto; overflow-x:auto;padding-bottom:1em;"><div style="width:1920px; min-width:1920px;"><div style="position: relative; height: 1.5em; font-size: 0.8em; color: var(--color-muted); margin-bottom: 1.5em;">${hourLabels}</div>`;
+        html += `</div><div class="gantt-timeline-column"><div class="gantt-timeline-inner"><div class="gantt-hour-labels">${hourLabels}</div>`;
         
-        // ... (timeline row rendering is unchanged)
         if (itemsInView.length > 0 && timelineDuration > 0) {
             itemsInView.forEach((item, idx) => {
                 let color = getColor(idx);
-                let rowHtml = `<div class="timeline-row" style="position:relative; height:32px; margin-bottom:0; border:1px solid var(--color-bg-muted, #e5e5e5);padding:0; display:flex; align-items:center;">`;
+                let rowHtml = `<div class="gantt-timeline-row">`;
                 
                 // Draw vertical hour lines
                 for (let h = startHour + 1; h < endHour; h++) {
                     let hourLeft = ((h * 60 - timelineStart) / timelineDuration) * 100;
-                    rowHtml += `<div style="position:absolute; left:${hourLeft}%; top:0; bottom:0; width:1px; background:var(--color-bg-muted, #e5e5e5); z-index:0;"></div>`;
+                    rowHtml += `<div class="gantt-hour-line" style="left:${hourLeft}%;"></div>`;
                 }
 
                 // Draw the bar for the event
                 if (!item.time) {
-                    rowHtml += `<div style="position:absolute; left:0; width:100%; height:70%; background:${color}; border-radius:8px; display:flex; align-items:center; justify-content:center; box-shadow: 0 2px 5px rgba(0,0,0,0.15); border: 1px solid #F5B041;"><span style="color:white; font-weight:500;">All Day</span></div>`;
+                    rowHtml += `<div class="gantt-bar-allday" style="background:${color};"><span class="gantt-bar-allday-text">All Day</span></div>`;
                 } else if (item.time && item.endTime) {
                     const [startH, startM] = item.time.split(':').map(Number);
                     const startTotal = startH * 60 + (startM || 0);
@@ -320,25 +319,30 @@ function renderDailyPlanner(scrollToToday = false) {
                     const widthPercent = ((clampedEnd - clampedStart) / timelineDuration) * 100;
                     
                     if(widthPercent > 0){
-                      rowHtml += `<span style='font-size:0.9em; color:var(--color-muted); font-weight:500; position:absolute; left:calc(${leftPercent}% - 40px); width:70px; text-align:right; top:50%; transform:translateY(-50%);'>${item.time}-${item.endTime}</span>
-                                  <div style="position:absolute; left:${leftPercent}%; width:${widthPercent}%; height:70%; background:${color}; border-radius:8px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);"></div>`;
+                      // Start time label before the bar
+                      rowHtml += `<span class="gantt-bar-time-label gantt-bar-time-label-start" style='left:calc(${leftPercent}% - 75px);'>${item.time}</span>`;
+                      // The bar itself
+                      rowHtml += `<div class="gantt-bar-timed" style="left:${leftPercent}%; width:${widthPercent}%; background:${color};"></div>`;
+                      // End time label after the bar
+                      const endLabelLeft = leftPercent + widthPercent;
+                      rowHtml += `<span class="gantt-bar-time-label gantt-bar-time-label-end" style='left:calc(${endLabelLeft}% - 35px);'>${item.endTime}</span>`;
                     }
                 } else if (item.time) {
                     const [startH, startM] = item.time.split(':').map(Number);
                     const startTotal = startH * 60 + (startM || 0);
                     const leftPercent = ((startTotal - timelineStart) / timelineDuration) * 100;
-                    rowHtml += `<div style="position:absolute; left:calc(${leftPercent}% - 8px); top:50%; transform:translateY(-50%); display:flex; align-items:center;">
-                                <div style="width:16px; height:16px; background:${color}; border-radius:50%; border: 2px solid #fff; box-shadow: 0 0 0 2px ${color};"></div>
-                                <span style='font-size:0.9em; color:var(--color-muted); font-weight:500; margin-left:10px;'>${item.time}</span></div>`;
+                    rowHtml += `<div class="gantt-point-container" style="left:calc(${leftPercent}% - 8px);">
+                                <div class="gantt-point-marker" style="background:${color}; box-shadow: 0 0 0 2px ${color};"></div>
+                                <span class="gantt-point-label">${item.time}</span></div>`;
                 }
                 rowHtml += `</div>`;
-                html += rowHtml; // Add the completed row to the main HTML string
+                html += rowHtml;
             });
         }
         html += `</div></div></div>`;
         mainContent.innerHTML = html;
 
-        // Attach event handlers (checkbox logic is unchanged)
+        // Attach event handlers
         mainContent.querySelectorAll('.gantt-checkbox').forEach(checkbox => {
             checkbox.addEventListener('change', function(e) {
                  const cb = e.target;
