@@ -922,6 +922,21 @@ window.BookTracker = (() => {
         render(placeholder, config);
     }
 
+   function getToDoCount() {
+        loadBooksFromStorage();
+        return Object.values(state.books).filter(book => book.status === 'to-read').length;
+    }
+
+    // The generic function to get the number of completed items in a date range.
+    function getFinishedCount({ startDate, endDate }) {
+        loadBooksFromStorage();
+        return Object.values(state.books).filter(book => {
+            if (book.status !== 'finished' || !book.dateFinished) return false;
+            const finishDate = new Date(book.dateFinished);
+            return finishDate >= startDate && finishDate <= endDate;
+        }).length;
+    }
+
     // --- PUBLIC API ---
     return {
         init,           // Required by widgetRegistry
@@ -932,6 +947,8 @@ window.BookTracker = (() => {
         removeBook,
         searchBooks,
         getBookDetails,
-        getReadingStats
+        getReadingStats,
+        getToDoCount, 
+        getFinishedCount
     };
 })();

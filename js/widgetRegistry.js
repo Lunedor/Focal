@@ -65,9 +65,23 @@ const widgetRegistry = {
       });
     }
   },
-  'goal': (placeholder, options) => {
+  // In js/widgetRegistry.js
+
+'goal': (placeholder, options) => {
     const label = placeholder.dataset.label;
     const callCount = options.goalCount;
+
+    // THE FIX: Get the new attributes string from the placeholder
+    const attributesStr = placeholder.dataset.attributes;
+    let attributes = {};
+    try {
+        // Safely parse the JSON string back into an object
+        if (attributesStr) {
+            attributes = JSON.parse(attributesStr);
+        }
+    } catch (e) {
+        console.error("Failed to parse goal attributes:", e);
+    }
 
     const pageWrapper = placeholder.closest('[data-key]');
     if (!pageWrapper) return;
@@ -75,71 +89,47 @@ const widgetRegistry = {
     const content = getStorage(key);
 
     if (typeof window.analyzeGoalProgress !== 'function') {
-      console.error("analyzeGoalProgress function not found. Make sure it's exposed from markdown.js");
+      console.error("analyzeGoalProgress function not found.");
       placeholder.outerHTML = `<div class="widget-error">Could not render Goal: analysis function missing.</div>`;
       return;
     }
 
-    const goalAnalysis = window.analyzeGoalProgress(content, label, callCount);
+    // THE FIX: Pass the parsed attributes object to the analysis function
+    const goalAnalysis = window.analyzeGoalProgress(content, label, attributes, callCount);
 
     let goalHtml = '';
     if (!goalAnalysis) {
-      goalHtml = `<div class="goal-tracker basic">
-        <div class="goal-header">
-          <span class="goal-icon">🎯</span>
-          <span class="goal-title">${label}</span>
-        </div>
-      </div>`;
+        // This part now correctly displays the clean title
+        goalHtml = `<div class="goal-tracker basic">
+            <div class="goal-header">
+                <span class="goal-icon">🎯</span>
+                <span class="goal-title">${label}</span>
+            </div>
+        </div>`;
     } else {
-      const statusClass = goalAnalysis.status === 'completed' ? 'completed' :
-        goalAnalysis.status === 'deadline-passed' ? 'overdue' : 'in-progress';
-      const statusIcon = goalAnalysis.status === 'completed' ? '✅' :
-        goalAnalysis.status === 'deadline-passed' ? '⚠️' : '🎯';
-
-      if (goalAnalysis.type === 'manual' && goalAnalysis.status === 'completed') {
+        const statusClass = goalAnalysis.status === 'completed' ? 'completed' :
+            goalAnalysis.status === 'deadline-passed' ? 'overdue' : 'in-progress';
+        const statusIcon = goalAnalysis.status === 'completed' ? '✅' :
+            goalAnalysis.status === 'deadline-passed' ? '⚠️' : '🎯';
+        
+        // This part now correctly displays the clean title for all goal types
+        // Your existing rendering logic for different goal types remains the same
         goalHtml = `<div class="goal-tracker ${goalAnalysis.type} ${statusClass}">
-          <div class="goal-header">
-            <span class="goal-icon">${statusIcon}</span>
-            <span class="goal-title">${label}</span>
-          </div>
-          <div class="goal-progress">
-            <div class="goal-stats">${goalAnalysis.details}</div>
-            <span class="goal-percentage">${goalAnalysis.percentage}%</span>
-          </div>
-        </div>`;
-      } else if (goalAnalysis.type === 'manual') {
-        goalHtml = `<div class="goal-tracker ${goalAnalysis.type} ${statusClass}">
-          <div class="goal-header">
-            <span class="goal-icon">${statusIcon}</span>
-            <span class="goal-title">${label}</span>
-          </div>
-          <div class="goal-progress">
-            <div class="goal-stats">${goalAnalysis.details}</div>
-            <div class="goal-progress-bar">
-              <div style="width: ${Math.min(100, goalAnalysis.percentage)}%;"></div>
-            </div>
-            <span class="goal-percentage">${goalAnalysis.percentage}%</span>
-          </div>
-        </div>`;
-      } else {
-        goalHtml = `<div class="goal-tracker ${goalAnalysis.type} ${statusClass}">
-          <div class="goal-header">
-            <span class="goal-icon">${statusIcon}</span>
-            <span class="goal-title">${label}</span>
-          </div>
-          <div class="goal-progress">
-            <div class="goal-stats">${goalAnalysis.details}</div>
-            <div class="goal-progress-bar">
-              <div style="width: ${Math.min(100, goalAnalysis.percentage)}%;"></div>
-            </div>
-            <span class="goal-percentage">${goalAnalysis.percentage}%</span>
-          </div>
-        </div>`;
-      }
+                      <div class="goal-header">
+                        <span class="goal-icon">${statusIcon}</span>
+                        <span class="goal-title">${label}</span>
+                      </div>
+                      <div class="goal-progress">
+                        <div class="goal-stats">${goalAnalysis.details}</div>
+                        <div class="goal-progress-bar">
+                          <div style="width: ${Math.min(100, goalAnalysis.percentage)}%;"></div>
+                        </div>
+                        <span class="goal-percentage">${goalAnalysis.percentage}%</span>
+                      </div>
+                    </div>`;
     }
-    // Replace the placeholder with the fully rendered widget HTML
     placeholder.outerHTML = goalHtml;
-  },
+},
    // Register the books widget
   'books': (placeholder) => {
     if (typeof BookTracker !== 'undefined' && BookTracker.init) {

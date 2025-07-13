@@ -228,6 +228,13 @@
     max-width: 450px;
 }
 
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr); /* Keep 1fr for full page size */
+  grid-gap: .5rem; /* Adjusted gap */
+  text-align: center;
+}
+
 .calendar-grid-header {
     display: grid;
     grid-template-columns: repeat(7, 1fr);

@@ -748,6 +748,59 @@ function getAllScheduledItems() {
   return scheduledItems;
 }
 
+// Add this new function to the bottom of js/utils.js, before the global exports
+
+/**
+ * The new central query hub for getting data from any widget API.
+ * This acts as a safe, centralized access point.
+ * @param {string} widgetName - The name of the target widget (e.g., 'books').
+ * @param {string} methodName - The name of the method to call on the widget's API.
+ * @param {any} [params] - Optional parameters to pass to the method.
+ * @returns {any} The result from the API method, or null if it fails.
+ */
+function queryWidget(widgetName, methodName, params) {
+    let widgetApi = null;
+
+    // Map the widgetName to the global object you've created
+    switch (widgetName.toLowerCase()) {
+        case 'books':
+            widgetApi = window.BookTracker;
+            break;
+        case 'movies':
+            widgetApi = window.MovieTracker;
+            break;
+        // Add other widgets here as they develop APIs
+        // case 'habits':
+        //     widgetApi = window.HabitTracker;
+        //     break;
+        default:
+            console.warn(`Query failed: Widget API for "${widgetName}" is not defined.`);
+            return null;
+    }
+
+    if (!widgetApi) {
+        console.warn(`Query failed: Widget "${widgetName}" is not loaded or available.`);
+        return null;
+    }
+
+    const method = widgetApi[methodName];
+    if (typeof method !== 'function') {
+        console.warn(`Query failed: Method "${methodName}" not found on widget "${widgetName}".`);
+        return null;
+    }
+
+    try {
+        // Call the method from the widget's exposed API
+        return method(params);
+    } catch (e) {
+        console.error(`Error executing method "${methodName}" on widget "${widgetName}":`, e);
+        return null;
+    }
+}
+
+// --- Now, add this new function to your list of global exports at the end of utils.js ---
+window.queryWidget = queryWidget;
+
 // Expose globally
 window.parseDateString = parseDateString;
 window.normalizeDateStringToYyyyMmDd = normalizeDateStringToYyyyMmDd;

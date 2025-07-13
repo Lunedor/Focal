@@ -845,6 +845,21 @@ window.MovieTracker = (() => {
         render(placeholder, config);
     }
 
+    function getToDoCount() {
+        loadMoviesFromStorage();
+        return Object.values(state.movies).filter(movie => movie.status === 'to-watch').length;
+    }
+
+    // This function is for getting the goal progress.
+    function getFinishedCount({ startDate, endDate }) {
+        loadMoviesFromStorage();
+        return Object.values(state.movies).filter(movie => {
+            if (movie.status !== 'watched' || !movie.watchedDate) return false;
+            const watchedDate = new Date(movie.watchedDate);
+            return watchedDate >= startDate && watchedDate <= endDate;
+        }).length;
+    }
+
     // --- PUBLIC API ---
     return {
         init,
@@ -856,6 +871,8 @@ window.MovieTracker = (() => {
         removeMovie,
         searchMovies,
         getMovieDetails,
-        getWatchingStats
+        getWatchingStats,
+        getToDoCount,
+        getFinishedCount
     };
 })();
