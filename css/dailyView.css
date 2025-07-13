@@ -23,7 +23,7 @@
 }
 
 #daily-mode-select {
-    min-width: 120px;
+    max-width: 120px;
 }
 
 .time-picker-label.start {
@@ -399,7 +399,7 @@
     .daily-date-nav-row,
     .daily-action-buttons,
     .planner-widget-controls {
-        justify-content: center;
+        justify-content: space-between;
     }
 
     .planner-widget-controls {
@@ -407,9 +407,9 @@
     }
 
     .planner-control-group {
-        flex-direction: column;
+        flex-direction: row;
         align-items: flex-start;
-        gap: 0.2em;
+        gap: 0.1em;
     }
 
     .time-picker-label {

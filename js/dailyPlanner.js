@@ -32,9 +32,7 @@ function renderDailyPlanner(scrollToToday = false) {
         </select>
       </div>
       <div class="planner-control-group">
-        <label for="start-hour-select" class="time-picker-label start">From:</label>
         <select id="start-hour-select" class="planner-dropdown time-picker-select"></select>
-        <label for="end-hour-select" class="time-picker-label end">To:</label>
         <select id="end-hour-select" class="planner-dropdown time-picker-select"></select>
       </div>
     </div>

@@ -322,4 +322,8 @@
   .habit-date-nav {
     width: 75vw;
   }
+  .daily-date-nav {
+    width: 200px;
+  }
+  
 }
