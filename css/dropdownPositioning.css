@@ -50,8 +50,8 @@
     
     /* Calendar day cells in date pickers */
     .calendar-day {
-        min-height: 44px !important;
-        min-width: 44px !important;
+        min-height: 40px !important;
+        min-width: 40px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
