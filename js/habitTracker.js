@@ -1405,7 +1405,8 @@ const HabitTracker = (function() {
             const stats = habit.stats;
             const performance = getHabitPerformanceLevel(stats);
             const trend = getHabitTrend(habit, period);
-            
+            const currentStreakObj = calculateCurrentStreak(habit);
+    
             html += `<div class="habit-stat-card ${performance.class}">
                 <div class="habit-stat-header">
                     <div class="habit-stat-name">
@@ -1431,7 +1432,7 @@ const HabitTracker = (function() {
                 <div class="habit-stat-metrics">
                     <div class="habit-stat-metric">
                         <div class="habit-stat-metric-label">Current Streak</div>
-                        <div class="habit-stat-metric-value">${stats.currentStreak} days</div>
+                        <div class="habit-stat-metric-value">${currentStreakObj.current} days</div>
                     </div>
                     <div class="habit-stat-metric">
                         <div class="habit-stat-metric-label">Best Streak</div>
