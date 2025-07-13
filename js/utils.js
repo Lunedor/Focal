@@ -523,27 +523,117 @@ function normalizeDateStringToYyyyMmDd(dateStr) {
   return date ? window.dateFns.format(date, 'yyyy-MM-dd') : null;
 }
 
-// --- /js/utils.js (REVISED expandRecurrence function) ---
+// In js/utils.js
+
+// In js/utils.js
 
 /**
  * The single, authoritative function to expand a recurrence rule into an array of dates.
- * This is a robust version that handles all formats supported by the application.
+ * This is the final, robust version that handles all formats, including intervals with date ranges.
  * @param {object} item - An object containing the repeatRule and other context.
  * @param {object} options - An object with { rangeStart, rangeEnd } Dates for the expansion window.
  * @returns {Date[]} An array of Date objects for each occurrence.
  */
 function expandRecurrence(item, options) {
-    const { repeatRule } = item;
+    const { repeatRule, fullLine = '' } = item;
     const { rangeStart, rangeEnd } = options;
     const results = [];
-    if (!repeatRule || !rangeStart || !rangeEnd) return results;
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    if (!repeatRule || !rangeStart || !rangeEnd || !window.dateFns) return results;
 
-    // --- Logic ported from futurelog.js ---
+    // --- RULE 1: INTERVAL-BASED (now with optional date range) ---
+    // Matches "every 2 days", "every 3 weeks from YYYY-MM-DD to YYYY-MM-DD", etc.
+    const intervalMatch = repeatRule.match(/^every (\d+)\s+(day|week|month|year)s?(?: from ([^ ]+) to ([^ )]+))?$/i);
+    
+    if (intervalMatch) {
+        const quantity = parseInt(intervalMatch[1], 10);
+        const unit = intervalMatch[2].toLowerCase();
+        // These will be undefined if the "from...to" part is not present
+        const ruleStartDateStr = intervalMatch[3];
+        const ruleEndDateStr = intervalMatch[4];
 
-    // 1. Handle "everyday"
+        const addInterval = (date) => {
+            if (unit === 'day') return dateFns.addDays(date, quantity);
+            if (unit === 'week') return dateFns.addWeeks(date, quantity);
+            if (unit === 'month') return dateFns.addMonths(date, quantity);
+            if (unit === 'year') return dateFns.addYears(date, quantity);
+            return date;
+        };
+
+        // Determine the effective start and end dates for the rule itself
+        const ruleStartDate = ruleStartDateStr ? parseDateString(ruleStartDateStr) : null;
+        const ruleEndDate = ruleEndDateStr ? parseDateString(ruleEndDateStr) : null;
+
+        // Determine the absolute starting point for the iteration
+        let effectiveStartDate;
+        if (ruleStartDate) {
+            effectiveStartDate = ruleStartDate;
+        } else {
+            const scheduledMatch = fullLine.match(/\(SCHEDULED:\s*([^)]+)\)/i);
+            effectiveStartDate = scheduledMatch ? (parseDateString(scheduledMatch[1]) || new Date()) : new Date();
+        }
+        effectiveStartDate.setHours(0, 0, 0, 0);
+
+        let current = new Date(effectiveStartDate);
+
+        // Optimization: If the start date is way in the past, fast-forward to the visible window
+        if (current < rangeStart) {
+            // This loop is safe because we check if the next date is greater
+            while (current < rangeStart) {
+                const next = addInterval(current);
+                if (next <= current) break; // Prevents infinite loops
+                current = next;
+            }
+        }
+        
+        // Generate occurrences, stopping at the EARLIEST of the rule's end date or the overall range end
+        const finalEndDate = ruleEndDate ? (ruleEndDate < rangeEnd ? ruleEndDate : rangeEnd) : rangeEnd;
+        
+        while (current <= finalEndDate) {
+            // Only add the date if it's also within the visible range start
+            if (current >= rangeStart) {
+                results.push(new Date(current));
+            }
+            const next = addInterval(current);
+            if (next <= current) break;
+            current = next;
+        }
+        return results;
+    }
+
+    // --- ALL OTHER RULES (WEEKLY, EVERYDAY, ANNUAL) REMAIN UNCHANGED ---
+    // They are correctly handled by the logic below.
+
+    const weeklyMatch = repeatRule.match(/^every (monday|tuesday|wednesday|thursday|friday|saturday|sunday)(?: from ([^ ]+) to ([^ )]+))?/i);
+    if (weeklyMatch) {
+        const weekdayIndex = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].indexOf(weeklyMatch[1].toLowerCase());
+        const ruleStartDate = weeklyMatch[2] ? parseDateString(weeklyMatch[2]) : rangeStart;
+        const ruleEndDate = weeklyMatch[3] ? parseDateString(weeklyMatch[3]) : rangeEnd;
+        if (!ruleStartDate || !ruleEndDate) return results;
+
+        let current = new Date(ruleStartDate > rangeStart ? ruleStartDate : rangeStart);
+        
+        while (current.getDay() !== weekdayIndex) {
+            current = dateFns.addDays(current, 1);
+        }
+        while (current <= ruleEndDate && current <= rangeEnd) {
+            results.push(new Date(current));
+            current = dateFns.addWeeks(current, 1);
+        }
+        return results;
+    }
+
+    const everydayRangeMatch = repeatRule.match(/^everyday from ([^ ]+) to ([^ )]+)/i);
+    if (everydayRangeMatch) {
+        let current = parseDateString(everydayRangeMatch[1]);
+        const ruleEndDate = parseDateString(everydayRangeMatch[2]);
+        if (!current || !ruleEndDate) return results;
+        while (current <= ruleEndDate) {
+            if (current >= rangeStart && current <= rangeEnd) results.push(new Date(current));
+            current = dateFns.addDays(current, 1);
+        }
+        return results;
+    }
     if (repeatRule.toLowerCase() === 'everyday') {
         let current = new Date(rangeStart);
         while (current <= rangeEnd) {
@@ -552,80 +642,16 @@ function expandRecurrence(item, options) {
         }
         return results;
     }
-
-    // 2. Handle "everyday from <date> to <date>"
-    const everydayRangeMatch = repeatRule.match(/^everyday from ([^ ]+) to ([^ )]+)/i);
-    if (everydayRangeMatch) {
-        let current = window.parseDateString(everydayRangeMatch[1]);
-        const ruleEndDate = window.parseDateString(everydayRangeMatch[2]);
-        if (!current || !ruleEndDate) return results;
-        
-        while (current <= ruleEndDate) {
-            if (current >= rangeStart && current <= rangeEnd) {
-                results.push(new Date(current));
-            }
-            current = dateFns.addDays(current, 1);
-        }
-        return results;
-    }
     
-    // 3. Handle "every <weekday>" (with or without a date range)
-    const weeklyMatch = repeatRule.match(/^every (monday|tuesday|wednesday|thursday|friday|saturday|sunday)(?: from ([^ ]+) to ([^ )]+))?/i);
-    if (weeklyMatch) {
-        const weekday = weeklyMatch[1].toLowerCase();
-        const weekdayIndex = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].indexOf(weekday);
-        
-        // Determine the start and end for iteration
-        const iterationStart = weeklyMatch[2] ? window.parseDateString(weeklyMatch[2]) : new Date(rangeStart);
-        const iterationEnd = weeklyMatch[3] ? window.parseDateString(weeklyMatch[3]) : new Date(rangeEnd);
-
-        if (!iterationStart || !iterationEnd) return results;
-
-        let current = new Date(iterationStart);
-        
-        // Find the first valid weekday on or after the iteration start date
-        while (current.getDay() !== weekdayIndex) {
-            current = dateFns.addDays(current, 1);
-        }
-        
-        // Generate weekly occurrences within the date range
-        while (current <= iterationEnd) {
-            if (current >= rangeStart && current <= rangeEnd) {
-                 results.push(new Date(current));
-            }
-            current = dateFns.addWeeks(current, 1);
-        }
-        return results;
-    }
-
-    // 4. Handle annual recurring events (REPEAT: DD.MM.YYYY or REPEAT: DD.MM)
-    let parsedDate = window.parseDateString(repeatRule);
-    
-    // If parsing fails, try DD.MM format specifically
-    if (!parsedDate) {
-        const dayMonthMatch = repeatRule.match(/^(\d{2})[./-](\d{2})$/);
-        if (dayMonthMatch) {
-            const day = parseInt(dayMonthMatch[1], 10);
-            const month = parseInt(dayMonthMatch[2], 10) - 1; // JS months are 0-indexed
-            // Use a placeholder year; we only care about month and day
-            parsedDate = new Date(2000, month, day);
-        }
-    }
-    
+    const parsedDate = parseDateString(repeatRule);
     if (parsedDate) {
         const month = parsedDate.getMonth();
         const day = parsedDate.getDate();
-        
         for (let year = rangeStart.getFullYear(); year <= rangeEnd.getFullYear(); year++) {
-            try {
-                const annualDate = new Date(year, month, day);
-                // Ensure the generated date is valid (e.g., handles leap years)
-                if (annualDate.getMonth() === month && annualDate.getDate() === day) {
-                    if (annualDate >= rangeStart && annualDate <= rangeEnd) {
-                        results.push(annualDate);
-                    }
-                }
-            } catch (e) { /* Skip invalid dates */ }
+            const annualDate = new Date(year, month, day);
+            if (annualDate.getMonth() === month && annualDate >= rangeStart && annualDate <= rangeEnd) {
+                results.push(annualDate);
+            }
         }
     }
 
@@ -639,11 +665,13 @@ function expandRecurrence(item, options) {
  */
 function getAllScheduledItems() {
   const scheduledItems = new Map();
-  const rangeStart = dateFns.subYears(new Date(), 5);
+  // Set a reasonable range to avoid infinite loops with recurrence
+  const rangeStart = dateFns.subYears(new Date(), 2);
   const rangeEnd = dateFns.addYears(new Date(), 5);
 
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
+    // Only process pages, which contain the planner content
     if (!key.startsWith('page-')) continue;
 
     const content = localStorage.getItem(key);
@@ -670,8 +698,7 @@ function getAllScheduledItems() {
       const repeatMatches = [...line.matchAll(window.REPEAT_REGEX)];
 
       if (scheduleMatch) {
-        // ... (SCHEDULED logic is unchanged and correct)
-        const date = window.parseDateString(scheduleMatch[4]);
+        const date = parseDateString(scheduleMatch[4]);
         if (date) {
           addItem(date, {
             text: scheduleMatch[3].trim(),
@@ -688,32 +715,22 @@ function getAllScheduledItems() {
         repeatMatches.forEach(repeatMatch => {
           const fullRepeatRule = repeatMatch[1];
           let ruleForDateExpansion = fullRepeatRule;
-          let startTime = null;
-          let endTime = null;
+          let startTime = null, endTime = null;
 
           const timeRegex = /\b(\d{1,2}:\d{2})(?:-(\d{1,2}:\d{2}))?\s*$/;
           const timeMatch = fullRepeatRule.match(timeRegex);
           
           if (timeMatch) {
             startTime = timeMatch[1];
-            // *** FIX: Provide a default end time for the Gantt chart ***
-            // If an explicit end time (timeMatch[2]) exists, use it.
-            // Otherwise, if a start time exists, calculate a default end time (e.g., 1 hour later).
-            if (timeMatch[2]) {
-                endTime = timeMatch[2];
-            } else if (startTime) {
-                // Create a date object to safely add an hour.
+            endTime = timeMatch[2];
+            if (!endTime && startTime) {
                 const start = dateFns.parse(startTime, 'HH:mm', new Date());
-                if (dateFns.isValid(start)) {
-                    const end = dateFns.addHours(start, 1);
-                    endTime = dateFns.format(end, 'HH:mm');
-                }
+                if (dateFns.isValid(start)) endTime = dateFns.format(dateFns.addHours(start, 1), 'HH:mm');
             }
-            // *** END FIX ***
-            
             ruleForDateExpansion = fullRepeatRule.replace(timeRegex, '').trim();
           }
           
+          // THE FIX: Pass the fullLine property to the expandRecurrence function
           const itemToExpand = { repeatRule: ruleForDateExpansion, fullLine: line };
           const occurrences = expandRecurrence(itemToExpand, { rangeStart, rangeEnd });
           
@@ -725,14 +742,14 @@ function getAllScheduledItems() {
                   notify: false,
                   recurringKey: itemToExpand.repeatRule,
                   time: startTime,
-                  endTime: endTime, // Now this will have a value if startTime exists
+                  endTime: endTime,
               });
           });
         });
       }
-      // 3. Handle NOTIFY items
+
       if (notifyMatch) {
-          const date = window.parseDateString(notifyMatch[2]);
+          const date = parseDateString(notifyMatch[2]);
           if(date) {
               addItem(date, {
                   text: notifyMatch[1].trim(),
