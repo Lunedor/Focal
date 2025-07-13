@@ -40,66 +40,17 @@
   color: var(--color-text);
 }
 
-.calendar-grid {
+#monthly-calendar-view .calendar-grid { /* Added specificity */
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  grid-gap: .25rem;
+  grid-template-columns: repeat(7, 1fr); /* Keep 1fr for full page size */
+  grid-gap: .5rem; /* Adjusted gap */
   text-align: center;
 }
 
-.calendar-day {
-  background: var(--color-planner-bg);
-  border-radius: 8px;
-  padding: 0.75rem;
-  text-align: center;
-  color: var(--color-planner-text);
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-  position: relative; /* Needed for dot positioning */
-  min-height: 80px; /* Adjust as needed */
-}
-
-.calendar-day:hover {
-  background-color: var(--color-sidebar-active-bg);
-}
-
-.calendar-day .day-number {
-  font-size: 1.2rem !important;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-  color: var(--color-text);
-  justify-content: center;
-  display: flex;
-  padding: 0 !important;
-}
-
-.calendar-day.other-month .day-number {
-    color: var(--color-sidebar-text);
-    opacity: 0.6;
-}
-
-.calendar-day.today {
-  border: 2px solid var(--color-link);
-  box-shadow: 0 0 0 2px var(--color-focus);
-  background: var(--color-sidebar-active-bg);
-}
-
-.calendar-day .dot-indicator {
-  position: absolute;
-  bottom: 5px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 6px;
-  height: 6px;
-  background-color: var(--color-link); /* Use accent color */
-  border-radius: 50%;
-}
-
-/* Style for the day names header */
-.day-names {
+#monthly-calendar-view .day-names { /* Added specificity */
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  grid-gap: .5rem;
+  grid-template-columns: repeat(7, 1fr); /* Keep 1fr */
+  grid-gap: .5rem; /* Adjusted gap */
   text-align: center;
   font-weight: 600;
   text-transform: uppercase;
@@ -108,9 +59,199 @@
   margin-bottom: 0.5rem;
 }
 
-.day-name {
+#monthly-calendar-view .day-name { /* Added specificity */
     padding: 0.5rem 0;
 }
+
+
+#monthly-calendar-view .calendar-day { /* Added specificity */
+  display: flex; /* Use flexbox for layout */
+  flex-direction: column; /* Stack content vertically */
+  align-items: center; /* Center content horizontally */
+  justify-content: flex-start; /* Align content to the top */
+  background: var(--color-background); /* Match mini-calendar background */
+  border-radius: 4px; /* Match mini-calendar border-radius */
+  padding: 0.25rem; /* Match mini-calendar padding */
+  text-align: center;
+  color: var(--color-text); /* Match mini-calendar base text color */
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+  min-height: 100px; /* Keep increased height for full page view */
+  border: 1px solid transparent; /* Match mini-calendar initial transparent border */
+  aspect-ratio: 1; /* Make days square like mini-calendar */
+}
+
+#monthly-calendar-view .calendar-day:hover { /* Added specificity */
+  background: var(--color-sidebar-active-bg); /* Match mini-calendar hover */
+  border-color: var(--color-border); /* Match mini-calendar hover */
+  transform: translateY(-1px); /* Add slight lift effect */
+}
+
+#monthly-calendar-view .calendar-day .day-number { /* Added specificity */
+  font-size: 1rem !important; /* Keep adjusted font size for readability */
+  font-weight: 600;
+  margin: 0; /* Match mini-calendar margin */
+  color: var(--color-text); /* Ensure day number color is correct */
+  justify-content: center;
+  display: flex;
+  padding: 0 !important;
+  line-height: 1; /* Match mini-calendar line height */
+  width: 100%; /* Ensure it takes full width */
+  text-align: center; /* Center text */
+}
+
+#monthly-calendar-view .calendar-day.other-month .day-number { /* Added specificity */
+    color: var(--color-sidebar-text);
+    opacity: 0.4; /* Match mini-calendar opacity */
+}
+
+#monthly-calendar-view .calendar-day.today { /* Added specificity */
+  /* Updated to match futurelog mini-calendar today style */
+  background: var(--color-today-bg);
+  border-color: var(--color-link);
+  box-shadow: 0 0 0 1px var(--color-link);
+}
+
+#monthly-calendar-view .calendar-day.today .day-number { /* Added specificity */
+    color: var(--color-today-text); /* Ensure day number color matches futurelog today style */
+    font-weight: 700; /* Match futurelog today style */
+}
+
+#monthly-calendar-view .calendar-day.past:not(.today) { /* Added specificity and :not(.today) */
+    opacity: 0.6; /* Match futurelog past style */
+}
+
+/* Remove old dot indicator style */
+/*
+#monthly-calendar-view .calendar-day .dot-indicator {
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 6px;
+  background-color: var(--color-link);
+  border-radius: 50%;
+}
+*/
+
+/* Styles for event indicators (copied from futurelog.css, added specificity) */
+#monthly-calendar-view .event-indicators {
+    display: flex;
+    gap: 2px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    max-width: 100%;
+    margin-top: 2px;
+}
+
+#monthly-calendar-view .event-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--color-link); /* Default color */
+    flex-shrink: 0;
+}
+
+#monthly-calendar-view .event-more {
+    font-size: 0.65rem;
+    color: var(--color-link);
+    font-weight: 700;
+    margin-left: 2px;
+    line-height: 1;
+}
+
+/* Styles for days with events (copied from futurelog.css, added specificity) */
+#monthly-calendar-view .calendar-day.has-events {
+    background: rgba(var(--color-link-rgb), 0.1);
+    border-color: rgba(var(--color-link-rgb), 0.3);
+}
+
+#monthly-calendar-view .calendar-day.has-events:hover {
+    background: rgba(var(--color-link-rgb), 0.15);
+    cursor: pointer;
+}
+
+#monthly-calendar-view .calendar-day.has-repeat-events {
+    background: rgba(255, 242, 59, 0.1);
+    border-color: rgba(255, 193, 7, 0.3);
+}
+
+#monthly-calendar-view .calendar-day.has-repeat-events:hover {
+    background: rgba(255, 242, 59, 0.15);
+}
+
+#monthly-calendar-view .calendar-day.has-mixed-events {
+    background: linear-gradient(45deg, rgba(var(--color-link-rgb), 0.1) 50%, rgba(255, 242, 59, 0.1) 50%);
+    border-color: rgba(var(--color-link-rgb), 0.3);
+}
+
+/* Tooltip Styles (copied from futurelog.css, renamed and added specificity) */
+.calendar-tooltip {
+    background: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    font-size: 0.85rem;
+    line-height: 1.4;
+    color: var(--color-text);
+    max-width: 250px;
+    pointer-events: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    position: absolute; /* Ensure positioning works */
+    z-index: 1000; /* Ensure it appears above other content */
+}
+
+body.dark-mode .calendar-tooltip {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.calendar-tooltip::before {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: var(--color-border);
+}
+
+.calendar-tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: var(--color-background);
+    margin-top: -1px;
+}
+
+.calendar-tooltip-item {
+    padding: 0.125rem 0;
+    border-bottom: 1px solid var(--color-border);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.calendar-tooltip-item:last-child {
+    border-bottom: none;
+}
+
+.calendar-repeat-item { /* Renamed from .repeat-item */
+    background: rgba(255, 242, 59, 0.1);
+    border-radius: 3px;
+    padding: 0.25rem 0.5rem;
+    margin: 0.125rem 0;
+    border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
 
 /* Styles for month and year select dropdowns */
 #month-select,
