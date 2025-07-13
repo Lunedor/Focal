@@ -134,7 +134,7 @@ const EditModeManager = {
                 { icon: 'calendar', action: 'custom-date', title: 'Insert Date/Time', md: null },
                 { separator: true },
                 { icon: 'bookmark', action: 'futurelog', title: 'Insert Future Log', md: null },
-                { icon: 'rotate-cw', action: 'habit', title: 'Insert Habit Tracker', md: { prefix: 'HABITS: day' } },
+                { icon: 'rotate-cw', action: 'habit', title: 'Insert Habit Tracker', md: null },
                 { icon: 'dollar-sign', action: 'finance', title: 'Insert Finance Tracker', md: null },
                 { icon: 'smile', action: 'mood', title: 'Insert Mood Tracker', md: null },
                 { icon: 'book-open', action: 'books', title: 'Insert Book Tracker', md: null },
@@ -232,7 +232,7 @@ const EditModeManager = {
         if (toolbar && toolbar.contains(ev.target)) return;
         
         // Don't close edit mode if clicking on a dropdown
-        if (ev.target.closest('.finance-dropdown, .mood-dropdown, .books-dropdown, .movies-dropdown, .futurelog-dropdown, .date-dropdown, .fj-date-picker-popup')) {
+        if (ev.target.closest('.finance-dropdown, .mood-dropdown, .books-dropdown, .movies-dropdown, .futurelog-dropdown, .habit-dropdown, .date-dropdown, .fj-date-picker-popup')) {
             return;
         }
         
@@ -280,11 +280,25 @@ const EditModeManager = {
                 return;
             }
             
+            // Add habit dropdown
+            if (action === 'habit') {
+                this.handleHabitDropdown(button, textarea, wrapper);
+                return;
+            }
             // Handle regular markdown buttons
             if (buttonConfig && buttonConfig.md) {
                 insertMarkdown(textarea, buttonConfig.md);
             }
         });
+    },
+    handleHabitDropdown(button, textarea, wrapper) {
+        // Use centralized dropdown system for habits
+        if (typeof createCentralizedDropdown === 'function') {
+            createCentralizedDropdown(button, textarea, wrapper, 'habit');
+        } else {
+            // fallback: insert default markdown
+            insertMarkdown(textarea, { prefix: 'HABITS: day' });
+        }
     },
     
     handleFinanceDropdown(button, textarea, wrapper) {

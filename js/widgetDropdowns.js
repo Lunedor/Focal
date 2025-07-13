@@ -101,6 +101,24 @@ const DropdownConfigs = {
             }
         ],
         buildResult: (selections) => `FUTURELOG: ${selections['time-period'] || '6-months'}\n`
+    },
+    habit: {
+        title: 'Habit Tracker Widget Type',
+        sections: [
+            {
+                title: 'Widget Type',
+                options: [
+                    { label: 'Day', value: 'day', default: true },
+                    { label: 'Grid', value: 'grid' },
+                    { label: 'Stats', value: 'stats' },
+                    { label: 'Chart', value: 'chart' },
+                    { label: 'Categories', value: 'categories' },
+                    { label: 'Goals', value: 'goals' },
+                    { label: 'Achievements', value: 'achievements' }
+                ]
+            }
+        ],
+        buildResult: (selections) => `HABITS: ${selections['widget-type'] || 'day'}`
     }
 };
 
@@ -217,20 +235,15 @@ function createCentralizedDropdown(button, textarea, wrapper, widgetType) {
     
     // Handle item selection (single click handler)
     dropdown.addEventListener('click', (e) => {
-        // Stop all event propagation
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        
+        // Only handle dropdown-item clicks, let others bubble
         const item = e.target.closest('.dropdown-item');
         if (!item) return;
-        
+        e.preventDefault();
+        e.stopPropagation();
         const section = item.dataset.section;
         const value = item.dataset.value;
-        
         if (section && value) {
             selections[section] = value;
-            
             // Update check icons for this section
             const sectionItems = dropdown.querySelectorAll(`[data-section="${section}"]`);
             sectionItems.forEach(sectionItem => {
@@ -238,7 +251,6 @@ function createCentralizedDropdown(button, textarea, wrapper, widgetType) {
                 if (existingCheck) existingCheck.remove();
                 sectionItem.classList.remove('selected');
             });
-            
             // Add check to selected item
             const checkIcon = document.createElement('span');
             checkIcon.className = 'check-icon';

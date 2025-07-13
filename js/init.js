@@ -75,10 +75,19 @@ function renderSidebar() {
       return content.includes(searchTerm);
     });
   const pinned = getPinnedPages().filter(page => allPages.includes(page));
-  // Use custom order for unpinned pages, fallback to alpha for new
+  // --- Ensure unpinned pages order is always up to date ---
   let unpinnedOrder = getUnpinnedPagesOrder().filter(page => allPages.includes(page) && !pinned.includes(page));
-  const unpinnedNew = allPages.filter(page => !pinned.includes(page) && !unpinnedOrder.includes(page)).sort();
-  const unpinned = [...unpinnedOrder, ...unpinnedNew];
+  const allUnpinned = allPages.filter(page => !pinned.includes(page));
+  // If stored order is missing or has extra pages, refresh it
+  if (
+    unpinnedOrder.length !== allUnpinned.length ||
+    unpinnedOrder.some(page => !allUnpinned.includes(page)) ||
+    allUnpinned.some(page => !unpinnedOrder.includes(page))
+  ) {
+    unpinnedOrder = [...allUnpinned].sort();
+    setUnpinnedPagesOrder(unpinnedOrder);
+  }
+  const unpinned = [...unpinnedOrder];
   let html = '';
   const renderPinBtn = (page) =>
     `<button class="page-action-btn pin" data-action="pin-page" data-page="${page}" title="${isPagePinned(page) ? 'Unpin' : 'Pin'}"><i data-feather="${isPagePinned(page) ? 'bookmark' : 'bookmark'}" class="${isPagePinned(page) ? 'filled': ''}"></i></button>`;
