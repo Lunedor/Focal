@@ -492,71 +492,129 @@ function renderScheduledAndRepeatLinks(html) {
     // This regex now uses a technique to avoid matching inside HTML tags.
     // It either matches a full HTML tag (<[^>]*>) and ignores it, or it matches the target pattern.
     const scheduledRegexWithParens = /(<[^>]*>)|(\((?:SCHEDULED|NOTIFY):[^)]+\))/gi;
-    html = html.replace(scheduledRegexWithParens, (fullMatch, tag, scheduledPart) => {
-        // If a tag was matched (e.g., <div ...>), return it unchanged.
-        if (tag) {
-            return tag;
+    html = html.replace(/(\((SCHEDULED|NOTIFY):\s*([^)]+)\))|(&#40;(SCHEDULED|NOTIFY):\s*([^&#]+)&#41;)/gi, (match, p1, type1, content1, p2, type2, content2, offset, string) => {
+        let type = type1 || type2;
+        let content = content1 || content2;
+        let displayTag = match;
+        let normalizedDate = null;
+        if (type && type.toUpperCase() === 'NOTIFY') {
+            displayTag = match.replace(/(\(NOTIFY:|&#40;NOTIFY:)/i, '(🔔 NOTIFY:');
+            // If NOTIFY only has time, try to get SCHEDULED date from same line
+            const timeMatch = content.match(/^(\d{1,2}:\d{2})$/);
+            if (timeMatch) {
+                // Find SCHEDULED date in the same line
+                const lineStart = string.lastIndexOf('\n', offset) + 1;
+                const lineEnd = string.indexOf('\n', offset);
+                const line = string.substring(lineStart, lineEnd === -1 ? string.length : lineEnd);
+                const schedMatch = line.match(/\(SCHEDULED:\s*([^)]+)\)/);
+                let schedDate = null;
+                if (schedMatch) {
+                    schedDate = window.normalizeDateStringToYyyyMmDd(schedMatch[1]);
+                }
+                if (schedDate) {
+                    normalizedDate = `${schedDate} ${content.trim()}`;
+                }
+            }
         }
-
-        // If the scheduled part was matched, it's not inside a tag, so process it.
-        if (scheduledPart) {
-            const dateContentMatch = scheduledPart.match(/(?:SCHEDULED|NOTIFY):\s*([^)]+)/);
-            if (!dateContentMatch || !dateContentMatch[1]) {
-                return scheduledPart; // Return original if pattern is malformed
-            }
-
-            const contentString = dateContentMatch[1].trim();
-            const dateStr = contentString.split(' ')[0]; // Get just the date part
-            const normalizedDate = window.normalizeDateStringToYyyyMmDd(dateStr[0]);
-            
-            if (!normalizedDate) {
-                return scheduledPart; // Return original if date is not valid
-            }
-
-            let displayTag = scheduledPart;
-            if (scheduledPart.toUpperCase().includes('(NOTIFY:')) {
-                displayTag = displayTag.replace(/(\(NOTIFY:)/i, '(🔔 NOTIFY:');
-            }
-
+        if (!normalizedDate) {
+            // Use the same parsing logic as planner
+            normalizedDate = window.normalizeDateStringToYyyyMmDd(content.trim());
+        }
+        if (normalizedDate) {
             return `<span class="scheduled-link" data-planner-date="${normalizedDate}">${displayTag}</span>`;
+        } else {
+            return match;
         }
-
-        // Fallback, should not be reached with this regex structure
-        return fullMatch;
     });
 
     // Apply the same logic for REPEAT links
+    // Unified REPEAT link logic: always create a link, set data-planner-date to next occurrence
     const repeatRegexWithParens = /(<[^>]*>)|(\(REPEAT:[^)]+\))/gi;
     html = html.replace(repeatRegexWithParens, (fullMatch, tag, repeatPart) => {
-        // If a tag was matched, return it unchanged.
         if (tag) {
             return tag;
         }
-
-        // If the repeat part was matched, process it.
         if (repeatPart) {
             const ruleMatch = repeatPart.match(/REPEAT:\s*([^)]+)/);
             if (!ruleMatch || !ruleMatch[1]) return repeatPart;
-
-            const item = { repeatRule: ruleMatch[1].trim() };
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const rangeEnd = dateFns.addYears(today, 2);
-            
-            const occurrences = window.expandRecurrence(item, { rangeStart: today, rangeEnd });
-            
-            const nextOccurrenceDate = occurrences.length > 0 ? occurrences[0] : null;
-            
-            if (nextOccurrenceDate) {
-                const formattedDate = dateFns.format(nextOccurrenceDate, 'yyyy-MM-dd');
-                const tooltip = `Repeats. Next: ${dateFns.format(nextOccurrenceDate, 'MMM d, yyyy')}`;
-                const displayTag = `🔁 ${repeatPart}`;
-                return `<span class="repeat-link scheduled-link" data-planner-date="${formattedDate}" title="${tooltip}">${displayTag}</span>`;
+            let rule = ruleMatch[1].trim();
+            let nextOccurrence = null;
+            try {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const rangeEnd = window.dateFns.addYears(today, 2);
+                // Use the raw repeat rule for annuals and all types
+                const item = { repeatRule: rule };
+                const occurrences = window.expandRecurrence(item, { rangeStart: today, rangeEnd });
+                if (occurrences && occurrences.length > 0) {
+                    // Find the first occurrence that is today or in the future
+                    let found = null;
+                    for (let i = 0; i < occurrences.length; i++) {
+                        if (occurrences[i] >= today) {
+                            found = occurrences[i];
+                            break;
+                        }
+                    }
+                    if (!found) found = occurrences[0];
+                    nextOccurrence = window.dateFns.format(found, 'yyyy-MM-dd');
+                } else {
+                    // Fallback: use current year with original format
+                    const year = today.getFullYear();
+                    const fallbackDate = window.normalizeDateStringToYyyyMmDd(rule + '.' + year);
+                    if (fallbackDate) nextOccurrence = fallbackDate;
+                }
+            } catch (e) { nextOccurrence = null; }
+            const displayTag = `🔁 ${repeatPart}`;
+            if (nextOccurrence) {
+                return `<span class="repeat-link scheduled-link" data-planner-date="${nextOccurrence}">${displayTag}</span>`;
             } else {
-                return `<span class="repeat-link" title="Repeats (no upcoming occurrences found)">🔁 ${repeatPart}</span>`;
+                return `<span class="repeat-link">${displayTag}</span>`;
             }
         }
         return fullMatch;
+    });
+
+    return html;
+
+
+    // Match both normal and HTML-encoded parentheses for SCHEDULED, NOTIFY, REPEAT
+    // Normal: (SCHEDULED: ...), Encoded: &#40;SCHEDULED: ...&#41;
+    html = html.replace(/(\((SCHEDULED|NOTIFY):\s*([^)]+)\))|(&#40;(SCHEDULED|NOTIFY):\s*([^&#]+)&#41;)/gi, (match, p1, type1, content1, p2, type2, content2) => {
+        let type = type1 || type2;
+        let content = content1 || content2;
+        // Try to find a date in the content using a robust regex
+        const dateMatch = content.match(/\d{4}[.\/-]\d{2}[.\/-]\d{2}|\d{2}[.\/-]\d{2}[.\/-]\d{4}|\d{2}[.\/-]\d{2}/);
+        let normalizedDate = null;
+        if (dateMatch) {
+            normalizedDate = window.normalizeDateStringToYyyyMmDd(dateMatch[0]);
+        }
+        let displayTag = match;
+        if (type && type.toUpperCase() === 'NOTIFY') {
+            displayTag = match.replace(/(\(NOTIFY:|&#40;NOTIFY:)/i, '(🔔 NOTIFY:');
+        }
+        if (normalizedDate) {
+            return `<span class="scheduled-link" data-planner-date="${normalizedDate}">${displayTag}</span>`;
+        } else {
+            return match;
+        }
+    });
+
+    html = html.replace(/(\(REPEAT:\s*([^)]+)\))|(&#40;REPEAT:\s*([^&#]+)&#41;)/gi, (match, p1, rule1, p2, rule2) => {
+        let rule = rule1 || rule2;
+        const item = { repeatRule: rule.trim() };
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const rangeEnd = dateFns.addYears(today, 2);
+        const occurrences = window.expandRecurrence(item, { rangeStart: today, rangeEnd });
+        const nextOccurrenceDate = occurrences.length > 0 ? occurrences[0] : null;
+        if (nextOccurrenceDate) {
+            const formattedDate = dateFns.format(nextOccurrenceDate, 'yyyy-MM-dd');
+            const tooltip = `Repeats. Next: ${dateFns.format(nextOccurrenceDate, 'MMM d, yyyy')}`;
+            const displayTag = `🔁 ${match}`;
+            return `<span class="repeat-link scheduled-link" data-planner-date="${formattedDate}" title="${tooltip}">${displayTag}</span>`;
+        } else {
+            return `<span class="repeat-link" title="Repeats (no upcoming occurrences found)">🔁 ${match}</span>`;
+        }
     });
 
     return html;

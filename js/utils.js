@@ -521,6 +521,16 @@ function parseDateString(dateStr) {
       if (window.dateFns.isValid(date)) return date;
     } catch (e) { /* continue */ }
   }
+  // Add support for annual formats without year: dd.MM, dd/MM, dd-MM
+  const annualFormats = ['dd.MM', 'dd/MM', 'dd-MM'];
+  for (const format of annualFormats) {
+    try {
+      // Use current year for annual dates
+      const year = new Date().getFullYear();
+      const date = window.dateFns.parse(dateStr + '.' + year, format + '.yyyy', new Date());
+      if (window.dateFns.isValid(date)) return date;
+    } catch (e) { /* continue */ }
+  }
   // Final attempt with ISO parsing
   try {
       const isoDate = window.dateFns.parseISO(dateStr);
