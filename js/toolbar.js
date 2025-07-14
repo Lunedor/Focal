@@ -110,6 +110,7 @@ const EditModeManager = {
         const toolbar = document.createElement('div');
         toolbar.className = 'markdown-toolbar';
 
+
         let buttons = options.buttons || [
             { icon: 'check-square', action: 'task', title: 'Add Checkbox', md: { prefix: '- [ ] ' } },
             { icon: 'bold', action: 'bold', title: 'Bold', md: { prefix: '**', suffix: '**' } },
@@ -117,6 +118,7 @@ const EditModeManager = {
             { icon: 'link', action: 'link', title: 'Wiki Link', md: { prefix: '[[', suffix: ']]' } },
             { icon: 'minus', action: 'hr', title: 'Horizontal Rule', md: { prefix: '\n---\n' } },
             { icon: 'hash', action: 'h1', title: 'Heading 1', md: { prefix: '# ' } },
+            { icon: 'smile', action: 'emoji', title: 'Insert Emoji', md: null },
         ];
         
         if (key && key.startsWith('page-')) {
@@ -138,17 +140,16 @@ const EditModeManager = {
                 { icon: 'bookmark', action: 'futurelog', title: 'Insert Future Log', md: null },
                 { icon: 'rotate-cw', action: 'habit', title: 'Insert Habit Tracker', md: null },
                 { icon: 'dollar-sign', action: 'finance', title: 'Insert Finance Tracker', md: null },
-                { icon: 'smile', action: 'mood', title: 'Insert Mood Tracker', md: null },
+                { icon: 'bar-chart-2', action: 'mood', title: 'Insert Mood Tracker', md: null },
                 { icon: 'book-open', action: 'books', title: 'Insert Book Tracker', md: null },
                 { icon: 'film', action: 'movies', title: 'Insert Movie Tracker', md: null },
                 { separator: true },
-                
             ];
         }
 
         // Split buttons into two rows
-        const row1 = buttons.slice(0, 10);
-        const row2 = buttons.slice(10);
+        const row1 = buttons.slice(0, 13);
+        const row2 = buttons.slice(13);
 
         function renderRow(row) {
             return `<div class="toolbar-row">` +
@@ -174,6 +175,20 @@ const EditModeManager = {
         wrapper.appendChild(toolbar);
         wrapper.appendChild(textarea);
 
+        // Emoji Picker setup
+        let emojiPicker;
+        if (!document.getElementById('emoji-picker-element')) {
+            emojiPicker = document.createElement('emoji-picker');
+            emojiPicker.id = 'emoji-picker-element';
+            emojiPicker.style.position = 'absolute';
+            emojiPicker.style.zIndex = '1001';
+            emojiPicker.style.display = 'none';
+            emojiPicker.setAttribute('class', 'focal-emoji-picker');
+            document.body.appendChild(emojiPicker);
+        } else {
+            emojiPicker = document.getElementById('emoji-picker-element');
+        }
+    
         if (window.feather) feather.replace();
         textarea.focus();
         textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
@@ -235,12 +250,15 @@ const EditModeManager = {
         if (wrapper.contains(ev.target)) return;
         const toolbar = wrapper.querySelector('.markdown-toolbar');
         if (toolbar && toolbar.contains(ev.target)) return;
-        
-        // Don't close edit mode if clicking on a dropdown
-        if (ev.target.closest('.finance-dropdown, .mood-dropdown, .books-dropdown, .movies-dropdown, .futurelog-dropdown, .habit-dropdown, .date-dropdown, .fj-date-picker-popup')) {
+        // Don't close edit mode if clicking on a dropdown or emoji picker
+        if (ev.target.closest('.finance-dropdown, .mood-dropdown, .books-dropdown, .movies-dropdown, .futurelog-dropdown, .habit-dropdown, .date-dropdown, .fj-date-picker-popup, emoji-picker')) {
             return;
         }
-        
+        // Also check for shadow DOM of emoji-picker
+        const emojiPicker = document.getElementById('emoji-picker-element');
+        if (emojiPicker && (emojiPicker === ev.target || (emojiPicker.shadowRoot && emojiPicker.shadowRoot.contains(ev.target)))) {
+            return;
+        }
         this.exit(wrapper);
     },
     
@@ -337,6 +355,61 @@ const EditModeManager = {
                     });
                 } else {
                     alert('AI assistant not available.');
+                }
+                return;
+            }
+            // Emoji button logic
+            if (action === 'emoji') {
+                const emojiPicker = document.getElementById('emoji-picker-element');
+                if (emojiPicker) {
+                    emojiPicker.style.display = 'block';
+                    // Use DropdownPositioning for smart placement
+                    if (window.DropdownPositioning) {
+                        window.DropdownPositioning.applySmartPosition(button, emojiPicker, { zIndex: 1001 });
+                    } else {
+                        // fallback: position below button
+                        const rect = button.getBoundingClientRect();
+                        emojiPicker.style.top = (rect.bottom + window.scrollY) + 'px';
+                        emojiPicker.style.left = (rect.left + window.scrollX) + 'px';
+                    }
+                    emojiPicker.focus();
+                    // Store reference to current textarea for emoji insertion
+                    emojiPicker._activeTextarea = textarea;
+                    // Prevent edit mode from closing when interacting with emoji picker
+                    const stopEditModeClose = (ev) => {
+                        if (emojiPicker.contains(ev.target)) {
+                            ev.stopPropagation();
+                        }
+                    };
+                    document.addEventListener('mousedown', stopEditModeClose, true);
+                    // Hide picker on outside click (not on emoji picker)
+                    const hidePicker = (ev) => {
+                        if (!emojiPicker.contains(ev.target) && ev.target !== button) {
+                            emojiPicker.style.display = 'none';
+                            document.removeEventListener('mousedown', hidePicker, true);
+                            document.removeEventListener('mousedown', stopEditModeClose, true);
+                        }
+                    };
+                    document.addEventListener('mousedown', hidePicker, true);
+                    // Only set handler once
+                    if (!emojiPicker._emojiHandlerSet) {
+                        emojiPicker.addEventListener('emoji-click', function(event) {
+                            const emoji = event.detail.unicode;
+                            const textarea = emojiPicker._activeTextarea;
+                            if (textarea) {
+                                const start = textarea.selectionStart;
+                                const end = textarea.selectionEnd;
+                                const value = textarea.value;
+                                textarea.value = value.slice(0, start) + emoji + value.slice(end);
+                                textarea.selectionStart = textarea.selectionEnd = start + emoji.length;
+                                textarea.focus();
+                            }
+                            emojiPicker.style.display = 'none';
+                            document.removeEventListener('mousedown', hidePicker, true);
+                            document.removeEventListener('mousedown', stopEditModeClose, true);
+                        });
+                        emojiPicker._emojiHandlerSet = true;
+                    }
                 }
                 return;
             }

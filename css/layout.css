@@ -140,3 +140,14 @@ a.wiki-link.simple-task-link {
 #daily-view{
   max-width: 1200px;
 }
+/* Emoji Picker Theme Mapping */
+emoji-picker {
+  --background: var(--color-background);
+  --color: var(--color-text);
+  --border-color: var(--color-border);
+  --border-size: 1px;
+  --border-radius: 8px;
+  --category-button-active-background: var(--color-border);
+  --accent-color: var(--color-link);
+  --button-hover-background: var(--color-border);
+}

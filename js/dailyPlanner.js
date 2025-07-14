@@ -187,7 +187,7 @@ function renderDailyPlanner(scrollToToday = false) {
                 if (item.isCheckbox) {
                     statusIndicator = `<input type="checkbox" class="hourly-checkbox" data-key="${item.pageKey}" data-line-index="${item.lineIndex}" ${item.checkboxState ? 'checked' : ''} />`;
                 } else {
-                    statusIndicator = item.checkboxState ? '✔' : '🔁';
+                    statusIndicator = item.checkboxState ? '✔' : '📅';
                 }
                 return `<div class="all-day-status">${statusIndicator}</div>`;
             }).join('');
@@ -279,7 +279,7 @@ function renderDailyPlanner(scrollToToday = false) {
                 if (foundTask.isCheckbox) {
                     html += `<input type="checkbox" class="hourly-checkbox" data-key="${foundTask.pageKey}" data-line-index="${foundTask.lineIndex}" ${foundTask.checkboxState ? 'checked' : ''} />`;
                 } else {
-                    html += foundTask.checkboxState ? '✔' : '🔁';
+                    html += foundTask.checkboxState ? '✔' : '📅';
                 }
             }
             html += `</td></tr>`;
