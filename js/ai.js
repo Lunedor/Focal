@@ -120,7 +120,7 @@ Perfect for birthdays, anniversaries, and yearly holidays.
 
 *   **Examples:**
     
-    - Mom's Birthday (REPEAT: 2025-09-05)
+    - Mom's Birthday (REPEAT: 1950-09-05)
     - Anniversary (REPEAT: 22.10)
     
 ### Push Notifications

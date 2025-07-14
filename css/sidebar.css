@@ -119,7 +119,7 @@ body.dark-mode .library-page-item.pinned:last-of-type {
 .search-container {
   position: relative;
   z-index: 2;
-  padding: 0.5rem 0;
+  padding: 0 0 0.5rem 0;
 }
 #library-search {
   width: 100%;

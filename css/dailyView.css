@@ -378,6 +378,10 @@
     justify-content: space-between;
 }
 
+th.hour-col, th.status-col {
+    width: 65px;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .daily-planner-header {

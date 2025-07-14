@@ -307,10 +307,6 @@
     height: 30px !important;
   }
 
-  #library-nav-list {
-    max-height: 530px;
-  }
-
   .habit-header .finance-widget-controls {
     justify-content: space-between;
     width: 75vw;
