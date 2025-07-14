@@ -123,6 +123,8 @@ const EditModeManager = {
             buttons = [
                 ...buttons,
                 { separator: true },
+                { icon: 'send', action: 'ai-syntax', title: 'AI Syntax Assistant', md: null },
+                { separator: true },
                 { icon: 'list', action: 'tasks', title: 'Insert TASKS:', md: { prefix: 'TASKS:\n' } },
                 { icon: 'target', action: 'goal', title: 'Insert GOAL:', md: { prefix: 'GOAL: ' } },
                 { icon: 'bar-chart-2', action: 'progress', title: 'Insert PROGRESS: []', md: { prefix: 'PROGRESS: [', suffix: ']' } },
@@ -171,18 +173,18 @@ const EditModeManager = {
         wrapper.innerHTML = '';
         wrapper.appendChild(toolbar);
         wrapper.appendChild(textarea);
-        
+
         if (window.feather) feather.replace();
         textarea.focus();
         textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
-        
+
         // Store the key both in appState and directly on the wrapper for redundancy
         appState.activeEditorKey = key;
         wrapper.dataset.key = key;
-        
+
         // Attach toolbar event listeners
         this.attachToolbarListeners(toolbar, textarea, wrapper, buttons);
-        
+
         // Handle keyboard shortcuts
         textarea.addEventListener('keydown', e => {
             if ((e.metaKey || e.ctrlKey) && e.key === "s") {
@@ -190,12 +192,12 @@ const EditModeManager = {
                 this.exit(wrapper);
             }
         });
-        
+
         // Handle outside clicks
         setTimeout(() => {
             document.addEventListener('mousedown', this.handleOutsideClick.bind(this, wrapper), true);
         }, 0);
-        
+
         // Set up exit function
         wrapper._exitEditMode = () => {
             const prevValue = getStorage(key);
@@ -207,15 +209,18 @@ const EditModeManager = {
             }
             appState.activeEditorKey = null;
             document.removeEventListener('mousedown', this.handleOutsideClick.bind(this, wrapper), true);
-            
-            if (typeof renderLibraryPage === 'function' && key.startsWith('page-')) {
-                renderLibraryPage(key.substring(5));
-            } else if (key.match(/^\d{4}-W\d{1,2}-/)) {
-                updatePlannerDay(key);
-            } else {
-                wrapper.innerHTML = parseMarkdown(newValue);
+            // Prevent switching to render view after AI action
+            // Only switch to render view if not in AI action
+            if (!textarea.classList.contains('ai-active')) {
+                if (typeof renderLibraryPage === 'function' && key.startsWith('page-')) {
+                    renderLibraryPage(key.substring(5));
+                } else if (key.match(/^\d{4}-W\d{1,2}-/)) {
+                    updatePlannerDay(key);
+                } else {
+                    wrapper.innerHTML = parseMarkdown(newValue);
+                }
+                this.currentEditWrapper = null;
             }
-            this.currentEditWrapper = null;
         };
     },
     
@@ -245,44 +250,94 @@ const EditModeManager = {
             if (!button) return;
             evt.preventDefault();
             evt.stopPropagation();
-            
+
             const action = button.dataset.action;
             const buttonConfig = buttons.find(b => b.action === action);
-            
+
             // Handle widget dropdowns
             if (action === 'finance') {
                 this.handleFinanceDropdown(button, textarea, wrapper);
                 return;
             }
-            
+
             if (action === 'mood') {
                 this.handleMoodDropdown(button, textarea, wrapper);
                 return;
             }
-            
+
             if (action === 'books') {
                 this.handleBooksDropdown(button, textarea, wrapper);
                 return;
             }
-            
+
             if (action === 'movies') {
                 this.handleMoviesDropdown(button, textarea, wrapper);
                 return;
             }
-            
+
             if (action === 'futurelog') {
                 this.handleFuturelogDropdown(button, textarea, wrapper);
                 return;
             }
-            
+
             if (action === 'custom-date') {
                 this.handleCustomDateDropdown(button, textarea, wrapper);
                 return;
             }
-            
+
             // Add habit dropdown
             if (action === 'habit') {
                 this.handleHabitDropdown(button, textarea, wrapper);
+                return;
+            }
+
+            // AI Syntax Assistant
+            if (action === 'ai-syntax') {
+                if (window.showModal && window.promptGeminiSyntax) {
+                    // Show modal, but do NOT exit edit mode when modal closes (AI only)
+                    window.showModal('AI Syntax Assistant', 'Describe what you want to create...', '', { onlyCloseOverlay: true }).then((userPrompt) => {
+                        if (userPrompt && userPrompt.trim()) {
+                            // Show loading indicator (optional)
+                            let infoMsg = wrapper.querySelector('.ai-info-msg');
+                            if (!infoMsg) {
+                                infoMsg = document.createElement('div');
+                                infoMsg.className = 'ai-info-msg';
+                                infoMsg.style = 'color: var(--color-accent, #007bff); margin-top: 6px; font-size: 0.95em;';
+                                infoMsg.textContent = 'AI is generating syntax...';
+                                wrapper.appendChild(infoMsg);
+                            } else {
+                                infoMsg.textContent = 'AI is generating syntax...';
+                                infoMsg.style.display = '';
+                            }
+                            window.promptGeminiSyntax(userPrompt, (chunk, full) => {
+                                // Append Gemini response to existing page data
+                                if (wrapper && wrapper.dataset && wrapper.dataset.key) {
+                                    const prevValue = getStorage(wrapper.dataset.key) || '';
+                                    const newValue = prevValue.trim() + (prevValue.trim() ? '\n\n' : '') + full.trim();
+                                    setStorage(wrapper.dataset.key, newValue);
+                                    if (typeof renderApp === 'function') {
+                                        renderApp();
+                                    }
+                                }
+                                if (infoMsg) {
+                                    infoMsg.textContent = 'AI syntax saved.';
+                                    setTimeout(() => { infoMsg.style.display = 'none'; }, 2000);
+                                }
+                                console.log('Gemini response:', full);
+                            }, (err) => {
+                                if (infoMsg) {
+                                    infoMsg.textContent = 'AI error.';
+                                    setTimeout(() => { infoMsg.style.display = 'none'; }, 2000);
+                                }
+                            });
+                        } else {
+                            let infoMsg = wrapper.querySelector('.ai-info-msg');
+                            if (infoMsg) infoMsg.style.display = 'none';
+                        }
+                    });
+                } else {
+                    alert('AI assistant not available.');
+                }
                 return;
             }
             // Handle regular markdown buttons

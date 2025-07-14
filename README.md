@@ -5,6 +5,7 @@ A minimalist, local-first digital bullet journal and planner. Organize your task
 ![Focal Journal Screenshot](Screenshots/Screenshot_1.jpg)
 
 
+
 ## ✨ Features
 
 - **Weekly & Monthly Planner:** Plan your week and month with flexible, markdown-powered entries.
@@ -22,8 +23,17 @@ A minimalist, local-first digital bullet journal and planner. Organize your task
 - **Cloud Sync (Optional):** Securely sync across devices with Firebase.
 - **Customizable Themes:** Choose from multiple light/dark themes.
 - **Keyboard Shortcuts:** Designed for fast, keyboard-first navigation.
+- **AI Syntax Assistant:** Instantly generate Focal Journal syntax and planner blocks using Google Gemini. Describe what you want (e.g., "reminder for taking out trash every Monday"), and the AI will insert the correct syntax directly into your page. The AI assistant uses your system prompt and Focal syntax guide to ensure all output is compatible. Responses are appended to your page and saved automatically.
 
-## 🛠️ Technology
+
+## 🤖 AI Syntax Assistant Usage
+
+1. Click the "AI Syntax Assistant" button in the toolbar while editing a page.
+2. Enter your request (e.g., "reminder for taking out trash every Monday").
+3. The assistant sends your prompt to Google Gemini, prepending the Focal syntax guide as a system prompt.
+4. The AI response is appended to your page and saved automatically. The app view updates to show the new content.
+5. You can use the assistant repeatedly to build up your planner, tasks, goals, and widgets with correct syntax.
+
 
 - **Frontend:** HTML5, CSS3, Vanilla JavaScript (ES6+)
 - **Cloud:** Firebase (Auth, Firestore, Messaging)

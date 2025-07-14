@@ -73,7 +73,8 @@ window.setStorage = setStorage;
 window.deleteStorage = deleteStorage;
 
 // Modal utilities
-const showModal = (title, placeholder = '', defaultValue = '') => {
+// Add option to only close overlay, not exit edit mode (for AI)
+const showModal = (title, placeholder = '', defaultValue = '', options = {}) => {
   return new Promise((resolve) => {
     DOM.modalTitle.textContent = title;
     DOM.modalInput.placeholder = placeholder;
@@ -85,12 +86,24 @@ const showModal = (title, placeholder = '', defaultValue = '') => {
     }
     const handleConfirm = () => {
       const value = DOM.modalInput.value.trim();
-      hideModal();
-      resolve(value || null);
+      if (options && options.onlyCloseOverlay) {
+        DOM.modalOverlay.classList.remove('active');
+        DOM.modalInput.value = '';
+        resolve(value || null);
+      } else {
+        hideModal();
+        resolve(value || null);
+      }
     };
     const handleCancel = () => {
-      hideModal();
-      resolve(null);
+      if (options && options.onlyCloseOverlay) {
+        DOM.modalOverlay.classList.remove('active');
+        DOM.modalInput.value = '';
+        resolve(null);
+      } else {
+        hideModal();
+        resolve(null);
+      }
     };
     const handleKeydown = (e) => {
       if (e.key === 'Enter') {
@@ -111,6 +124,9 @@ const showModal = (title, placeholder = '', defaultValue = '') => {
     DOM.modalInput.onkeydown = handleKeydown;
   });
 };
+
+// Expose showModal globally for AI assistant prompt
+window.showModal = showModal;
 
 const hideModal = () => {
   DOM.modalOverlay.classList.remove('active');
