@@ -85,7 +85,7 @@ HABITS: define
 - Drink water
 - Meditate
 - Exercise
-HABITS: today|chart
+HABITS: day
 
 ## Mood
 MOOD: calendar, emoji, 2025-07-12:😊
@@ -95,11 +95,9 @@ FINANCE: chart, USD, this-month
 
 ## Books
 BOOKS: to-read
-- Atomic Habits
 
 ## Movies
 MOVIES: watchlist
-- Inception
 
 ## Future Log
 FUTURELOG: 12-months
