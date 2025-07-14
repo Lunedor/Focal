@@ -252,31 +252,102 @@ const taskSummaryExtension = {
 const futurelogExtension = {
   name: 'futurelog',
   level: 'block',
-  start(src) { return src.match(/(^```futurelog|FUTURELOG:)/)?.index; },
+  start(src) {
+    // Match only the first line starting with FUTURELOG:
+    return src.match(/^FUTURELOG:/m)?.index;
+  },
   tokenizer(src, tokens) {
-    // This tokenizer is now simple. It just finds the command block and extracts the raw content.
-    const fenceRule = /^```futurelog\n([\s\S]+?)\n```/;
-    const simpleRule = /^(FUTURELOG:[\s\S]*?)(?=\n(?:GOAL:|TASKS:|FINANCE:|MOOD:|BOOKS:|MOVIES:|HABITS:|---|\S)|$)/;
-
-    let match = src.match(fenceRule);
-    if (match) {
-        // For ```futurelog ... ``` blocks
-        // The command is the full text, which the widget will parse.
-        return { type: 'futurelog', raw: match, command: `FUTURELOG:\n${match[1]}` };
+    // Find the first line
+    const firstLineMatch = /^FUTURELOG:(.*)(?:\n|$)/.exec(src);
+    if (!firstLineMatch) return;
+    const rawBlockStr = firstLineMatch[0];
+    // Get all lines after FUTURELOG:
+    const after = src.slice(rawBlockStr.length);
+    // Collect lines until next widget keyword or end of file
+    const blockLines = [];
+    const lines = after.split('\n');
+    for (const line of lines) {
+      if (/^\s*(GOAL:|TASKS:|FINANCE:|MOOD:|BOOKS:|MOVIES:|HABITS:|---)/.test(line)) break;
+      blockLines.push(line);
     }
-    
-    match = src.match(simpleRule);
-    if (match) {
-        // FIX: The bug was here. `match` is an array. We must pass the matched string, `match[0]`.
-        // The `command` property must be a string for the renderer to use .replace() on it.
-        return { type: 'futurelog', raw: match[0], command: match[0] };
+    const content = blockLines.join('\n').trim();
+    const allLines = [firstLineMatch[1].trim(), ...blockLines];
+    let items = [];
+    let options = '';
+    let commandLines = [];
+    // Find the first non-empty, non-list line as options/config
+    for (const line of allLines) {
+      const trimmedLine = line.trim();
+      if (
+        trimmedLine &&
+        !trimmedLine.startsWith('-') &&
+        /^(\d+\s*-\s*months?)$/i.test(trimmedLine)
+      ) {
+        options = trimmedLine;
+        commandLines.push(trimmedLine);
+        break;
+      }
     }
+    // Now process all lines for items and build command string
+    for (const line of allLines) {
+      const trimmedLine = line.trim();
+      if (!trimmedLine.startsWith('-')) continue;
+      commandLines.push(line);
+      const scheduledRegex = /^-\s*(?:\[([xX ])\]\s*)?(.*?)\s*\(SCHEDULED:\s*([^\)]+)\)\s*$/;
+      const scheduledMatch = trimmedLine.match(scheduledRegex);
+      if (scheduledMatch) {
+        items.push({
+          type: 'scheduled',
+          text: scheduledMatch[2].trim(),
+          dateStr: scheduledMatch[3].trim(),
+          fullLine: line,
+          hasCheckbox: scheduledMatch[1] !== undefined,
+          isChecked: scheduledMatch[1] ? scheduledMatch[1].toLowerCase() === 'x' : false,
+        });
+        continue;
+      }
+      const repeatRegex = /^-\s*(?:\[([xX ])\]\s*)?(.*?)\s*\(REPEAT:\s*([^\)]+)\)\s*$/;
+      const repeatMatch = trimmedLine.match(repeatRegex);
+      if (repeatMatch) {
+        items.push({
+          type: 'repeat',
+          text: repeatMatch[2].trim(),
+          repeatRule: repeatMatch[3].trim(),
+          fullLine: line,
+          hasCheckbox: repeatMatch[1] !== undefined,
+          isChecked: repeatMatch[1] ? repeatMatch[1].toLowerCase() === 'x' : false,
+        });
+      }
+    }
+    const itemsJson = items.length > 0 ? JSON.stringify(items) : 'null';
+    const commandStr = commandLines.join('\n').trim();
+    return {
+      type: 'futurelog',
+      raw: rawBlockStr + '\n' + blockLines.join('\n'),
+      command: commandStr,
+      options: options,
+      items: itemsJson,
+    };
   },
   renderer(token) {
-    // Escape single quotes inside the command to prevent breaking the HTML attribute.
-    // This now works because the tokenizer correctly passes a string.
-    const safeCommand = token.command.replace(/\'/g, "'");
-    return `<div class="widget-placeholder futurelog-placeholder" data-widget-type="futurelog" data-command='${safeCommand}'></div>`;
+    // This function correctly escapes data for safe HTML embedding. It does not need changing.
+    const escapeAttr = (str) => {
+      if (!str) return '';
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    };
+
+    const commandAttr = escapeAttr(token.command);
+    // Always set data-items, default to [] if missing or null
+    let itemsAttr = token.items;
+    if (!itemsAttr || itemsAttr === 'null' || itemsAttr === null) itemsAttr = '[]';
+    itemsAttr = escapeAttr(itemsAttr);
+
+    const htmlString = `<div class="widget-placeholder futurelog-placeholder" data-widget-type="futurelog" data-command="${commandAttr}" data-items="${itemsAttr}"></div>`;
+    return htmlString;
   }
 };
 
@@ -413,60 +484,79 @@ marked.use({
  * Takes raw HTML and enhances it by converting ALL date/repeat/notify text into interactive links.
  * This is the single source of truth for creating clickable date links.
  */
+/**
+ * Takes raw HTML and enhances it by converting ALL date/repeat/notify text into interactive links.
+ * This is the single source of truth for creating clickable date links.
+ */
 function renderScheduledAndRepeatLinks(html) {
-    // 1. Enhance (SCHEDULED:...) and (NOTIFY:...) links
-    const scheduledRegexWithParens = /(\((?:SCHEDULED|NOTIFY):[^)]+\))/gi;
-    html = html.replace(scheduledRegexWithParens, (fullMatch) => {
-        // Find the inner content of the tag (e.g., "2025-08-15 10:00")
-        const dateContentMatch = fullMatch.match(/(?:SCHEDULED|NOTIFY):\s*([^)]+)/);
-        
-        // *** THE FIX IS HERE ***
-        // First, check if the match and the captured group [1] exist.
-        if (!dateContentMatch || !dateContentMatch[1]) {
-            return fullMatch; // If not, return the original text to prevent errors.
+    // This regex now uses a technique to avoid matching inside HTML tags.
+    // It either matches a full HTML tag (<[^>]*>) and ignores it, or it matches the target pattern.
+    const scheduledRegexWithParens = /(<[^>]*>)|(\((?:SCHEDULED|NOTIFY):[^)]+\))/gi;
+    html = html.replace(scheduledRegexWithParens, (fullMatch, tag, scheduledPart) => {
+        // If a tag was matched (e.g., <div ...>), return it unchanged.
+        if (tag) {
+            return tag;
         }
 
-        // Now, correctly access the captured string at index [1] before trimming.
-        const contentString = dateContentMatch[1].trim();
-        const dateStr = contentString.split(' '); // Get just the date part
-        const normalizedDate = window.normalizeDateStringToYyyyMmDd(dateStr[0]);
-        
-        if (!normalizedDate) {
-            return fullMatch; // Return original if date is not valid
+        // If the scheduled part was matched, it's not inside a tag, so process it.
+        if (scheduledPart) {
+            const dateContentMatch = scheduledPart.match(/(?:SCHEDULED|NOTIFY):\s*([^)]+)/);
+            if (!dateContentMatch || !dateContentMatch[1]) {
+                return scheduledPart; // Return original if pattern is malformed
+            }
+
+            const contentString = dateContentMatch[1].trim();
+            const dateStr = contentString.split(' ')[0]; // Get just the date part
+            const normalizedDate = window.normalizeDateStringToYyyyMmDd(dateStr[0]);
+            
+            if (!normalizedDate) {
+                return scheduledPart; // Return original if date is not valid
+            }
+
+            let displayTag = scheduledPart;
+            if (scheduledPart.toUpperCase().includes('(NOTIFY:')) {
+                displayTag = displayTag.replace(/(\(NOTIFY:)/i, '(🔔 NOTIFY:');
+            }
+
+            return `<span class="scheduled-link" data-planner-date="${normalizedDate}">${displayTag}</span>`;
         }
 
-        // Add a bell icon for NOTIFY tags
-        let displayTag = fullMatch;
-        if (fullMatch.toUpperCase().includes('(NOTIFY:')) {
-            displayTag = displayTag.replace(/(\(NOTIFY:)/i, '(🔔 NOTIFY:');
-        }
-
-        return `<span class="scheduled-link" data-planner-date="${normalizedDate}">${displayTag}</span>`;
+        // Fallback, should not be reached with this regex structure
+        return fullMatch;
     });
 
-    // 2. Enhance (REPEAT:...) links (this part was already correct)
-    const repeatRegexWithParens = /(\(REPEAT:[^)]+\))/gi;
-    html = html.replace(repeatRegexWithParens, (fullMatch) => {
-        const ruleMatch = fullMatch.match(/REPEAT:\s*([^)]+)/);
-        if (!ruleMatch || !ruleMatch[1]) return fullMatch;
-
-        const item = { repeatRule: ruleMatch[1].trim() };
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const rangeEnd = dateFns.addYears(today, 2);
-        
-        const occurrences = window.expandRecurrence(item, { rangeStart: today, rangeEnd });
-        
-        const nextOccurrenceDate = occurrences.length > 0 ? occurrences[0] : null;
-        
-        if (nextOccurrenceDate) {
-            const formattedDate = dateFns.format(nextOccurrenceDate, 'yyyy-MM-dd');
-            const tooltip = `Repeats. Next: ${dateFns.format(nextOccurrenceDate, 'MMM d, yyyy')}`;
-            const displayTag = `🔁 ${fullMatch}`;
-            return `<span class="repeat-link scheduled-link" data-planner-date="${formattedDate}" title="${tooltip}">${displayTag}</span>`;
-        } else {
-            return `<span class="repeat-link" title="Repeats (no upcoming occurrences found)">🔁 ${fullMatch}</span>`;
+    // Apply the same logic for REPEAT links
+    const repeatRegexWithParens = /(<[^>]*>)|(\(REPEAT:[^)]+\))/gi;
+    html = html.replace(repeatRegexWithParens, (fullMatch, tag, repeatPart) => {
+        // If a tag was matched, return it unchanged.
+        if (tag) {
+            return tag;
         }
+
+        // If the repeat part was matched, process it.
+        if (repeatPart) {
+            const ruleMatch = repeatPart.match(/REPEAT:\s*([^)]+)/);
+            if (!ruleMatch || !ruleMatch[1]) return repeatPart;
+
+            const item = { repeatRule: ruleMatch[1].trim() };
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const rangeEnd = dateFns.addYears(today, 2);
+            
+            const occurrences = window.expandRecurrence(item, { rangeStart: today, rangeEnd });
+            
+            const nextOccurrenceDate = occurrences.length > 0 ? occurrences[0] : null;
+            
+            if (nextOccurrenceDate) {
+                const formattedDate = dateFns.format(nextOccurrenceDate, 'yyyy-MM-dd');
+                const tooltip = `Repeats. Next: ${dateFns.format(nextOccurrenceDate, 'MMM d, yyyy')}`;
+                const displayTag = `🔁 ${repeatPart}`;
+                return `<span class="repeat-link scheduled-link" data-planner-date="${formattedDate}" title="${tooltip}">${displayTag}</span>`;
+            } else {
+                return `<span class="repeat-link" title="Repeats (no upcoming occurrences found)">🔁 ${repeatPart}</span>`;
+            }
+        }
+        return fullMatch;
     });
 
     return html;

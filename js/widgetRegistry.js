@@ -52,7 +52,21 @@ const widgetRegistry = {
             const currentContent = getStorage(currentPageKey);
             const renderedContent = contentWrapper.querySelector('.rendered-content');
             if (renderedContent) {
-              renderedContent.innerHTML = parseMarkdown(currentContent);
+              const html = parseMarkdown(currentContent);
+              renderedContent.innerHTML = html;
+              // Restore data-items attribute for futurelog widgets
+              const futurelogPlaceholders = renderedContent.querySelectorAll('.futurelog-placeholder');
+              futurelogPlaceholders.forEach(el => {
+                // Try to extract the original JSON from the attribute value
+                let itemsAttr = el.getAttribute('data-items');
+                if (itemsAttr && itemsAttr.includes('&quot;')) {
+                  // Unescape HTML quotes
+                  itemsAttr = itemsAttr.replace(/&quot;/g, '"');
+                  el.setAttribute('data-items', itemsAttr);
+                }
+                // Debug log to confirm attribute value
+                console.log('[FUTURELOG PATCH] Restored data-items:', el.getAttribute('data-items'));
+              });
               // Only initialize widgets in the new content
               initializeWidgetsInContainer(renderedContent);
             }
@@ -221,10 +235,12 @@ const widgetRegistry = {
     }
   },
   // Register the futurelog widget
+
   'futurelog': (placeholder) => {
     if (typeof futurelogWidget !== 'undefined' && futurelogWidget.init) {
       const options = placeholder.dataset.options;
-      const items = placeholder.dataset.items;
+      // Always get items from attribute, not dataset, to preserve quotes
+      let items = placeholder.getAttribute('data-items');
       const command = placeholder.dataset.command;
       const onCommandChange = (newCommand) => {
         const pageWrapper = placeholder.closest('[data-key]');
