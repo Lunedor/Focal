@@ -1,160 +1,143 @@
 # Focal Journal 🎯
 
-A minimalist, local-first digital bullet journal and planner. Organize your tasks, notes, goals, habits, moods, finances, books, and movies—all in your browser, with optional secure cloud sync.
+A minimalist, local-first digital bullet journal and planner—designed to help you organize your life entirely in your browser. Track tasks, notes, goals, habits, moods, finances, books, and movies with a fast, markdown-powered interface.
 
 ![Focal Journal Screenshot](Screenshots/Screenshot_1.jpg)
 
+> ✅ Mobile-optimized UI
+> 🚀 Deployed with [GitHub Pages](https://your-github-username.github.io/focal-journal)
 
+---
 
 ## ✨ Features
 
-- **Weekly & Monthly Planner:** Plan your week and month with flexible, markdown-powered entries.
-- **Future Log Widget:** Visualize and manage long-term plans, recurring events, and scheduled tasks with a dedicated future log calendar widget. Supports adding, editing, and removing future events, recurring rules, and scheduled items.
-- **Task Management:** Create and track tasks with checkboxes and summaries.
-- **Goal Tracking:** Set goals, track progress, and visualize achievements.
-- **Habit Tracker:** Build routines, set targets, track streaks, and earn rewards.
-- **Mood Tracker:** Log daily moods and visualize patterns (calendar, chart, circular).
-- **Finance Tracker:** Track income/expenses, categorize transactions, and view charts.
-- **Book Tracker:** Manage your reading list, progress, and stats (Google Books integration).
-- **Movie Tracker:** Build your watchlist, track watched/favorites (TMDB integration).
-- **Wiki-Style Notes:** Use `[[links]]` to connect pages and build a personal knowledge base.
-- **Push Notifications:** Set reminders for tasks and events.
-- **Local-First & Private:** All data is stored in your browser by default.
-- **Cloud Sync (Optional):** Securely sync across devices with Firebase.
-- **Customizable Themes:** Choose from multiple light/dark themes.
-- **Keyboard Shortcuts:** Designed for fast, keyboard-first navigation.
-- **AI Syntax Assistant:** Instantly generate Focal Journal syntax and planner blocks using Google Gemini. Describe what you want (e.g., "reminder for taking out trash every Monday"), and the AI will insert the correct syntax directly into your page. The AI assistant uses your system prompt and Focal syntax guide to ensure all output is compatible. Responses are appended to your page and saved automatically.
+* **Weekly, Daily & Monthly Planner:** Plan your time with markdown entries, including hourly and Gantt views.
+* **Future Log Calendar:** Visualize long-term plans, recurring tasks, and scheduled events.
+* **Task Management:** Create tasks with checkboxes, summaries, and status syncing across views.
+* **Goal Tracker:** Set goals, track progress, link goals to tasks, and visualize achievements.
+* **Habit Tracker:** Define routines, track streaks, view charts and rewards.
+* **Mood Tracker:** Log moods with emojis/colors; view trends as calendar, chart, or circular.
+* **Finance Tracker:** Manage income and expenses with categories, charts, and summaries.
+* **Book Tracker:** Track reading progress and stats, with Google Books integration.
+* **Movie Tracker:** Manage watchlists, favorites, and stats via TMDB.
+* **Wiki-Style Notes:** Use `[[links]]` to create interconnected pages and backlink navigation.
+* **Notifications:** Add reminders with `(NOTIFY: YYYY-MM-DD HH:mm)` syntax.
+* **Recurring & Scheduled Items:** Use `(REPEAT: ...)` and `(SCHEDULED: YYYY-MM-DD)` in any planner view.
+* **AI Syntax Assistant:** Auto-generate planning syntax via Google Gemini integration.
+* **Keyboard Shortcuts:** Fast, keyboard-first workflow.
+* **Customizable Themes:** Switch between multiple light/dark themes.
+* **Local-First Privacy:** All data stays in your browser by default.
+* **Cloud Sync (Optional):** Sync data securely via Firebase.
+* **Responsive UI:** Fully functional on both desktop and mobile.
+* **Drag-and-Drop Sidebar:** Reorder or pin pages easily.
 
+---
 
-## 🤖 AI Syntax Assistant Usage
+## 🤖 AI Syntax Assistant
 
-1. Click the "AI Syntax Assistant" button in the toolbar while editing a page.
-2. Enter your request (e.g., "reminder for taking out trash every Monday").
-3. The assistant sends your prompt to Google Gemini, prepending the Focal syntax guide as a system prompt.
-4. The AI response is appended to your page and saved automatically. The app view updates to show the new content.
-5. You can use the assistant repeatedly to build up your planner, tasks, goals, and widgets with correct syntax.
+Describe what you need—like “reminder to water plants every Tuesday”—and the AI will generate correct syntax:
 
+1. Click “AI Syntax Assistant” in the toolbar.
+2. Enter a natural language request.
+3. Google Gemini (with Focal's syntax prompt) returns structured planner code.
+4. It's inserted and saved automatically.
 
-- **Frontend:** HTML5, CSS3, Vanilla JavaScript (ES6+)
-- **Cloud:** Firebase (Auth, Firestore, Messaging)
-- **Libraries:** date-fns, marked.js, Feather Icons
-- **Storage:** Browser `localStorage` (default), Firebase (optional)
+---
 
+## 📚 Markdown Syntax Extensions
 
-## 📚 Markdown Extensions
+Focal extends Markdown with powerful widgets and syntax:
 
-Focal extends Markdown for rich planning:
-
-- `[[Page Title]]` — Wiki-style links and backlinks
-- `GOAL: ...` — Define and track goals
-- `TASKS: ...` — Task summary blocks
-- `HABITS: define` — Habit definitions with categories, goals, targets, and achievements
-- `HABITS: today|grid|stats|chart|categories|goals|achievements` — Habit widgets
-- `MOOD: calendar|chart|circular, emoji|color|all, YYYY-MM-DD:mood` — Mood widgets
-- `FINANCE: summary|chart|chartpie, USD, this-month` — Finance widgets
-- `FUTURELOG: [options]` — Future log widget for long-term planning. Supports options like `6-months`, `12-months`, and displays scheduled/recurring items in a calendar view. Add entries with `SCHEDULED:` or `REPEAT:` syntax inside the widget block.
-- `BOOKS: full-tracker|to-read|stats|...` — Book widgets
-- `MOVIES: watchlist|watched|favorites|stats|...` — Movie widgets
-- `(SCHEDULED: YYYY-MM-DD)` — Schedule tasks/events
-- `(REPEAT: ...)` — Recurring events
-- `(NOTIFY: YYYY-MM-DD HH:mm)` — Push notifications
-## 🗓️ Future Log Widget Usage
-
-Add a future log widget to any page using:
-
-```
-FUTURELOG: 12-months
-- Project deadline (SCHEDULED: 2025-08-15)
-- [ ] Renew passport (SCHEDULED: 2025-09-01)
-- Team meeting (REPEAT: every monday)
+```markdown
+[[Page Title]]               # Wiki-style link
+GOAL: Run 10km               # Goal
+TASKS: this-week             # Task summaries
+HABITS: define               # Define habits
+HABITS: today|stats|chart    # Habit widgets
+MOOD: chart, emoji           # Mood chart
+FINANCE: chartpie, USD       # Finance overview
+BOOKS: stats|to-read         # Book tracker
+MOVIES: watchlist|favorites  # Movie tracker
+FUTURELOG: 6-months          # Future log calendar
+(SCHEDULED: 2025-09-01)      # Scheduled task
+(REPEAT: every monday)       # Recurring task
+(NOTIFY: 2025-07-20 09:00)   # Push notification
 ```
 
-**Features:**
-## ✨ Features
-- **Weekly, Daily & Monthly Planner:** Plan your week, day, and month with flexible, markdown-powered entries. Hourly and Gantt timeline views for daily planning.
-- **Future Log Widget:** Visualize and manage long-term plans, recurring events, and scheduled tasks with a dedicated future log calendar widget. Supports adding, editing, and removing future events, recurring rules, and scheduled items.
-- **Task Management:** Create and track tasks with checkboxes, summaries, and status indicators. Interactive checkboxes sync with source content in all views.
-- **Goal Tracking:** Set goals, track progress, visualize achievements, and link goals to tasks.
-- **Habit Tracker:** Build routines, set targets, track streaks, earn rewards, and visualize habits with widgets and charts.
-- **Mood Tracker:** Log daily moods and visualize patterns (calendar, chart, circular, emoji/color/all modes).
-- **Finance Tracker:** Track income/expenses, categorize transactions, view charts, and summaries.
-- **Book Tracker:** Manage your reading list, progress, stats, and integrate with Google Books.
-- **Movie Tracker:** Build your watchlist, track watched/favorites, stats, and integrate with TMDB.
-- **Wiki-Style Notes:** Use `[[links]]` to connect pages and build a personal knowledge base. Backlinks and page navigation.
-- **Push Notifications:** Set reminders for tasks and events with NOTIFY syntax and receive browser notifications.
-- **Recurring Events:** Use REPEAT syntax for flexible recurring tasks/events in all planner views.
-- **Scheduled Items:** Use SCHEDULED syntax to add tasks/events to any date, visible in all planner views.
-- **Drag-and-Drop Sidebar:** Pin/unpin, reorder pages with mouse or touch (mobile-friendly).
-- **Local-First & Private:** All data is stored in your browser by default.
-- **Cloud Sync (Optional):** Securely sync across devices with Firebase.
-- **Customizable Themes:** Choose from multiple light/dark themes.
-- **Keyboard Shortcuts:** Designed for fast, keyboard-first navigation.
-- **Mobile & Desktop UI:** Responsive design, gesture support, and sidebar overlays for mobile.
-- **Markdown Extensions:** Rich widgets for goals, habits, moods, finance, books, movies, future log, and more.
-2. **Navigate to the directory:**
-## 📝 Example Usage & Sample Data
+---
 
-```
-# Sample page: Weekly Planner
-# Tasks for the week
+## 📝 Sample Page
+
+```markdown
+# Weekly Planner
+
+## Tasks
 - [ ] Finish project report (SCHEDULED: 2025-07-14)
 - [x] Submit tax forms (SCHEDULED: 2025-07-15)
 - [ ] Call Alice (REPEAT: every friday)
 
-# Goals
-GOAL: Run 10km by end of July
+## Goals
 GOAL: Read 3 books this month
+GOAL: Run 10km by end of July
 
-# Habits
+## Habits
 HABITS: define
 - Drink water
 - Meditate
 - Exercise
-HABITS: today|grid|stats|chart
+HABITS: today|chart
 
-# Mood
+## Mood
 MOOD: calendar, emoji, 2025-07-12:😊
 
-# Finance
-FINANCE: summary, USD, this-month
+## Finances
+FINANCE: chart, USD, this-month
 
-# Books
-BOOKS: to-read|stats
-- The Pragmatic Programmer
+## Books
+BOOKS: to-read
 - Atomic Habits
 
-# Movies
-MOVIES: watchlist|favorites
+## Movies
+MOVIES: watchlist
 - Inception
-- The Matrix
 
-# Future Log
+## Future Log
 FUTURELOG: 12-months
 - [ ] Renew passport (SCHEDULED: 2025-09-01)
 - Team meeting (REPEAT: every monday)
-- Project deadline (SCHEDULED: 2025-08-15)
 
-# Notifications
+## Notifications
 - [ ] Dentist appointment (NOTIFY: 2025-07-20 09:00)
 ```
 
-Now you can access the app at http://localhost:8000.
-Created by Lunedor. For more, see the Screenshots and sample data in sampleData.js and init.js.
+---
 
-```
-# From within the project directory
+## 🛠 Tech Stack
+
+* **Frontend:** HTML5, CSS3, Vanilla JavaScript (ES6+)
+* **Libraries:** `date-fns`, `marked.js`, Feather Icons
+* **Storage:** Browser `localStorage` (default), Firebase (optional)
+* **Deployment:** GitHub Pages
+
+To run locally:
+
+```bash
+# From the project root
 python -m http.server
 # Or for Python 2
 # python -m SimpleHTTPServer
 ```
 
-Now you can access the app at http://localhost:8000.
+Visit: [http://localhost:8000](http://localhost:8000)
 
 ---
 
-📜 License
-This project is licensed under the MIT License.
+## 📄 License
+
+MIT License
 
 ---
 
-Created by Lunedor. For more, see the Screenshots and sample data in sampleData.js.
+Created by **Lunedor**
+
+---
