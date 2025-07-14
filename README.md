@@ -5,7 +5,7 @@ A minimalist, local-first digital bullet journal and planner—designed to help 
 ![Focal Journal Screenshot](Screenshots/Screenshot_1.jpg)
 
 > ✅ Mobile-optimized UI
-> 🚀 Deployed with [GitHub Pages](https://your-github-username.github.io/focal-journal)
+> 🚀 Deployed with [GitHub Pages](https://lunedor.github.io/Focal)
 
 ---
 
