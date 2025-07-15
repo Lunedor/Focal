@@ -804,6 +804,6 @@ body.highcontrast-mode {
 }
 
 .finance-pie-container {
-    width: 500px;
+    max-width: 500px;
     margin: auto;
 }
