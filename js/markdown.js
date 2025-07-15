@@ -269,11 +269,9 @@ const futurelogExtension = {
       if (/^\s*(GOAL:|TASKS:|FINANCE:|MOOD:|BOOKS:|MOVIES:|HABITS:|---)/.test(line)) break;
       blockLines.push(line);
     }
-    const content = blockLines.join('\n').trim();
     const allLines = [firstLineMatch[1].trim(), ...blockLines];
     let items = [];
     let options = '';
-    let commandLines = [];
     // Find the first non-empty, non-list line as options/config
     for (const line of allLines) {
       const trimmedLine = line.trim();
@@ -283,15 +281,13 @@ const futurelogExtension = {
         /^(\d+\s*-\s*months?)$/i.test(trimmedLine)
       ) {
         options = trimmedLine;
-        commandLines.push(trimmedLine);
         break;
       }
     }
-    // Now process all lines for items and build command string
+    // Now process all lines for items
     for (const line of allLines) {
       const trimmedLine = line.trim();
       if (!trimmedLine.startsWith('-')) continue;
-      commandLines.push(line);
       const scheduledRegex = /^-\s*(?:\[([xX ])\]\s*)?(.*?)\s*\(SCHEDULED:\s*([^\)]+)\)\s*$/;
       const scheduledMatch = trimmedLine.match(scheduledRegex);
       if (scheduledMatch) {
@@ -319,35 +315,40 @@ const futurelogExtension = {
       }
     }
     const itemsJson = items.length > 0 ? JSON.stringify(items) : 'null';
-    const commandStr = commandLines.join('\n').trim();
+    // Use the original raw block as the command (raw markdown, not HTML)
+    const fullRawBlock = rawBlockStr + (blockLines.length ? '\n' + blockLines.join('\n') : '');
     return {
       type: 'futurelog',
-      raw: rawBlockStr + '\n' + blockLines.join('\n'),
-      command: commandStr,
+      raw: fullRawBlock,
+      command: fullRawBlock,
       options: options,
       items: itemsJson,
     };
   },
-  renderer(token) {
-    // This function correctly escapes data for safe HTML embedding. It does not need changing.
-    const escapeAttr = (str) => {
-      if (!str) return '';
-      return str
-        .replace(/&/g, '&amp;')
-        .replace(/"/g, '&quot;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-    };
+   renderer(token) {
+     console.log('[DEBUG][futurelogExtension] token.command:', token.command);
+     // This function correctly escapes data for safe HTML embedding. It does not need changing.
+     const escapeAttr = (str) => {
+       if (!str) return '';
+       return str
+         .replace(/&/g, '&amp;')
+         .replace(/"/g, '&quot;')
+         .replace(/</g, '&lt;')
+         .replace(/>/g, '&gt;');
+     };
 
-    const commandAttr = escapeAttr(token.command);
-    // Always set data-items, default to [] if missing or null
-    let itemsAttr = token.items;
-    if (!itemsAttr || itemsAttr === 'null' || itemsAttr === null) itemsAttr = '[]';
-    itemsAttr = escapeAttr(itemsAttr);
+     const commandAttr = escapeAttr(token.command);
+     // Always set data-items, default to [] if missing or null
+     let itemsAttr = token.items;
+     if (!itemsAttr || itemsAttr === 'null' || itemsAttr === null) {
+       itemsAttr = '[]';
+     }
+     itemsAttr = escapeAttr(itemsAttr);
+     const optionsAttr = escapeAttr(token.options);
 
-    const htmlString = `<div class="widget-placeholder futurelog-placeholder" data-widget-type="futurelog" data-command="${commandAttr}" data-items="${itemsAttr}"></div>`;
-    return htmlString;
-  }
+     const htmlString = `<div class="widget-placeholder futurelog-placeholder" data-widget-type="futurelog" data-command="${commandAttr}" data-options="${optionsAttr}" data-items="${itemsAttr}"></div>`;
+     return htmlString;
+   }
 };
 
 const habitsExtension = {
@@ -471,6 +472,7 @@ renderer.listitem = (text, task, checked) => {
 
 marked.use({
   extensions: [
+    futurelogExtension,
     wikiLinkExtension,
     tableCheckboxExtension,
     taskSummaryExtension,
@@ -482,7 +484,6 @@ marked.use({
     sleepExtension,
     booksExtension,
     moviesExtension,
-    futurelogExtension,
     habitsExtension
   ],
   gfm: true,
@@ -502,92 +503,83 @@ marked.use({
  * This is the single source of truth for creating clickable date links.
  */
 function renderScheduledAndRepeatLinks(html) {
-    // This regex now uses a technique to avoid matching inside HTML tags.
-    // It either matches a full HTML tag (<[^>]*>) and ignores it, or it matches the target pattern.
-    const scheduledRegexWithParens = /(<[^>]*>)|(\((?:SCHEDULED|NOTIFY):[^)]+\))/gi;
-    html = html.replace(/(\((SCHEDULED|NOTIFY):\s*([^)]+)\))|(&#40;(SCHEDULED|NOTIFY):\s*([^&#]+)&#41;)/gi, (match, p1, type1, content1, p2, type2, content2, offset, string) => {
-        let type = type1 || type2;
-        let content = content1 || content2;
-        let displayTag = match;
-        let normalizedDate = null;
-        if (type && type.toUpperCase() === 'NOTIFY') {
-            displayTag = match.replace(/(\(NOTIFY:|&#40;NOTIFY:)/i, '(🔔 NOTIFY:');
-            // If NOTIFY only has time, try to get SCHEDULED date from same line
-            const timeMatch = content.match(/^(\d{1,2}:\d{2})$/);
-            if (timeMatch) {
-                // Find SCHEDULED date in the same line
-                const lineStart = string.lastIndexOf('\n', offset) + 1;
-                const lineEnd = string.indexOf('\n', offset);
-                const line = string.substring(lineStart, lineEnd === -1 ? string.length : lineEnd);
-                const schedMatch = line.match(/\(SCHEDULED:\s*([^)]+)\)/);
-                let schedDate = null;
-                if (schedMatch) {
-                    schedDate = window.normalizeDateStringToYyyyMmDd(schedMatch[1]);
-                }
-                if (schedDate) {
-                    normalizedDate = `${schedDate} ${content.trim()}`;
-                }
+
+  // Only replace in text nodes, not inside HTML tags or attributes
+  // Split by tags, process only text parts
+  return html.replace(/(<[^>]+>)|([^<]+)/g, (match, tag, text) => {
+    if (tag) return tag;
+    // Replace SCHEDULED/NOTIFY
+    text = text.replace(/(\((SCHEDULED|NOTIFY):\s*([^)]+)\))|(&#40;(SCHEDULED|NOTIFY):\s*([^&#]+)&#41;)/gi, (match, p1, type1, content1, p2, type2, content2, offset, string) => {
+      let type = type1 || type2;
+      let content = content1 || content2;
+      let displayTag = match;
+      let normalizedDate = null;
+      if (type && type.toUpperCase() === 'NOTIFY') {
+        displayTag = match.replace(/(\(NOTIFY:|&#40;NOTIFY:)/i, '(🔔 NOTIFY:');
+        // If NOTIFY only has time, try to get SCHEDULED date from same line
+        const timeMatch = content.match(/^(\d{1,2}:\d{2})$/);
+        if (timeMatch) {
+          // Find SCHEDULED date in the same line
+          const lineStart = string.lastIndexOf('\n', offset) + 1;
+          const lineEnd = string.indexOf('\n', offset);
+          const line = string.substring(lineStart, lineEnd === -1 ? string.length : lineEnd);
+          const schedMatch = line.match(/\(SCHEDULED:\s*([^)]+)\)/);
+          let schedDate = null;
+          if (schedMatch) {
+            schedDate = window.normalizeDateStringToYyyyMmDd(schedMatch[1]);
+          }
+          if (schedDate) {
+            normalizedDate = `${schedDate} ${content.trim()}`;
+          }
+        }
+      }
+      if (!normalizedDate) {
+        // Use the same parsing logic as planner
+        normalizedDate = window.normalizeDateStringToYyyyMmDd(content.trim());
+      }
+      if (normalizedDate) {
+        return `<span class="scheduled-link" data-planner-date="${normalizedDate}">${displayTag}</span>`;
+      } else {
+        return match;
+      }
+    });
+    // Replace REPEAT
+    text = text.replace(/(\(REPEAT:[^)]+\))/gi, (repeatPart) => {
+      const ruleMatch = repeatPart.match(/REPEAT:\s*([^)]+)/);
+      if (!ruleMatch || !ruleMatch[1]) return repeatPart;
+      let rule = ruleMatch[1].trim();
+      let nextOccurrence = null;
+      try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const rangeEnd = window.dateFns.addYears(today, 2);
+        const item = { repeatRule: rule };
+        const occurrences = window.expandRecurrence(item, { rangeStart: today, rangeEnd });
+        if (occurrences && occurrences.length > 0) {
+          let found = null;
+          for (let i = 0; i < occurrences.length; i++) {
+            if (occurrences[i] >= today) {
+              found = occurrences[i];
+              break;
             }
-        }
-        if (!normalizedDate) {
-            // Use the same parsing logic as planner
-            normalizedDate = window.normalizeDateStringToYyyyMmDd(content.trim());
-        }
-        if (normalizedDate) {
-            return `<span class="scheduled-link" data-planner-date="${normalizedDate}">${displayTag}</span>`;
+          }
+          if (!found) found = occurrences[0];
+          nextOccurrence = window.dateFns.format(found, 'yyyy-MM-dd');
         } else {
-            return match;
+          const year = today.getFullYear();
+          const fallbackDate = window.normalizeDateStringToYyyyMmDd(rule + '.' + year);
+          if (fallbackDate) nextOccurrence = fallbackDate;
         }
+      } catch (e) { nextOccurrence = null; }
+      const displayTag = `🔁 ${repeatPart}`;
+      if (nextOccurrence) {
+        return `<span class="repeat-link scheduled-link" data-planner-date="${nextOccurrence}">${displayTag}</span>`;
+      } else {
+        return `<span class="repeat-link">${displayTag}</span>`;
+      }
     });
-
-    // Apply the same logic for REPEAT links
-    // Unified REPEAT link logic: always create a link, set data-planner-date to next occurrence
-    const repeatRegexWithParens = /(<[^>]*>)|(\(REPEAT:[^)]+\))/gi;
-    html = html.replace(repeatRegexWithParens, (fullMatch, tag, repeatPart) => {
-        if (tag) {
-            return tag;
-        }
-        if (repeatPart) {
-            const ruleMatch = repeatPart.match(/REPEAT:\s*([^)]+)/);
-            if (!ruleMatch || !ruleMatch[1]) return repeatPart;
-            let rule = ruleMatch[1].trim();
-            let nextOccurrence = null;
-            try {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const rangeEnd = window.dateFns.addYears(today, 2);
-                // Use the raw repeat rule for annuals and all types
-                const item = { repeatRule: rule };
-                const occurrences = window.expandRecurrence(item, { rangeStart: today, rangeEnd });
-                if (occurrences && occurrences.length > 0) {
-                    // Find the first occurrence that is today or in the future
-                    let found = null;
-                    for (let i = 0; i < occurrences.length; i++) {
-                        if (occurrences[i] >= today) {
-                            found = occurrences[i];
-                            break;
-                        }
-                    }
-                    if (!found) found = occurrences[0];
-                    nextOccurrence = window.dateFns.format(found, 'yyyy-MM-dd');
-                } else {
-                    // Fallback: use current year with original format
-                    const year = today.getFullYear();
-                    const fallbackDate = window.normalizeDateStringToYyyyMmDd(rule + '.' + year);
-                    if (fallbackDate) nextOccurrence = fallbackDate;
-                }
-            } catch (e) { nextOccurrence = null; }
-            const displayTag = `🔁 ${repeatPart}`;
-            if (nextOccurrence) {
-                return `<span class="repeat-link scheduled-link" data-planner-date="${nextOccurrence}">${displayTag}</span>`;
-            } else {
-                return `<span class="repeat-link">${displayTag}</span>`;
-            }
-        }
-        return fullMatch;
-    });
-
-    return html;
+    return text;
+  });
 
 
     // Match both normal and HTML-encoded parentheses for SCHEDULED, NOTIFY, REPEAT
