@@ -532,7 +532,7 @@ function renderSummary(container, type, command, dataStr, onCommandChange, stora
                 });
             }, 0);
         }
-        // Remove entry button logic
+        // Remove entry button logic with confirm modal
         const tableBody = container.querySelector('.finance-transaction-table-container tbody');
         if (tableBody) {
             tableBody.querySelectorAll('tr').forEach((row, idx) => {
@@ -541,80 +541,122 @@ function renderSummary(container, type, command, dataStr, onCommandChange, stora
                     removeBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
                         e.preventDefault();
-                        // Find the index in filteredEntries
-                        const entryIdx = idx;
-                        // Combine command and dataStr to reconstruct the full block
-                        let commandLines = [command, ...dataStr.split('\n').filter(Boolean)];
-                        let dataLines = commandLines.slice(1);
-                        let filtered = filterEntries(filterRange);
-                        let entryToRemove = filtered[entryIdx];
-                        console.log('[REMOVE] Clicked remove for idx', entryIdx, 'entryToRemove:', entryToRemove);
-                        console.log('[REMOVE] Raw dataLines:', dataLines);
-                        // Find the string line for this entry (robust match)
-                        let idxToRemove = -1;
-                        for (let i = 0; i < dataLines.length; i++) {
-                            let rawLine = dataLines[i];
-                            let parsed;
-                            parsed = parseData(rawLine, type)[0];
-                            let match = false;
-                            if (type === 'finance') {
-                                // For finance, map: date, description, amount, category
-                            let d1 = (parsed.date instanceof Date && !isNaN(parsed.date)) ? parsed.date.toISOString() : (parsed.date + '').trim();
-                            let d2 = (entryToRemove.date instanceof Date && !isNaN(entryToRemove.date)) ? entryToRemove.date.toISOString() : (entryToRemove.date + '').trim();
-                                let amt1 = (parsed.amount + '').trim();
-                                let amt2 = (entryToRemove.amount + '').trim();
-                                let cat1 = (parsed.category + '').trim();
-                                let cat2 = (entryToRemove.category + '').trim();
-                                let note1 = (parsed.note + '').trim();
-                                let note2 = (entryToRemove.note + '').trim();
-                                match = (
-                                    d1 === d2 &&
-                                    amt1 === amt2 &&
-                                    cat1 === cat2 &&
-                                    note1 === note2
-                                );
-                                console.log('[REMOVE] [COMPARE] rawLine:', rawLine, 'parsed:', {d1, amt1, cat1, note1}, 'entryToRemove:', {d2, amt2, cat2, note2}, 'match:', match);
-                            } else {
-                                match = config.fields.every(f => {
-                                    if (f === 'date') {
-                                        let d1 = (parsed[f] instanceof Date && !isNaN(parsed[f])) ? parsed[f].toISOString() : (parsed[f] + '').trim();
-                                        let d2 = (entryToRemove[f] instanceof Date && !isNaN(entryToRemove[f])) ? entryToRemove[f].toISOString() : (entryToRemove[f] + '').trim();
-                                        return d1 === d2;
+                        // Use the same confirm modal as habit widget
+                        if (window.HabitTracker && typeof window.HabitTracker.showCustomConfirm === 'function') {
+                            window.HabitTracker.showCustomConfirm('Are you sure you want to remove this entry?', () => {
+                                // Find the index in filteredEntries
+                                const entryIdx = idx;
+                                // Combine command and dataStr to reconstruct the full block
+                                let commandLines = [command, ...dataStr.split('\n').filter(Boolean)];
+                                let dataLines = commandLines.slice(1);
+                                let filtered = filterEntries(filterRange);
+                                let entryToRemove = filtered[entryIdx];
+                                // Find the string line for this entry (robust match)
+                                let idxToRemove = -1;
+                                for (let i = 0; i < dataLines.length; i++) {
+                                    let rawLine = dataLines[i];
+                                    let parsed = parseData(rawLine, type)[0];
+                                    let match = false;
+                                    if (type === 'finance') {
+                                        let d1 = (parsed.date instanceof Date && !isNaN(parsed.date)) ? parsed.date.toISOString() : (parsed.date + '').trim();
+                                        let d2 = (entryToRemove.date instanceof Date && !isNaN(entryToRemove.date)) ? entryToRemove.date.toISOString() : (entryToRemove.date + '').trim();
+                                        let amt1 = (parsed.amount + '').trim();
+                                        let amt2 = (entryToRemove.amount + '').trim();
+                                        let cat1 = (parsed.category + '').trim();
+                                        let cat2 = (entryToRemove.category + '').trim();
+                                        let note1 = (parsed.note + '').trim();
+                                        let note2 = (entryToRemove.note + '').trim();
+                                        match = (
+                                            d1 === d2 &&
+                                            amt1 === amt2 &&
+                                            cat1 === cat2 &&
+                                            note1 === note2
+                                        );
+                                    } else {
+                                        match = config.fields.every(f => {
+                                            if (f === 'date') {
+                                                let d1 = (parsed[f] instanceof Date && !isNaN(parsed[f])) ? parsed[f].toISOString() : (parsed[f] + '').trim();
+                                                let d2 = (entryToRemove[f] instanceof Date && !isNaN(entryToRemove[f])) ? entryToRemove[f].toISOString() : (entryToRemove[f] + '').trim();
+                                                return d1 === d2;
+                                            }
+                                            return (parsed[f] + '').trim() === (entryToRemove[f] + '').trim();
+                                        });
                                     }
-                                    return (parsed[f] + '').trim() === (entryToRemove[f] + '').trim();
-                                });
-                                console.log('[REMOVE] [COMPARE] rawLine:', rawLine, 'parsed:', parsed, 'entryToRemove:', entryToRemove, 'match:', match);
-                            }
-                            if (match) {
-                                idxToRemove = i + 1; // +1 because first line is command
-                                break;
-                            }
-                        }
-                        console.log('[REMOVE] idxToRemove:', idxToRemove);
-                        if (idxToRemove > 0) {
-                            commandLines.splice(idxToRemove, 1);
-                            let newCommand = commandLines.join('\n');
-                            console.log('[REMOVE] Removing line, newCommand:', newCommand);
-                            // Persist to storage and re-render app
-                            if (typeof window.setStorage === 'function' && storageKey) {
-                                window.setStorage(storageKey, newCommand);
-                                console.log('[REMOVE] setStorage called', {key: storageKey, value: newCommand});
-                                // Immediately check storage value
-                                if (typeof window.getStorage === 'function') {
-                                    const stored = window.getStorage(storageKey);
-                                    console.log('[REMOVE] getStorage after set:', {key: storageKey, value: stored});
+                                    if (match) {
+                                        idxToRemove = i + 1; // +1 because first line is command
+                                        break;
+                                    }
+                                }
+                                if (idxToRemove > 0) {
+                                    commandLines.splice(idxToRemove, 1);
+                                    let newCommand = commandLines.join('\n');
+                                    // Persist to storage and re-render app
+                                    if (typeof window.setStorage === 'function' && storageKey) {
+                                        window.setStorage(storageKey, newCommand);
+                                    }
+                                    if (typeof window.renderApp === 'function') {
+                                        window.renderApp();
+                                    }
+                                    if (typeof onCommandChange === 'function') {
+                                        onCommandChange(newCommand);
+                                    }
+                                }
+                            });
+                        } else {
+                            // fallback: no confirm, just remove
+                            const entryIdx = idx;
+                            let commandLines = [command, ...dataStr.split('\n').filter(Boolean)];
+                            let dataLines = commandLines.slice(1);
+                            let filtered = filterEntries(filterRange);
+                            let entryToRemove = filtered[entryIdx];
+                            let idxToRemove = -1;
+                            for (let i = 0; i < dataLines.length; i++) {
+                                let rawLine = dataLines[i];
+                                let parsed = parseData(rawLine, type)[0];
+                                let match = false;
+                                if (type === 'finance') {
+                                    let d1 = (parsed.date instanceof Date && !isNaN(parsed.date)) ? parsed.date.toISOString() : (parsed.date + '').trim();
+                                    let d2 = (entryToRemove.date instanceof Date && !isNaN(entryToRemove.date)) ? entryToRemove.date.toISOString() : (entryToRemove.date + '').trim();
+                                    let amt1 = (parsed.amount + '').trim();
+                                    let amt2 = (entryToRemove.amount + '').trim();
+                                    let cat1 = (parsed.category + '').trim();
+                                    let cat2 = (entryToRemove.category + '').trim();
+                                    let note1 = (parsed.note + '').trim();
+                                    let note2 = (entryToRemove.note + '').trim();
+                                    match = (
+                                        d1 === d2 &&
+                                        amt1 === amt2 &&
+                                        cat1 === cat2 &&
+                                        note1 === note2
+                                    );
+                                } else {
+                                    match = config.fields.every(f => {
+                                        if (f === 'date') {
+                                            let d1 = (parsed[f] instanceof Date && !isNaN(parsed[f])) ? parsed[f].toISOString() : (parsed[f] + '').trim();
+                                            let d2 = (entryToRemove[f] instanceof Date && !isNaN(entryToRemove[f])) ? entryToRemove[f].toISOString() : (entryToRemove[f] + '').trim();
+                                            return d1 === d2;
+                                        }
+                                        return (parsed[f] + '').trim() === (entryToRemove[f] + '').trim();
+                                    });
+                                }
+                                if (match) {
+                                    idxToRemove = i + 1;
+                                    break;
                                 }
                             }
-                            if (typeof window.renderApp === 'function') {
-                                window.renderApp();
-                                console.log('[REMOVE] renderApp called');
+                            if (idxToRemove > 0) {
+                                commandLines.splice(idxToRemove, 1);
+                                let newCommand = commandLines.join('\n');
+                                if (typeof window.setStorage === 'function' && storageKey) {
+                                    window.setStorage(storageKey, newCommand);
+                                }
+                                if (typeof window.renderApp === 'function') {
+                                    window.renderApp();
+                                }
+                                if (typeof onCommandChange === 'function') {
+                                    onCommandChange(newCommand);
+                                }
                             }
-                            if (typeof onCommandChange === 'function') {
-                                onCommandChange(newCommand);
-                                console.log('[REMOVE] onCommandChange called');
-                            }
-                        } else {
-                            console.log('[REMOVE] No matching entry found to remove.');
                         }
                     });
                 }

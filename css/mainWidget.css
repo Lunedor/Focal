@@ -807,3 +807,23 @@ body.highcontrast-mode {
     max-width: 500px;
     margin: auto;
 }
+
+.entry-remove-btn {
+    background: none;
+    border: none;
+    color: var(--color-sidebar-text);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    opacity: 0.6;
+}
+
+.entry-remove-btn:hover {
+    background: rgba(244, 67, 54, 0.1);
+    color: #f44336;
+    opacity: 1;
+}

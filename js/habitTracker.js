@@ -4828,7 +4828,8 @@ function renderAchievementsWidget() {
         deleteHabit,
         updateHabitDefinition,
         removeHabitDataCompletely,
-        cleanupOrphanedHabitData
+        cleanupOrphanedHabitData,
+        showCustomConfirm
     }
 })();
 
