@@ -2,6 +2,81 @@
 
 // Centralized dropdown configuration system
 const DropdownConfigs = {
+    calorie: {
+        title: 'Calorie Tracker Settings',
+        sections: [
+            {
+                title: 'Time Period',
+                options: [
+                    { label: 'All Time', value: 'all' },
+                    { label: 'This Month', value: 'this-month' },
+                    { label: 'This Week', value: 'this-week', default: true },
+                    { label: 'Last 3 Months', value: 'last-3-months' },
+                    { label: 'Last 6 Months', value: 'last-6-months' },
+                    { label: 'Last 12 Months', value: 'last-12-months' }
+                ]
+            },
+            {
+                title: 'Layout',
+                options: [
+                    { label: 'Summary + Chart', value: 'summary+chart', default: true },
+                    { label: 'Summary Only', value: 'summary' },
+                    { label: 'Chart Only', value: 'chart' }
+                ]
+            }
+        ],
+        buildResult: (selections) => `CALORIE: ${selections.layout || 'summary+chart'}, kcal, ${selections['time-period'] || 'this-week'}\n- `
+    },
+    sleep: {
+        title: 'Sleep Tracker Settings',
+        sections: [
+            {
+                title: 'Time Period',
+                options: [
+                    { label: 'All Time', value: 'all' },
+                    { label: 'This Month', value: 'this-month' },
+                    { label: 'This Week', value: 'this-week', default: true },
+                    { label: 'Last 3 Months', value: 'last-3-months' },
+                    { label: 'Last 6 Months', value: 'last-6-months' },
+                    { label: 'Last 12 Months', value: 'last-12-months' }
+                ]
+            },
+            {
+                title: 'Layout',
+                options: [
+                    { label: 'Summary + Chart', value: 'summary+chart', default: true },
+                    { label: 'Summary Only', value: 'summary' },
+                    { label: 'Chart Only', value: 'chart' }
+                ]
+            }
+        ],
+        buildResult: (selections) => `SLEEP: ${selections.layout || 'summary+chart'}, h, ${selections['time-period'] || 'this-week'}\n- `
+    },
+    workouts: {
+        title: 'Workouts Tracker Settings',
+        sections: [
+            {
+                title: 'Time Period',
+                options: [
+                    { label: 'All Time', value: 'all' },
+                    { label: 'This Month', value: 'this-month' },
+                    { label: 'This Week', value: 'this-week', default: true },
+                    { label: 'Last 3 Months', value: 'last-3-months' },
+                    { label: 'Last 6 Months', value: 'last-6-months' },
+                    { label: 'Last 12 Months', value: 'last-12-months' }
+                ]
+            },
+            {
+                title: 'Layout',
+                options: [
+                    { label: 'Summary + Chart', value: 'summary+chart', default: true },
+                    { label: 'Summary Only', value: 'summary' },
+                    { label: 'Chart Only', value: 'chart' }
+                ]
+            }
+        ],
+        buildResult: (selections) => `WORKOUTS: ${selections.layout || 'summary+chart'}, min, ${selections['time-period'] || 'this-week'}\n- `
+    },
     finance: {
         title: 'Finance Widget Settings',
         sections: [
@@ -281,12 +356,11 @@ function createCentralizedDropdown(button, textarea, wrapper, widgetType) {
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
-        
+
         const result = config.buildResult(selections);
         insertDropdownResult(textarea, result);
         safeCloseDropdown();
         textarea.focus();
-        exitEditModeWithRender();
     });
     
     // Close dropdown when clicking outside
@@ -418,20 +492,6 @@ function insertDropdownResult(textarea, text) {
     if (key) {
         setStorage(key, newContent);
         debouncedSyncWithCloud();
-    }
-}
-
-function exitEditModeWithRender() {
-    if (EditModeManager.currentEditWrapper) {
-        const wrapper = EditModeManager.currentEditWrapper;
-        setTimeout(() => {
-            try {
-                EditModeManager.exit(wrapper);
-                renderApp();
-            } catch (e) {
-                console.error('Error rendering after widget insertion:', e);
-            }
-        }, 50);
     }
 }
 

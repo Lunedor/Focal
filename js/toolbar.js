@@ -101,7 +101,7 @@ function insertMarkdown(textarea, { prefix, suffix = '' }) {
 // --- Centralized Edit Mode Manager ---
 const EditModeManager = {
     currentEditWrapper: null,
-    
+
     enter(wrapper, key, content, options = {}) {
         if (this.currentEditWrapper && this.currentEditWrapper !== wrapper) {
             this.exit(this.currentEditWrapper);
@@ -120,7 +120,7 @@ const EditModeManager = {
             { icon: 'hash', action: 'h1', title: 'Heading 1', md: { prefix: '# ' } },
             { icon: 'smile', action: 'emoji', title: 'Insert Emoji', md: null },
         ];
-        
+
         if (key && key.startsWith('page-')) {
             buttons = [
                 ...buttons,
@@ -140,6 +140,9 @@ const EditModeManager = {
                 { icon: 'bookmark', action: 'futurelog', title: 'Insert Future Log', md: null },
                 { icon: 'rotate-cw', action: 'habit', title: 'Insert Habit Tracker', md: null },
                 { icon: 'dollar-sign', action: 'finance', title: 'Insert Finance Tracker', md: null },
+                { icon: 'bar-chart-2', action: 'calorie', title: 'Insert Calorie Tracker', md: null },
+                { icon: 'moon', action: 'sleep', title: 'Insert Sleep Tracker', md: null },
+                { icon: 'activity', action: 'workouts', title: 'Insert Workouts Tracker', md: null },
                 { icon: 'bar-chart-2', action: 'mood', title: 'Insert Mood Tracker', md: null },
                 { icon: 'book-open', action: 'books', title: 'Insert Book Tracker', md: null },
                 { icon: 'film', action: 'movies', title: 'Insert Movie Tracker', md: null },
@@ -166,11 +169,11 @@ const EditModeManager = {
 
         toolbar.innerHTML = renderRow(row1) + renderRow(row2);
         toolbar.querySelectorAll('button').forEach(btn => btn.tabIndex = -1);
-        
+
         const textarea = document.createElement('textarea');
         textarea.value = content;
         textarea.spellcheck = false;
-        
+
         wrapper.innerHTML = '';
         wrapper.appendChild(toolbar);
         wrapper.appendChild(textarea);
@@ -188,7 +191,7 @@ const EditModeManager = {
         } else {
             emojiPicker = document.getElementById('emoji-picker-element');
         }
-    
+
         if (window.feather) feather.replace();
         textarea.focus();
         textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
@@ -238,20 +241,20 @@ const EditModeManager = {
             }
         };
     },
-    
+
     exit(wrapper) {
         if (wrapper && wrapper._exitEditMode) {
             wrapper._exitEditMode();
             delete wrapper._exitEditMode;
         }
     },
-    
+
     handleOutsideClick(wrapper, ev) {
         if (wrapper.contains(ev.target)) return;
         const toolbar = wrapper.querySelector('.markdown-toolbar');
         if (toolbar && toolbar.contains(ev.target)) return;
         // Don't close edit mode if clicking on a dropdown or emoji picker
-        if (ev.target.closest('.finance-dropdown, .mood-dropdown, .books-dropdown, .movies-dropdown, .futurelog-dropdown, .habit-dropdown, .date-dropdown, .fj-date-picker-popup, emoji-picker')) {
+        if (ev.target.closest('.finance-dropdown, .mood-dropdown, .books-dropdown, .movies-dropdown, .futurelog-dropdown, .habit-dropdown, .date-dropdown, .fj-date-picker-popup, emoji-picker, .calorie-dropdown, .sleep-dropdown, .workouts-dropdown')) {
             return;
         }
         // Also check for shadow DOM of emoji-picker
@@ -261,7 +264,7 @@ const EditModeManager = {
         }
         this.exit(wrapper);
     },
-    
+
     attachToolbarListeners(toolbar, textarea, wrapper, buttons) {
         toolbar.addEventListener('click', (evt) => {
             const button = evt.target.closest('button');
@@ -272,31 +275,17 @@ const EditModeManager = {
             const action = button.dataset.action;
             const buttonConfig = buttons.find(b => b.action === action);
 
-            // Handle widget dropdowns
-            if (action === 'finance') {
-                this.handleFinanceDropdown(button, textarea, wrapper);
+            // Centralized widget dropdown handler (identical for all)
+            const centralizedWidgets = [
+                'finance', 'calorie', 'sleep', 'workouts', 'mood', 'books', 'movies', 'futurelog', 'habit'
+            ];
+            if (centralizedWidgets.includes(action)) {
+                if (typeof createCentralizedDropdown === 'function') {
+                    createCentralizedDropdown(button, textarea, wrapper, action);
+                }
                 return;
             }
 
-            if (action === 'mood') {
-                this.handleMoodDropdown(button, textarea, wrapper);
-                return;
-            }
-
-            if (action === 'books') {
-                this.handleBooksDropdown(button, textarea, wrapper);
-                return;
-            }
-
-            if (action === 'movies') {
-                this.handleMoviesDropdown(button, textarea, wrapper);
-                return;
-            }
-
-            if (action === 'futurelog') {
-                this.handleFuturelogDropdown(button, textarea, wrapper);
-                return;
-            }
 
             if (action === 'custom-date') {
                 this.handleCustomDateDropdown(button, textarea, wrapper);
@@ -393,7 +382,7 @@ const EditModeManager = {
                     document.addEventListener('mousedown', hidePicker, true);
                     // Only set handler once
                     if (!emojiPicker._emojiHandlerSet) {
-                        emojiPicker.addEventListener('emoji-click', function(event) {
+                        emojiPicker.addEventListener('emoji-click', function (event) {
                             const emoji = event.detail.unicode;
                             const textarea = emojiPicker._activeTextarea;
                             if (textarea) {
@@ -419,6 +408,7 @@ const EditModeManager = {
             }
         });
     },
+
     handleHabitDropdown(button, textarea, wrapper) {
         // Use centralized dropdown system for habits
         if (typeof createCentralizedDropdown === 'function') {
@@ -428,47 +418,47 @@ const EditModeManager = {
             insertMarkdown(textarea, { prefix: 'HABITS: day' });
         }
     },
-    
+
     handleFinanceDropdown(button, textarea, wrapper) {
         // Import from widgetDropdowns.js
         if (typeof createFinanceDropdown === 'function') {
             createFinanceDropdown(button, textarea, wrapper);
         }
     },
-    
+
     handleMoodDropdown(button, textarea, wrapper) {
         // Import from widgetDropdowns.js
         if (typeof createMoodDropdown === 'function') {
             createMoodDropdown(button, textarea, wrapper);
         }
     },
-    
+
     handleBooksDropdown(button, textarea, wrapper) {
         // Import from widgetDropdowns.js
         if (typeof createBooksDropdown === 'function') {
             createBooksDropdown(button, textarea, wrapper);
         }
     },
-    
+
     handleMoviesDropdown(button, textarea, wrapper) {
         // Import from widgetDropdowns.js
         if (typeof createMoviesDropdown === 'function') {
             createMoviesDropdown(button, textarea, wrapper);
         }
     },
-    
+
     handleFuturelogDropdown(button, textarea, wrapper) {
         // Import from widgetDropdowns.js
         if (typeof createFuturelogDropdown === 'function') {
             createFuturelogDropdown(button, textarea, wrapper);
         }
     },
-    
+
     handleCustomDateDropdown(button, textarea, wrapper) {
         // Use centralized date picker
         if (typeof CentralizedDatePicker !== 'undefined') {
-            CentralizedDatePicker.showToolbarDatePicker({ 
-                anchor: button, 
+            CentralizedDatePicker.showToolbarDatePicker({
+                anchor: button,
                 withTime: false,
                 onDateSelected: (result) => {
                     if (result) {
