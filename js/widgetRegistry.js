@@ -24,29 +24,27 @@ const widgetRegistry = {
       moodTracker.init({ placeholder, command, onCommandChange });
     }
   },
+
   'finance': (placeholder) => {
-    if (typeof financeTracker !== 'undefined' && financeTracker.init) {
-      const command = placeholder.dataset.command;
-      const transactions = placeholder.dataset.transactions;
+    if (window.MainWidget) {
+      let command = placeholder.dataset.command || '';
+      let transactions = placeholder.dataset.transactions || '';
+      // Split into config line and transaction lines
+      let lines = (command + (transactions ? '\n' + transactions : '')).split('\n');
+      let configLine = lines[0] || '';
+      let dataStr = lines.slice(1).join('\n');
       const onCommandChange = (newCommand) => {
         const pageWrapper = placeholder.closest('[data-key]');
         const currentPageKey = pageWrapper ? pageWrapper.dataset.key : null;
         if (!currentPageKey) return;
-
         const currentContent = getStorage(currentPageKey);
         if (!currentContent) return;
-
-        // Use the placeholder's current command attribute as the "old" command.
         const oldCommand = placeholder.dataset.command;
         const updatedContent = currentContent.replace(oldCommand, newCommand);
         setStorage(currentPageKey, updatedContent);
         placeholder.dataset.command = newCommand;
         if (typeof debouncedSyncWithCloud === 'function') debouncedSyncWithCloud();
-
-        // The finance widget requires a full page re-render when its command
-        // (e.g., the filter) changes.
         if (currentPageKey.startsWith('page-')) {
-          // Instead of re-rendering the entire page, just update the content
           const contentWrapper = document.querySelector(`[data-key="${currentPageKey}"]`);
           if (contentWrapper) {
             const currentContent = getStorage(currentPageKey);
@@ -54,29 +52,233 @@ const widgetRegistry = {
             if (renderedContent) {
               const html = parseMarkdown(currentContent);
               renderedContent.innerHTML = html;
-              // Restore data-items attribute for futurelog widgets
               const futurelogPlaceholders = renderedContent.querySelectorAll('.futurelog-placeholder');
               futurelogPlaceholders.forEach(el => {
-                // Try to extract the original JSON from the attribute value
                 let itemsAttr = el.getAttribute('data-items');
                 if (itemsAttr && itemsAttr.includes('&quot;')) {
-                  // Unescape HTML quotes
                   itemsAttr = itemsAttr.replace(/&quot;/g, '"');
                   el.setAttribute('data-items', itemsAttr);
                 }
-                // Debug log to confirm attribute value
                 console.log('[FUTURELOG PATCH] Restored data-items:', el.getAttribute('data-items'));
               });
-              // Only initialize widgets in the new content
               initializeWidgetsInContainer(renderedContent);
             }
           }
         }
       };
-      // Call with a single, standardized options object
-      financeTracker.init({
-        placeholder, command, transactions, onCommandChange
-      });
+      // Multi-widget rendering logic
+      const layout = (() => {
+        const lines = command.split('\n').map(l => l.trim()).filter(Boolean);
+        if (lines.length > 0) {
+          const firstLine = lines[0];
+          const parts = firstLine.replace(/^[A-Z]+:/i, '').split(',').map(p => p.trim());
+          return (parts[0] || 'summary').toLowerCase();
+        }
+        return 'summary';
+      })();
+      // Clear container
+      placeholder.innerHTML = '';
+      // Render requested widgets
+      if (layout.includes('summary')) {
+        const summaryDiv = document.createElement('div');
+        const pageWrapper = placeholder.closest('[data-key]');
+        const currentPageKey = pageWrapper ? pageWrapper.dataset.key : null;
+        window.MainWidget.renderSummary(summaryDiv, 'finance', configLine, dataStr, onCommandChange, currentPageKey);
+        placeholder.appendChild(summaryDiv);
+      }
+      if (layout.includes('chart')) {
+        const chartDiv = document.createElement('div');
+        window.MainWidget.renderChart(chartDiv, 'finance', configLine, dataStr, onCommandChange);
+        placeholder.appendChild(chartDiv);
+      }
+      if (layout.includes('chartpie')) {
+        const pieDiv = document.createElement('div');
+        window.MainWidget.renderPie(pieDiv, 'finance', configLine, dataStr, onCommandChange);
+        placeholder.appendChild(pieDiv);
+      }
+    }
+  },
+
+  'calorie': (placeholder) => {
+    if (window.MainWidget) {
+      let command = placeholder.dataset.command || '';
+      let transactions = placeholder.dataset.transactions || '';
+      let lines = (command + (transactions ? '\n' + transactions : '')).split('\n');
+      let configLine = lines[0] || '';
+      let dataStr = lines.slice(1).join('\n');
+      const onCommandChange = (newCommand) => {
+        const pageWrapper = placeholder.closest('[data-key]');
+        const currentPageKey = pageWrapper ? pageWrapper.dataset.key : null;
+        if (!currentPageKey) return;
+        const currentContent = getStorage(currentPageKey);
+        if (!currentContent) return;
+        const oldCommand = placeholder.dataset.command;
+        const updatedContent = currentContent.replace(oldCommand, newCommand);
+        setStorage(currentPageKey, updatedContent);
+        placeholder.dataset.command = newCommand;
+        if (typeof debouncedSyncWithCloud === 'function') debouncedSyncWithCloud();
+        if (currentPageKey.startsWith('page-')) {
+          const contentWrapper = document.querySelector(`[data-key="${currentPageKey}"]`);
+          if (contentWrapper) {
+            const currentContent = getStorage(currentPageKey);
+            const renderedContent = contentWrapper.querySelector('.rendered-content');
+            if (renderedContent) {
+              const html = parseMarkdown(currentContent);
+              renderedContent.innerHTML = html;
+              initializeWidgetsInContainer(renderedContent);
+            }
+          }
+        }
+      };
+      const layout = (() => {
+        const lines = command.split('\n').map(l => l.trim()).filter(Boolean);
+        if (lines.length > 0) {
+          const firstLine = lines[0];
+          const parts = firstLine.replace(/^[A-Z]+:/i, '').split(',').map(p => p.trim());
+          return (parts[0] || 'summary').toLowerCase();
+        }
+        return 'summary';
+      })();
+      placeholder.innerHTML = '';
+      if (layout.includes('summary')) {
+        const summaryDiv = document.createElement('div');
+        const pageWrapper = placeholder.closest('[data-key]');
+        const currentPageKey = pageWrapper ? pageWrapper.dataset.key : null;
+        window.MainWidget.renderSummary(summaryDiv, 'calorie', configLine, dataStr, onCommandChange, currentPageKey);
+        placeholder.appendChild(summaryDiv);
+      }
+      if (layout.includes('chart')) {
+        const chartDiv = document.createElement('div');
+        window.MainWidget.renderChart(chartDiv, 'calorie', configLine, dataStr, onCommandChange);
+        placeholder.appendChild(chartDiv);
+      }
+      if (layout.includes('chartpie')) {
+        const pieDiv = document.createElement('div');
+        window.MainWidget.renderPie(pieDiv, 'calorie', configLine, dataStr, onCommandChange);
+        placeholder.appendChild(pieDiv);
+      }
+    }
+  },
+
+  'workouts': (placeholder) => {
+    if (window.MainWidget) {
+      let command = placeholder.dataset.command || '';
+      let transactions = placeholder.dataset.transactions || '';
+      let lines = (command + (transactions ? '\n' + transactions : '')).split('\n');
+      let configLine = lines[0] || '';
+      let dataStr = lines.slice(1).join('\n');
+      const onCommandChange = (newCommand) => {
+        const pageWrapper = placeholder.closest('[data-key]');
+        const currentPageKey = pageWrapper ? pageWrapper.dataset.key : null;
+        if (!currentPageKey) return;
+        const currentContent = getStorage(currentPageKey);
+        if (!currentContent) return;
+        const oldCommand = placeholder.dataset.command;
+        const updatedContent = currentContent.replace(oldCommand, newCommand);
+        setStorage(currentPageKey, updatedContent);
+        placeholder.dataset.command = newCommand;
+        if (typeof debouncedSyncWithCloud === 'function') debouncedSyncWithCloud();
+        if (currentPageKey.startsWith('page-')) {
+          const contentWrapper = document.querySelector(`[data-key="${currentPageKey}"]`);
+          if (contentWrapper) {
+            const currentContent = getStorage(currentPageKey);
+            const renderedContent = contentWrapper.querySelector('.rendered-content');
+            if (renderedContent) {
+              const html = parseMarkdown(currentContent);
+              renderedContent.innerHTML = html;
+              initializeWidgetsInContainer(renderedContent);
+            }
+          }
+        }
+      };
+      const layout = (() => {
+        const lines = command.split('\n').map(l => l.trim()).filter(Boolean);
+        if (lines.length > 0) {
+          const firstLine = lines[0];
+          const parts = firstLine.replace(/^[A-Z]+:/i, '').split(',').map(p => p.trim());
+          return (parts[0] || 'summary').toLowerCase();
+        }
+        return 'summary';
+      })();
+      placeholder.innerHTML = '';
+      if (layout.includes('summary')) {
+        const summaryDiv = document.createElement('div');
+        const pageWrapper = placeholder.closest('[data-key]');
+        const currentPageKey = pageWrapper ? pageWrapper.dataset.key : null;
+        window.MainWidget.renderSummary(summaryDiv, 'workouts', configLine, dataStr, onCommandChange, currentPageKey);
+        placeholder.appendChild(summaryDiv);
+      }
+      if (layout.includes('chart')) {
+        const chartDiv = document.createElement('div');
+        window.MainWidget.renderChart(chartDiv, 'workouts', configLine, dataStr, onCommandChange);
+        placeholder.appendChild(chartDiv);
+      }
+      if (layout.includes('chartpie')) {
+        const pieDiv = document.createElement('div');
+        window.MainWidget.renderPie(pieDiv, 'workouts', configLine, dataStr, onCommandChange);
+        placeholder.appendChild(pieDiv);
+      }
+    }
+  },
+
+  'sleep': (placeholder) => {
+    if (window.MainWidget) {
+      let command = placeholder.dataset.command || '';
+      let transactions = placeholder.dataset.transactions || '';
+      let lines = (command + (transactions ? '\n' + transactions : '')).split('\n');
+      let configLine = lines[0] || '';
+      let dataStr = lines.slice(1).join('\n');
+      const onCommandChange = (newCommand) => {
+        const pageWrapper = placeholder.closest('[data-key]');
+        const currentPageKey = pageWrapper ? pageWrapper.dataset.key : null;
+        if (!currentPageKey) return;
+        const currentContent = getStorage(currentPageKey);
+        if (!currentContent) return;
+        const oldCommand = placeholder.dataset.command;
+        const updatedContent = currentContent.replace(oldCommand, newCommand);
+        setStorage(currentPageKey, updatedContent);
+        placeholder.dataset.command = newCommand;
+        if (typeof debouncedSyncWithCloud === 'function') debouncedSyncWithCloud();
+        if (currentPageKey.startsWith('page-')) {
+          const contentWrapper = document.querySelector(`[data-key="${currentPageKey}"]`);
+          if (contentWrapper) {
+            const currentContent = getStorage(currentPageKey);
+            const renderedContent = contentWrapper.querySelector('.rendered-content');
+            if (renderedContent) {
+              const html = parseMarkdown(currentContent);
+              renderedContent.innerHTML = html;
+              initializeWidgetsInContainer(renderedContent);
+            }
+          }
+        }
+      };
+      const layout = (() => {
+        const lines = command.split('\n').map(l => l.trim()).filter(Boolean);
+        if (lines.length > 0) {
+          const firstLine = lines[0];
+          const parts = firstLine.replace(/^[A-Z]+:/i, '').split(',').map(p => p.trim());
+          return (parts[0] || 'summary').toLowerCase();
+        }
+        return 'summary';
+      })();
+      placeholder.innerHTML = '';
+      if (layout.includes('summary')) {
+        const summaryDiv = document.createElement('div');
+        const pageWrapper = placeholder.closest('[data-key]');
+        const currentPageKey = pageWrapper ? pageWrapper.dataset.key : null;
+        window.MainWidget.renderSummary(summaryDiv, 'sleep', configLine, dataStr, onCommandChange, currentPageKey);
+        placeholder.appendChild(summaryDiv);
+      }
+      if (layout.includes('chart')) {
+        const chartDiv = document.createElement('div');
+        window.MainWidget.renderChart(chartDiv, 'sleep', configLine, dataStr, onCommandChange);
+        placeholder.appendChild(chartDiv);
+      }
+      if (layout.includes('chartpie')) {
+        const pieDiv = document.createElement('div');
+        window.MainWidget.renderPie(pieDiv, 'sleep', configLine, dataStr, onCommandChange);
+        placeholder.appendChild(pieDiv);
+      }
     }
   },
   // In js/widgetRegistry.js

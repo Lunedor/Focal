@@ -1,3 +1,52 @@
+/* Filter dropdown list styles (was inline) */
+.finance-filter-list {
+    display: none;
+    position: absolute;
+    top: 110%;
+    left: 0;
+    min-width: 180px;
+    z-index: 1000;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    background: var(--color-background, #fff);
+    border: 1px solid var(--color-border, #ddd);
+    border-radius: 8px;
+    padding: 4px 0;
+}
+
+.finance-filter-list.active {
+    display: block;
+}
+
+.finance-filter-item {
+    padding: 8px 16px;
+    cursor: pointer;
+}
+
+/* Modal overlay (was inline) */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,0.3);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+/* Custom category input (was inline) */
+#finance-entry-category-custom {
+    display: none;
+    margin-top: 4px;
+}
+
+/* Remove unused values after refactor (if any) */
 /* Finance widget styles */
 .finance-widget {
     background: var(--color-planner-bg);
@@ -752,4 +801,9 @@ body.highcontrast-mode {
         width: 70px;
     }
     
+}
+
+.finance-pie-container {
+    width: 500px;
+    margin: auto;
 }

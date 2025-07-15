@@ -15,6 +15,8 @@
   <!-- Libraries: date-fns for date logic, marked for Markdown -->
   <script src="https://cdn.jsdelivr.net/npm/date-fns@4.1.0/cdn.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <!-- Chart.js for widget charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <link rel="stylesheet" href="css/main.css">
   <!-- Feather Icons for minimalist icons -->
   <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
@@ -128,7 +130,9 @@
     </div>
   </aside>
 
+
   <main id="content-area">
+
 
     <!-- Weekly Planner View -->
     <div id="weekly-planner-view" class="view">
@@ -183,7 +187,6 @@
         <!-- JS will populate this -->
       </div>
     </div>
-
   </main>
 
   <!-- Modal for page creation/renaming -->
@@ -407,7 +410,9 @@
   <script src="js/state.js"></script>
   <script src="js/dom.js"></script>
   <script src="js/utils.js"></script>
+  <script src="js/mainWidget.js"></script>
   <script src="js/dropdownPositioning.js"></script>
+  <!-- <script src="js/initWidgets.js"></script> -->
   <script src="js/habitTracker.js"></script>
   <script src="js/widgetRegistry.js"></script>
   <script src="js/notifications.js"></script>

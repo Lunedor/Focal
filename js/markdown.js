@@ -118,46 +118,45 @@ const goalExtension = {
   }
 };
 
-const financeExtension = {
-  name: 'finance',
-  level: 'block',
-  start(src) { return src.match(/^FINANCE:/i)?.index; },
-  tokenizer(src, tokens) {
-    // This regex looks for FINANCE: blocks which may have multiple FINANCE: lines
-    // followed by transaction lines that start with "-"
-    const rule = /^(FINANCE:[^\n]*(?:\n+FINANCE:[^\n]*)*)\n?((?:[\s]*-[^\n]*\n?)*)/i;
-    const match = rule.exec(src);
-    if (match) {
-      // Get the command part (could be multiple lines starting with FINANCE:)
-      const commandPart = match[1].trim();
-      // Get the transaction lines (lines starting with "-")
-      const transactionPart = match[2].trim();
 
-      return {
-        type: 'finance',
-        raw: match[0],
-        command: commandPart,
-        transactions: transactionPart,
-      };
+function makeWidgetExtension(type, prefix) {
+  return {
+    name: type,
+    level: 'block',
+    start(src) { return src.match(new RegExp(`^${prefix}:`, 'i'))?.index; },
+    tokenizer(src, tokens) {
+      // This regex looks for blocks which may have multiple lines starting with the prefix
+      // followed by transaction lines that start with "-"
+      const rule = new RegExp(`^(${prefix}:[^\n]*(?:\n+${prefix}:[^\n]*)*)\n?((?:[\s]*-[^\n]*\n?)*)`, 'i');
+      const match = rule.exec(src);
+      if (match) {
+        const commandPart = match[1].trim();
+        const transactionPart = match[2].trim();
+        return {
+          type,
+          raw: match[0],
+          command: commandPart,
+          transactions: transactionPart,
+        };
+      }
+    },
+    renderer(token) {
+      let fullCommand = token.command;
+      if (token.command.toLowerCase().startsWith(`${prefix.toLowerCase()}:`) &&
+        token.transactions &&
+        token.transactions.split('\n').some(line => line.trim().toLowerCase().startsWith(`${prefix.toLowerCase()}:`))) {
+        fullCommand = `${token.command}\n${token.transactions}`;
+        token.transactions = '';
+      }
+      return `<div class="widget-placeholder ${type}-widget-placeholder" data-widget-type="${type}" data-command='${fullCommand}' data-transactions='${token.transactions}'></div>`;
     }
-  },
-  renderer(token) {
-    // For multi-widget commands, include the entire block in the command attribute
-    // If there are multiple FINANCE: lines, we want to keep them all together
-    let fullCommand = token.command;
-    if (token.command.toLowerCase().startsWith('finance:') &&
-      token.transactions &&
-      token.transactions.split('\n').some(line => line.trim().toLowerCase().startsWith('finance:'))) {
-      // This is a multi-widget case - put everything in the command
-      fullCommand = `${token.command}\n${token.transactions}`;
-      // And clear the transactions since they're now part of the command
-      token.transactions = '';
-    }
+  };
+}
 
-    // Use single quotes for data attributes to handle potential double quotes in content
-    return `<div class="widget-placeholder finance-widget-placeholder" data-widget-type="finance" data-command='${fullCommand}' data-transactions='${token.transactions}'></div>`;
-  }
-};
+const financeExtension = makeWidgetExtension('finance', 'FINANCE');
+const calorieExtension = makeWidgetExtension('calorie', 'CALORIE');
+const workoutsExtension = makeWidgetExtension('workouts', 'WORKOUTS');
+const sleepExtension = makeWidgetExtension('sleep', 'SLEEP');
 
 const moodTrackerExtension = {
   name: 'moodTracker',
@@ -471,7 +470,21 @@ renderer.listitem = (text, task, checked) => {
 };
 
 marked.use({
-  extensions: [wikiLinkExtension, tableCheckboxExtension, taskSummaryExtension, goalExtension, moodTrackerExtension, financeExtension, booksExtension, moviesExtension, futurelogExtension, habitsExtension],
+  extensions: [
+    wikiLinkExtension,
+    tableCheckboxExtension,
+    taskSummaryExtension,
+    goalExtension,
+    moodTrackerExtension,
+    financeExtension,
+    calorieExtension,
+    workoutsExtension,
+    sleepExtension,
+    booksExtension,
+    moviesExtension,
+    futurelogExtension,
+    habitsExtension
+  ],
   gfm: true,
   breaks: true,
   renderer: renderer
