@@ -29,6 +29,11 @@
     content: '';
     display: none;
   }
+  
+  #sidebar h2 {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
 
   .hamburger-menu {
     display: flex;

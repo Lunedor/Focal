@@ -53,8 +53,6 @@
     transform: translateX(0);
     pointer-events: auto;
   }
-  #sidebar h2 { margin-top: 0.5rem; }
-  #sidebar h2:first-child { margin-top: 0; }
   .plan-grid {
     grid-template-columns: 1fr;
     grid-template-rows: repeat(8, minmax(200px, auto));

@@ -404,7 +404,7 @@ textarea:focus {
 #library-nav-list {
   padding: 0;
   margin: 0;
-  max-height: 300px;
   overflow-y: auto;
   overflow-x: hidden;
+  flex-grow: 1;
 }
