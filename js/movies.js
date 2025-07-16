@@ -708,7 +708,6 @@ window.MovieTracker = (() => {
 
         // --- MOVIE DETAILS MODAL LOGIC ---
         function showMovieDetailsModal(movie) {
-
                         let modal = document.getElementById('movie-details-modal');
                         let titleEl = document.getElementById('movie-details-title');
                         let bodyEl = document.getElementById('movie-details-body');
@@ -739,11 +738,12 @@ window.MovieTracker = (() => {
                 titleEl.textContent = `${movie.title}${movie.releaseDate ? ' (' + new Date(movie.releaseDate).getFullYear() + ')' : ''}`;
                 bodyEl.innerHTML = `
                     <div class="movie-details-content">
+                        <div class='movie-details-header'>
                         ${movie.poster ? `<img src='${movie.poster}' alt='${escapeHtml(movie.title)}' class='movie-details-poster'>` : ''}
                         <div class='movie-details-meta'>
-                            <div class='movie-details-status' style="display: flex; align-items: center; gap: 10px;">
-                                <label for="modal-movie-status-select" style="margin-bottom:0;"><strong>Status:</strong></label>
-                                <select id="modal-movie-status-select" class="movie-status-select" style="margin-left:8px;">
+                            <div class='movie-details-status'>
+                                <label for="modal-movie-status-select"><strong>Status:</strong></label>
+                                <select id="modal-movie-status-select" class="movie-status-select">
                                     ${Object.entries(MOVIE_STATUSES).map(([status, config]) => 
                                         `<option value="${status}" ${movie.status === status ? 'selected' : ''}>${config.label}</option>`
                                     ).join('')}
@@ -755,6 +755,7 @@ window.MovieTracker = (() => {
                             <div><strong>Runtime:</strong> ${movie.runtime ? movie.runtime + ' min' : 'N/A'}</div>
                             <div><strong>Watched Date:</strong> ${movie.watchedDate ? new Date(movie.watchedDate).toLocaleDateString() : 'N/A'}</div>
                             <div><strong>Personal Rating:</strong> ${movie.personalRating ? '★'.repeat(movie.personalRating) + '☆'.repeat(5 - movie.personalRating) : 'N/A'}</div>                            
+                        </div>
                         </div>
                         <div class='movie-details-overview'><strong>Overview:</strong><br>${escapeHtml(movie.overview || '')}</div>
                     </div>
