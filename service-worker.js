@@ -172,10 +172,8 @@ self.addEventListener('push', event => {
   // Check if the push event has data
   if (event.data) {
     try {
-      // Gelen push verisi, içinde 'data' objesi olan bir JSON'dur.
       const payload = event.data.json();
 
-      // 'data' objesinin içindeki 'notification' string'ini parse ediyoruz.
       const notificationData = JSON.parse(payload.data.notification);
 
       title = notificationData.title || 'Focal Journal Reminder';
@@ -184,10 +182,10 @@ self.addEventListener('push', event => {
         icon: 'favicon192.png',
         badge: 'favicon.png',
         tag: notificationData.tag,
-        data: notificationData.data, // Bu, bildirime tıklandığında kullanılacak veridir.
+        data: notificationData.data,
       };
     } catch (e) {
-      console.error('Push verisi ayrıştırılamadı, düz metin olarak işleniyor.', e);
+      console.error('Push data could not be parsed, it is being processed as plain text.', e);
       options.body = event.data.text();
     }
   }

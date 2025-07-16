@@ -130,7 +130,6 @@ async function syncWithCloud() {
       // --- Case A: Cloud is newer. Download and REPLACE local. ---
       
       // This part remains the same, as it's a download operation.
-      // ... (your existing code for Case A) ...
       const keysToRemove = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -195,7 +194,6 @@ async function syncWithCloud() {
 /**
  * Subscribes the user to push notifications and saves the token to Firestore.
  */
-// In js/cloud.js
 
 async function subscribeUserToPush() {
   
