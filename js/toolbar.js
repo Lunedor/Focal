@@ -330,7 +330,6 @@ const EditModeManager = {
                                     infoMsg.textContent = 'AI syntax saved.';
                                     setTimeout(() => { infoMsg.style.display = 'none'; }, 2000);
                                 }
-                                console.log('Gemini response:', full);
                             }, (err) => {
                                 if (infoMsg) {
                                     infoMsg.textContent = 'AI error.';

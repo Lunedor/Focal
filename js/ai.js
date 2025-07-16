@@ -374,7 +374,6 @@ MOVIES: watchlist`;
 
 // Main Gemini prompt function using fetch
 function promptGeminiSyntax(userPrompt, onResult, onError) {
-  console.log('[Gemini] promptGeminiSyntax called with:', userPrompt);
   const url = `https://generativelanguage.googleapis.com/v1beta/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
   // Prepend system prompt to user prompt
   const fullPrompt = SYSTEM_INSTRUCTION + '\n\n' + userPrompt;
@@ -428,7 +427,6 @@ function promptGeminiSyntax(userPrompt, onResult, onError) {
                   });
               }
           }
-          console.log('[Gemini] Response:', result.trim());
           if (onResult) onResult(result.trim().replace(/```/g, ''), result.trim().replace(/```/g, ''));
       })
       .catch((err) => {
