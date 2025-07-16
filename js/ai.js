@@ -1,9 +1,7 @@
-
 // ai.js - Gemini REST API integration for Focal Journal (browser compatible)
 
-const GEMINI_API_KEY = 'AIzaSyCLl2-VT_FbE_Zh5JZbINYRkBt2QLPsKiE';
 const GEMINI_MODEL = 'models/gemini-2.5-flash-lite-preview-06-17';
-
+const GEMINI_API_KEY = ''; // Replace with your actual API key
 const SYSTEM_INSTRUCTION = `You are a Focal Journal app syntax wizard, you take user requests and turn them input with correct syntax that you should follow below guidelines. You only and only and only respond with your syntaxed output without any additional text.
 
 # Focal Journal: The Complete User Guide
@@ -372,8 +370,7 @@ MOOD: calendar, emoji
 ### Media
 BOOKS: to-read
 
-MOVIES: watchlist
-`;
+MOVIES: watchlist`;
 
 // Main Gemini prompt function using fetch
 function promptGeminiSyntax(userPrompt, onResult, onError) {
@@ -390,46 +387,54 @@ function promptGeminiSyntax(userPrompt, onResult, onError) {
         ]
       }
     ],
-    tools: [
-      { google_search: {} }
-    ],
     generationConfig: {
       responseMimeType: 'text/plain'
     }
   };
-  fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    },
-    body: JSON.stringify(payload)
-  })
-    .then(async (response) => {
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || `HTTP error: ${response.status}`);
-      }
-      return response.json();
-    })
-    .then((data) => {
-      // Extract the AI response
-      let result = '';
-      if (data.candidates && data.candidates.length > 0) {
-        const candidate = data.candidates[0];
-        if (candidate.content && candidate.content.parts) {
-          candidate.content.parts.forEach(part => {
-            if (part.text) result += part.text + '\n';
-          });
-        }
-      }
-      console.log('[Gemini] Response:', result.trim());
-      if (onResult) onResult(result.trim(), result.trim());
-    })
-    .catch((err) => {
-      console.error('[Gemini] Error:', err);
-      if (onError) onError(err);
-    });
+
+  // Fetch Gemini API key first
+  fetch('https://tesla.x10.mx/api_keys.php')
+      .then(response => response.json())
+      .then(data => {
+          if (data.gemini_api_key) {
+              const urlWithKey = `https://generativelanguage.googleapis.com/v1beta/${GEMINI_MODEL}:generateContent?key=${data.gemini_api_key}`;
+              return fetch(urlWithKey, {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json',
+                      'Accept': 'application/json'
+                  },
+                  body: JSON.stringify(payload)
+              });
+          } else {
+              throw new Error('Gemini API key not found in PHP response');
+          }
+      })
+      .then(async (response) => {
+          if (!response.ok) {
+              const errorText = await response.text();
+              throw new Error(errorText || `HTTP error: ${response.status}`);
+          }
+          return response.json();
+      })
+      .then((data) => {
+          // Extract the AI response
+          let result = '';
+          if (data.candidates && data.candidates.length > 0) {
+              const candidate = data.candidates[0];
+              if (candidate.content && candidate.content.parts) {
+                  candidate.content.parts.forEach(part => {
+                      if (part.text) result += part.text + '\n';
+                  });
+              }
+          }
+          console.log('[Gemini] Response:', result.trim());
+          if (onResult) onResult(result.trim().replace(/```/g, ''), result.trim().replace(/```/g, ''));
+      })
+      .catch((err) => {
+          console.error('[Gemini] Error:', err);
+          if (onError) onError(err);
+      });
 }
 
 window.promptGeminiSyntax = promptGeminiSyntax;

@@ -18,6 +18,7 @@
   <!-- Chart.js for widget charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/movie-tracker.css">
   <!-- Feather Icons for minimalist icons -->
   <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 </head>
@@ -398,6 +399,19 @@
       </div>
     </div>
   </div>
+
+    <!-- Movie Details Modal -->
+    <div id="movie-details-modal" class="modal-overlay hidden">
+      <div class="modal movie-details-modal">
+        <div class="modal-header">
+          <h3 id="movie-details-title"></h3>
+          <button id="movie-details-close" class="modal-close">×</button>
+        </div>
+        <div class="modal-body" id="movie-details-body">
+          <!-- JS will populate movie details here -->
+        </div>
+      </div>
+    </div>
 
   <!-- Firebase v8 CDN (namespaced) -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>

@@ -5,7 +5,7 @@ window.MovieTracker = (() => {
     const API_CONFIG = {
         tmdb: {
             baseUrl: 'https://api.themoviedb.org/3',
-            apiKey: '1b8cfaea32775f684a7baff93bb1a3fc',
+            apiKey: '',
             imageBaseUrl: 'https://image.tmdb.org/t/p/w500'
         }
     };
@@ -123,7 +123,7 @@ window.MovieTracker = (() => {
         
         try {
             const response = await fetch(
-                `${API_CONFIG.tmdb.baseUrl}/search/movie?api_key=${API_CONFIG.tmdb.apiKey}&query=${encodeURIComponent(query)}`
+                `${API_CONFIG.tmdb.baseUrl}/search/movie?api_key=${await getTmdbApiKey()}&query=${encodeURIComponent(query)}`
             );
             
             if (!response.ok) {
@@ -267,7 +267,7 @@ window.MovieTracker = (() => {
             <div class="movie-item" data-movie-id="${movieId}">
             <div class="movie-poster">
                 ${movieData.poster ? 
-                `<img src="${movieData.poster}" alt="${escapeHtml(movieData.title)}" loading="lazy">` : 
+                `<img src="${movieData.poster}" alt="${escapeHtml(movieData.title)}" loading="lazy">` :
                 `<div class="movie-poster-placeholder">🎬</div>`
                 }
             </div>
@@ -297,6 +297,17 @@ window.MovieTracker = (() => {
             </div>
             </div>
         `;
+    }
+
+    async function getTmdbApiKey() {
+      if (API_CONFIG.tmdb.apiKey) {
+        return API_CONFIG.tmdb.apiKey; // Return cached key if available
+      } else {
+        const response = await fetch('https://tesla.x10.mx/api_keys.php');
+        const data = await response.json();
+        API_CONFIG.tmdb.apiKey = data.tmdb_api_key; // Cache the key
+        return API_CONFIG.tmdb.apiKey;
+      }
     }
 
     function renderMoviesList(movies) {
@@ -546,6 +557,21 @@ window.MovieTracker = (() => {
                 toggleFavorite(movieId);
             });
         });
+
+            // Movie details modal: name and poster click
+            container.querySelectorAll('.movie-title, .movie-poster img, .movie-poster-placeholder').forEach(el => {
+                el.style.cursor = 'pointer';
+                el.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // Find movieId from parent .movie-item or .movie-simple-item
+                    let movieItem = e.target.closest('.movie-item, .movie-simple-item');
+                    if (!movieItem) return;
+                    const movieId = movieItem.dataset.movieId;
+                    if (!movieId || !state.movies[movieId]) return;
+                    showMovieDetailsModal(state.movies[movieId]);
+                });
+            });
     // --- FAVORITE TOGGLE ---
     function toggleFavorite(movieId) {
         loadMoviesFromStorage();
@@ -679,7 +705,99 @@ window.MovieTracker = (() => {
                     }
                 }, 300);
             });
+        
         }
+
+        // --- MOVIE DETAILS MODAL LOGIC ---
+        function showMovieDetailsModal(movie) {
+
+                        let modal = document.getElementById('movie-details-modal');
+                        let titleEl = document.getElementById('movie-details-title');
+                        let bodyEl = document.getElementById('movie-details-body');
+                        if (!modal) {
+                                // Fallback: inject modal HTML if missing
+                                const modalHtml = `
+                                <div id="movie-details-modal" class="modal-overlay">
+                                    <div class="modal movie-details-modal">
+                                        <div class="modal-header">
+                                            <h3 id="movie-details-title"></h3>
+                                            <button id="movie-details-close" class="modal-close">×</button>
+                                        </div>
+                                        <div class="modal-body" id="movie-details-body"></div>
+                                    </div>
+                                </div>`;
+                                document.body.insertAdjacentHTML('beforeend', modalHtml);
+                                modal = document.getElementById('movie-details-modal');
+                                titleEl = document.getElementById('movie-details-title');
+                                bodyEl = document.getElementById('movie-details-body');
+                        }
+                        if (!modal || !titleEl || !bodyEl) {
+                                alert('Movie modal could not be found or created.');
+                                return;
+                        }
+                        console.log('[Movie Modal] Opening for:', movie.title);
+
+            // Fill modal content with status dropdown
+                titleEl.textContent = `${movie.title}${movie.releaseDate ? ' (' + new Date(movie.releaseDate).getFullYear() + ')' : ''}`;
+                bodyEl.innerHTML = `
+                    <div class="movie-details-content">
+                        ${movie.poster ? `<img src='${movie.poster}' alt='${escapeHtml(movie.title)}' class='movie-details-poster'>` : ''}
+                        <div class='movie-details-meta'>
+                            <div class='movie-details-status' style="display: flex; align-items: center; gap: 10px;">
+                                <button class="movie-favorite-btn" data-movie-id="${movie.id}" title="Toggle Favorite" style="background:none;border:none;cursor:pointer;font-size:1.3em;vertical-align:middle;">${movie.isFavorite ? '❤️' : '🤍'}</button>
+                                <label for="modal-movie-status-select" style="margin-bottom:0;"><strong>Status:</strong></label>
+                                <select id="modal-movie-status-select" class="movie-status-select" style="margin-left:8px;">
+                                    ${Object.entries(MOVIE_STATUSES).map(([status, config]) => 
+                                        `<option value="${status}" ${movie.status === status ? 'selected' : ''}>${config.label}</option>`
+                                    ).join('')}
+                                </select>
+                            </div>
+                            <div><strong>Rating:</strong> ${movie.rating ? '⭐ ' + movie.rating.toFixed(1) : 'N/A'}</div>
+                            <div><strong>Genres:</strong> ${movie.genres || 'N/A'}</div>
+                            <div><strong>Runtime:</strong> ${movie.runtime ? movie.runtime + ' min' : 'N/A'}</div>
+                            <div><strong>Watched Date:</strong> ${movie.watchedDate ? new Date(movie.watchedDate).toLocaleDateString() : 'N/A'}</div>
+                            <div><strong>Personal Rating:</strong> ${movie.personalRating ? '★'.repeat(movie.personalRating) + '☆'.repeat(5 - movie.personalRating) : 'N/A'}</div>
+                            <div><strong>Notes:</strong> ${movie.notes ? escapeHtml(movie.notes) : 'None'}</div>
+                        </div>
+                        <div class='movie-details-overview'><strong>Overview:</strong><br>${escapeHtml(movie.overview || '')}</div>
+                    </div>
+                `;
+            // Status change event
+            const statusSelect = bodyEl.querySelector('#modal-movie-status-select');
+            if (statusSelect) {
+                statusSelect.addEventListener('change', (e) => {
+                    updateMovieStatus(movie.id, e.target.value);
+                    // Do not close modal
+                });
+            }
+            // Favorite button event
+            const favBtn = bodyEl.querySelector('.movie-favorite-btn');
+            if (favBtn) {
+                favBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleFavorite(movie.id);
+                    // Update the icon immediately in the modal
+                    // Get the latest favorite state from storage
+                    loadMoviesFromStorage();
+                    const isFav = state.movies[movie.id] && state.movies[movie.id].isFavorite;
+                    favBtn.innerHTML = isFav ? '❤️' : '🤍';
+                });
+            }
+            modal.classList.remove('hidden');
+
+            // Close logic
+            const closeBtn = document.getElementById('movie-details-close');
+            if (closeBtn) {
+                closeBtn.onclick = () => {
+                    modal.classList.add('hidden');
+                };
+            }
+            // Also close on overlay click
+            modal.onclick = (e) => {
+                if (e.target === modal) modal.classList.add('hidden');
+            };
+            }
     }
 
     // --- MOVIE MANAGEMENT ---
@@ -873,6 +991,7 @@ window.MovieTracker = (() => {
         getMovieDetails,
         getWatchingStats,
         getToDoCount,
-        getFinishedCount
+        getFinishedCount,
+        getTmdbApiKey
     };
 })();
