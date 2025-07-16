@@ -169,7 +169,6 @@ window.MovieTracker = (() => {
             isFavorite: false,
             addedDate: new Date().toISOString(), // Use full timestamp instead of just date
             personalRating: null,
-            notes: '',
             watchedDate: null
         };
     }
@@ -284,7 +283,6 @@ window.MovieTracker = (() => {
                 </div>
                 ${movieData.personalRating ? `<div class="movie-personal-rating">${'★'.repeat(movieData.personalRating) + '☆'.repeat(5 - movieData.personalRating)}</div>` : ''}
                 ${watchedDate ? `<div class="movie-watched-date">Watched: ${watchedDate}</div>` : ''}
-                ${movieData.notes ? `<div class="movie-notes">${escapeHtml(movieData.notes)}</div>` : ''}
             </div>
             <div class="movie-actions">
                 <select class="movie-status-select" data-movie-id="${movieId}">
@@ -744,20 +742,19 @@ window.MovieTracker = (() => {
                         ${movie.poster ? `<img src='${movie.poster}' alt='${escapeHtml(movie.title)}' class='movie-details-poster'>` : ''}
                         <div class='movie-details-meta'>
                             <div class='movie-details-status' style="display: flex; align-items: center; gap: 10px;">
-                                <button class="movie-favorite-btn" data-movie-id="${movie.id}" title="Toggle Favorite" style="background:none;border:none;cursor:pointer;font-size:1.3em;vertical-align:middle;">${movie.isFavorite ? '❤️' : '🤍'}</button>
                                 <label for="modal-movie-status-select" style="margin-bottom:0;"><strong>Status:</strong></label>
                                 <select id="modal-movie-status-select" class="movie-status-select" style="margin-left:8px;">
                                     ${Object.entries(MOVIE_STATUSES).map(([status, config]) => 
                                         `<option value="${status}" ${movie.status === status ? 'selected' : ''}>${config.label}</option>`
                                     ).join('')}
                                 </select>
+                                <button class="movie-favorite-btn" data-movie-id="${movie.id}" title="Toggle Favorite" style="background:none;border:none;cursor:pointer;font-size:1.3em;vertical-align:middle;">${movie.isFavorite ? '❤️' : '🤍'}</button>
                             </div>
                             <div><strong>Rating:</strong> ${movie.rating ? '⭐ ' + movie.rating.toFixed(1) : 'N/A'}</div>
                             <div><strong>Genres:</strong> ${movie.genres || 'N/A'}</div>
                             <div><strong>Runtime:</strong> ${movie.runtime ? movie.runtime + ' min' : 'N/A'}</div>
                             <div><strong>Watched Date:</strong> ${movie.watchedDate ? new Date(movie.watchedDate).toLocaleDateString() : 'N/A'}</div>
-                            <div><strong>Personal Rating:</strong> ${movie.personalRating ? '★'.repeat(movie.personalRating) + '☆'.repeat(5 - movie.personalRating) : 'N/A'}</div>
-                            <div><strong>Notes:</strong> ${movie.notes ? escapeHtml(movie.notes) : 'None'}</div>
+                            <div><strong>Personal Rating:</strong> ${movie.personalRating ? '★'.repeat(movie.personalRating) + '☆'.repeat(5 - movie.personalRating) : 'N/A'}</div>                            
                         </div>
                         <div class='movie-details-overview'><strong>Overview:</strong><br>${escapeHtml(movie.overview || '')}</div>
                     </div>
