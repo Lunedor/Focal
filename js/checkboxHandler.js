@@ -1,5 +1,45 @@
 // --- CHECKBOX MANAGEMENT ---
 
+// Reorder list items in markdown source: unchecked first, checked last
+function reorderListCheckboxesInSource(lines) {
+  // Find all list blocks (ul/ol)
+  let inList = false;
+  let listStart = -1;
+  let result = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    // Detect start of a list item
+    if (/^[-*]\s*\[[xX ]\]/.test(line)) {
+      if (!inList) {
+        inList = true;
+        listStart = i;
+      }
+    } else if (inList && (!/^[-*]\s*\[[xX ]\]/.test(line) && line.trim() !== '')) {
+      // End of list block
+      // Process the block
+      const block = lines.slice(listStart, i);
+      const unchecked = block.filter(l => l.match(/^[-*]\s*\[ \]/));
+      const checked = block.filter(l => l.match(/^[-*]\s*\[[xX]\]/));
+      result = result.concat(unchecked, checked);
+      inList = false;
+      listStart = -1;
+      result.push(line);
+    } else if (!inList) {
+      result.push(line);
+    }
+    i++;
+  }
+  // If file ends with a list block
+  if (inList && listStart !== -1) {
+    const block = lines.slice(listStart, i);
+    const unchecked = block.filter(l => l.match(/^[-*]\s*\[ \]/));
+    const checked = block.filter(l => l.match(/^[-*]\s*\[[xX]\]/));
+    result = result.concat(unchecked, checked);
+  }
+  return result;
+}
+
 // Handle interactive checkbox clicks globally
 function setupCheckboxHandlers() {
     document.addEventListener('click', handleCheckboxClick);
@@ -36,16 +76,18 @@ function handleScheduledCheckbox(checkbox, dataKey, dataLineIndex) {
     lines[idx] = lines[idx].includes('[ ]')
         ? lines[idx].replace('[ ]', '[x]')
         : lines[idx].replace(/\[x\]/i, '[ ]');
-    
-    setStorage(dataKey, lines.join('\n'));
+
+    // Reorder list items in source
+    const newLines = reorderListCheckboxesInSource(lines);
+    setStorage(dataKey, newLines.join('\n'));
     debouncedSyncWithCloud();
-    
+
     if (typeof renderLibraryPage === 'function' && dataKey.startsWith('page-')) {
-        renderLibraryPage(dataKey.substring(5));
+      renderLibraryPage(dataKey.substring(5));
     } else if (dataKey.match(/^\d{4}-W\d{1,2}-/)) {
-        updatePlannerDay(dataKey);
+      updatePlannerDay(dataKey);
     } else {
-        renderApp();
+      renderApp();
     }
 }
 
@@ -63,37 +105,36 @@ function handleRegularCheckbox(checkbox) {
     const lines = fullText.split('\n');
     let checkboxCounter = -1;
     
-    const newLines = lines.map(line => {
-        // Check for both list checkboxes AND table checkboxes
-        const listCheckboxMatch = line.trim().match(/^[-*]\s*\[[x ]\]/i);
-        const tableCheckboxMatch = line.match(/\|[^|]*\[[x ]\][^|]*\|/i);
-        
-        if (listCheckboxMatch || tableCheckboxMatch) {
-            checkboxCounter++;
-            if (checkboxCounter === clickedIndex) {
-                if (listCheckboxMatch) {
-                    // Handle list checkbox
-                    return line.includes('[ ]') ? line.replace('[ ]', '[x]') : line.replace(/\[x\]/i, '[ ]');
-                } else if (tableCheckboxMatch) {
-                    // Handle table checkbox
-                    return line.includes('[ ]') ? line.replace('[ ]', '[x]') : line.replace(/\[x\]/i, '[ ]');
-                }
-            }
+  const toggledLines = lines.map(line => {
+    // Check for both list checkboxes AND table checkboxes
+    const listCheckboxMatch = line.trim().match(/^[-*]\s*\[[x ]\]/i);
+    const tableCheckboxMatch = line.match(/\|[^|]*\[[x ]\][^|]*\|/i);
+    if (listCheckboxMatch || tableCheckboxMatch) {
+      checkboxCounter++;
+      if (checkboxCounter === clickedIndex) {
+        if (listCheckboxMatch) {
+          // Handle list checkbox
+          return line.includes('[ ]') ? line.replace('[ ]', '[x]') : line.replace(/\[x\]/i, '[ ]');
+        } else if (tableCheckboxMatch) {
+          // Handle table checkbox
+          return line.includes('[ ]') ? line.replace('[ ]', '[x]') : line.replace(/\[x\]/i, '[ ]');
         }
-        return line;
-    });
-    
-    const newText = newLines.join('\n');
-    setStorage(key, newText);
-    debouncedSyncWithCloud();
-    
-    if (typeof renderLibraryPage === 'function' && key.startsWith('page-')) {
-        renderLibraryPage(key.substring(5));
-    } else if (key.match(/^\d{4}-W\d{1,2}-/)) {
-        updatePlannerDay(key);
-    } else {
-        wrapper.innerHTML = parseMarkdown(newText);
+      }
     }
+    return line;
+  });
+  // Reorder list items in source
+  const newLines = reorderListCheckboxesInSource(toggledLines);
+  const newText = newLines.join('\n');
+  setStorage(key, newText);
+  debouncedSyncWithCloud();
+  if (typeof renderLibraryPage === 'function' && key.startsWith('page-')) {
+    renderLibraryPage(key.substring(5));
+  } else if (key.match(/^\d{4}-W\d{1,2}-/)) {
+    updatePlannerDay(key);
+  } else {
+    wrapper.innerHTML = parseMarkdown(newText);
+  }
 }
 
 function findScheduledLineIndex(lines, text, normalizedDate) {

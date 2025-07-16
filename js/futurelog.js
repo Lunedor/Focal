@@ -23,7 +23,6 @@ const futurelogWidget = (() => {
     function initializeState() {
         // Restore user's "Show All" preference from localStorage
     const savedShowAll = getStorage(STORAGE_KEYS.SHOW_ALL_ITEMS);
-    console.log('[Futurelog] initializeState called');
         if (savedShowAll !== null) {
             state.showAllItems = savedShowAll === 'true';
         }
@@ -31,7 +30,6 @@ const futurelogWidget = (() => {
 
     function saveShowAllPreference() {
     setStorage(STORAGE_KEYS.SHOW_ALL_ITEMS, state.showAllItems.toString());
-    console.log('[Futurelog] saveShowAllPreference', state.showAllItems);
     }
 
     // --- DOM ELEMENTS ---
@@ -227,7 +225,6 @@ const futurelogWidget = (() => {
 
         // Get items to display - either just futurelog items or all items
     let itemsToDisplay = [...state.items];
-    console.log('[Futurelog] itemsToDisplay (initial):', itemsToDisplay);
         
         if (state.showAllItems) {
             // Add items from other journal pages
@@ -289,7 +286,6 @@ const futurelogWidget = (() => {
                         seenItems.add(itemKey);
                         itemsToDisplay.push(item);
                       }  const allItems = window.getAllScheduledItems();
-                            console.log('[Futurelog] getAllScheduledItems returned:', allItems);
                 });
             }
         }
@@ -1540,14 +1536,7 @@ const futurelogWidget = (() => {
     // --- MAIN APP LOGIC ---
     function init(initOptions) {
         const { placeholder, options: optionsStr, items, command, onCommandChange } = initOptions;
-        console.log('[Futurelog][init] placeholder:', placeholder);
-        if (placeholder) {
-            console.log('[Futurelog][init] placeholder.dataset:', placeholder.dataset);
-        }
-        console.log('[Futurelog][init] optionsStr:', optionsStr);
-        console.log('[Futurelog][init] items (raw):', items);
-        console.log('[Futurelog][init] command:', command);
-
+       
         // Initialize state and restore user preferences
         initializeState();
 
@@ -1557,8 +1546,7 @@ const futurelogWidget = (() => {
         // If command is undefined, try to get it from the placeholder dataset
         let actualCommand = command;
         if (!actualCommand && placeholder && placeholder.dataset.command) {
-            actualCommand = placeholder.dataset.command;
-            console.log('[Futurelog][init] actualCommand from placeholder.dataset.command:', actualCommand);
+            actualCommand = placeholder.dataset.command;    
         }
 
         // If still no command, construct it from the widget command and items
@@ -1573,9 +1561,7 @@ const futurelogWidget = (() => {
                     } else {
                         parsedItems = items || [];
                     }
-                    console.log('[Futurelog][init] parsedItems for command:', parsedItems);
                 } catch (e) {
-                    console.error('[Futurelog][init] Error parsing futurelog items for command:', e, items);
                     parsedItems = [];
                 }
                 // Convert items back to markdown format
@@ -1588,10 +1574,8 @@ const futurelogWidget = (() => {
                     return null;
                 }).filter(Boolean);
                 actualCommand = widgetCommand + '\n\n' + markdownItems.join('\n');
-                console.log('[Futurelog][init] actualCommand constructed:', actualCommand);
             } else {
                 actualCommand = widgetCommand;
-                console.log('[Futurelog][init] actualCommand default:', actualCommand);
             }
         }
 
@@ -1606,7 +1590,6 @@ const futurelogWidget = (() => {
         const parsedOptions = parseOptions(optionsStr);
         state.monthsToShow = parsedOptions.monthsToShow;
         state.options = optionsStr;
-        console.log('[Futurelog][init] parsedOptions:', parsedOptions);
 
         // Parse items (they come as JSON from the markdown extension)
         let parsedItems = [];
@@ -1616,14 +1599,11 @@ const futurelogWidget = (() => {
             } else {
                 parsedItems = items || [];
             }
-            console.log('[Futurelog][init] parsedItems for state:', parsedItems);
         } catch (e) {
-            console.error('[Futurelog][init] Error parsing futurelog items for state:', e, items);
             parsedItems = [];
         }
 
         state.items = parseItems(parsedItems);
-        console.log('[Futurelog][init] state.items after parseItems:', state.items);
         // Render the widget
         renderFutureLog();
     }
