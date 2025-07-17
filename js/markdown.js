@@ -92,7 +92,8 @@ marked.use({
     sleepExtension,
     booksExtension,
     moviesExtension,
-    habitsExtension
+    habitsExtension,
+    promptExtension
   ],
   gfm: true,
   breaks: true,

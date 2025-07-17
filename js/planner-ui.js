@@ -125,32 +125,40 @@ function renderWeeklyPlanner(scrollToToday = false) {
     const dayDate = dateFns.addDays(startOfWeek, index);
     const dayDateStr = dateFns.format(dayDate, 'yyyy-MM-dd');
 
+  // --- Do NOT inject prompt markdown into user content. Prompts will be rendered separately below. ---
+
     // --- Build scheduled/repeat items section using the helper function ---
     const scheduledBlock = buildScheduledItemsHtml(dayDateStr, allScheduled);
+    const promptBlock = buildPromptItemsHtml(dayDateStr);
 
+    // --- Parse user content ---
+    let parsed = parseMarkdown(content);
+    let parsedClean = `<div class="rendered-content">${parsed}</div>`;
+    if (typeof window !== 'undefined') {
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = parsedClean;
+      parsedClean = tempDiv.innerHTML;
+    }
+
+    // --- Always render promptBlock as a persistent section inside content-wrapper, with blockquote styling ---
+    let promptSection = '';
+    if (promptBlock) {
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = promptBlock;
+      const quotes = Array.from(tempDiv.querySelectorAll('.prompt-content')).map(q => `<blockquote>${q.innerHTML}</blockquote>`).join('');
+      promptSection = `<div class="prompt-section">${quotes}</div>`;
+    }
     const noteEl = document.createElement('div');
     noteEl.className = `planner-note ${box.class}`;
     noteEl.dataset.key = key;
     noteEl.dataset.istoday = isToday;
     const dateString = `<span>${dateFns.format(dayDate, 'd.M')}</span>`;
-    // Ensure all goal/task HTML is inside .content-wrapper for planner view only
-    // We use a temporary wrapper to extract only the .content-wrapper children
-    const parsed = parseMarkdown(content);
-    // Wrap the parsed content in a div with rendered-content class to ensure styling is applied
-    let parsedClean = `<div class="rendered-content">${parsed}</div>`;
-    if (typeof window !== 'undefined') {
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = parsedClean;
-      // Move any .goal-tracker that is a sibling, not a child, into the .content-wrapper
-      // (In practice, parseMarkdown should not do this, but this is a safe fix)
-      // For planner, we want all content as a single block
-      parsedClean = tempDiv.innerHTML;
-    }
     noteEl.innerHTML = `
       <div class="heading">${box.title} ${dateString}</div>
       <div class="content-wrapper" data-key="${key}">
         ${parsedClean}
         ${scheduledBlock}
+        ${promptSection}
       </div>
     `;
     DOM.plannerGrid.appendChild(noteEl);
@@ -289,6 +297,136 @@ function scrollToCurrentPlannerDay(smooth = true) {
     setTimeout(() => { isProgrammaticScroll = false; }, 700); // Reset flag after animation (longer)
   }
 }
+
+function buildPromptItemsHtml(dateStr) {
+  let html = '';
+  const todayStr = dateFns.format(new Date(), 'yyyy-MM-dd');
+  const dayDate = new Date(dateStr + 'T00:00:00');
+
+  // Get all prompt definitions from all pages in localStorage (keys starting with page-)
+  let allPrompts = [];
+  // Match until next PROMPT, double newline, or empty line
+  const promptRegex = window.PROMPT_REGEX;
+  Object.keys(localStorage).forEach(key => {
+    if (key.startsWith('page-')) {
+      const pageContent = localStorage.getItem(key) || '';
+      // Split by PROMPT blocks
+      const blocks = pageContent.split(/^(?=PROMPT)/m).filter(Boolean);
+      blocks.forEach(block => {
+        const promptMatch = block.match(/^PROMPT(?:\(([^)]*)\))?:\s*([\s\S]*)/i);
+        if (promptMatch) {
+          let attributesStr = promptMatch[1] || '';
+          // Capture all lines until next PROMPT, double newline, or empty line
+          let textLines = [];
+          const lines = promptMatch[2].split('\n');
+          for (let line of lines) {
+            if (/^PROMPT/.test(line) || line.trim() === '') break;
+            textLines.push(line);
+          }
+          let text = textLines.join('\n').trim();
+          let attributes = {};
+          if (attributesStr) {
+            attributesStr.split(',').forEach(part => {
+              const [key, value] = part.split(':').map(s => s.trim());
+              if (key && value) attributes[key] = value;
+            });
+          }
+          allPrompts.push({ text, attributes });
+        }
+      });
+    }
+  });
+
+  allPrompts.forEach(prompt => {
+    const text = prompt.text;
+    const attributes = prompt.attributes;
+    let show = false;
+    let debugReason = '';
+
+    // PROMPT: ... (no attributes): show only today
+    if (Object.keys(attributes).length === 0) {
+      if (dateStr === todayStr) {
+        show = true;
+        debugReason = 'No attributes, show only today.';
+      }
+    }
+    // PROMPT(show-on: YYYY-MM-DD): ...: show only on the matching date
+    else if (attributes['show-on']) {
+      if (attributes['show-on'] === dateStr) {
+        show = true;
+        debugReason = 'show-on matches date.';
+      }
+    }
+    // PROMPT(frequent: everyday): ...: show every day
+    else if (attributes['frequent']) {
+      if (attributes['frequent'] === 'everyday') {
+        show = true;
+        debugReason = 'frequent: everyday.';
+      } else if (attributes['frequent'].startsWith('every ')) {
+        // e.g. every monday
+        const weekday = attributes['frequent'].replace('every ', '').trim().toLowerCase();
+        // Accept both 'monday' and 'mon' (3-letter)
+        const dayNameFull = dateFns.format(dayDate, 'dddd').toLowerCase();
+        const dayNameShort = dateFns.format(dayDate, 'ddd').toLowerCase();
+        if (weekday === dayNameFull || weekday === dayNameShort) {
+          show = true;
+          debugReason = `frequent: ${weekday}, matches ${dayNameFull}/${dayNameShort}.`;
+        }
+      }
+    }
+    // PROMPT(mode: daily-sequential, start: YYYY-MM-DD): show the Nth item on the Nth day after start
+    else if (attributes['mode'] === 'daily-sequential' && attributes['start']) {
+      const startDate = new Date(attributes['start'] + 'T00:00:00');
+      const diffDays = Math.floor((dayDate - startDate) / (1000 * 60 * 60 * 24));
+      const items = text.split('\n').map(line => line.replace(/^[-*]\s*/, '').trim()).filter(Boolean);
+      if (diffDays >= 0 && diffDays < items.length) {
+        html += `<div class=\"prompt-widget\"><span class=\"prompt-icon\">❝</span><div class=\"prompt-content\">${parseMarkdown(items[diffDays])}</div></div>`;
+        console.log(`[PLANNER - PROMPT] Rendering daily-sequential item:`, items[diffDays], 'for date:', dateStr);
+      }
+      return;
+    }
+    // PROMPT(mode: daily-random): show a random item each day (same item for same day)
+    else if (attributes['mode'] === 'daily-random') {
+      const items = text.split('\n').map(line => line.replace(/^[-*]\s*/, '').trim()).filter(Boolean);
+      if (items.length > 0) {
+        // Seeded shuffle function (Fisher-Yates)
+        function mulberry32(a) {
+          return function() {
+            var t = a += 0x6D2B79F5;
+            t = Math.imul(t ^ t >>> 15, t | 1);
+            t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+            return ((t ^ t >>> 14) >>> 0) / 4294967296;
+          }
+        }
+        function seededShuffle(array, seed) {
+          let m = array.length, t, i;
+          let random = mulberry32(seed);
+          while (m) {
+            i = Math.floor(random() * m--);
+            t = array[m];
+            array[m] = array[i];
+            array[i] = t;
+          }
+          return array;
+        }
+        // Use dateStr as seed (convert to number)
+        let seed = 0;
+        for (let i = 0; i < dateStr.length; i++) seed += dateStr.charCodeAt(i);
+        const shuffled = seededShuffle([...items], seed);
+        html += `<div class=\"prompt-widget\"><span class=\"prompt-icon\">❝</span><div class=\"prompt-content\">${parseMarkdown(shuffled[0])}</div></div>`;
+        console.log(`[PLANNER - PROMPT] Rendering daily-random item:`, shuffled[0], 'for date:', dateStr);
+      }
+      return;
+    }
+
+    if (show) {
+      html += `<div class=\"prompt-widget\"><span class=\"prompt-icon\">❝</span><div class=\"prompt-content\">${parseMarkdown(text)}</div></div>`;
+      console.log(`[PLANNER - PROMPT] Rendering prompt:`, text, 'for date:', dateStr, debugReason);
+    }
+  });
+  return html ? `<div class=\"prompt-section\">${html}</div>` : '';
+}
+
 
 // Attach checkbox event logic to a contentWrapper for a given key and content
 function attachPlannerCheckboxHandler(contentWrapper, key, content) {
@@ -627,4 +765,3 @@ function attachPlannerCheckboxHandler(contentWrapper, key, content) {
     }
   });
 }
-

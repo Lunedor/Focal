@@ -58,6 +58,13 @@ function renderView() {
     renderLibraryPage(appState.currentView);
     if (DOM.libraryView) { DOM.libraryView.classList.add('active'); DOM.libraryView.classList.remove('hidden'); }
   }
+
+  // Initialize widgets after content is rendered
+  const renderedContent = document.querySelector('.rendered-content');
+  if (renderedContent) {
+    initializeWidgetsInContainer(renderedContent);
+  }
+
   updateSidebarActiveState();
 }
 

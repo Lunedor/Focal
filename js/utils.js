@@ -457,17 +457,6 @@ window.getNextRepeatOccurrence = function(rule, start, end) {
   return null; // Return null if no format matched or date is invalid
 };
 
-// utils.js
-// Modified REPEAT_REGEX to make the rule capture group greedy
-window.REPEAT_REGEX = /\(REPEAT:\s*([^)]+)\)/gi;
-window.scheduledRegex = new RegExp(
-  `^([-*]\\s*\\[([x ])\\]\\s*)?(.*?)\\(SCHEDULED:\\s*${window.DATE_REGEX_PATTERN}(?:\\s*(\\d{1,2}:\\d{2})(?:[- ](\\d{1,2}:\\d{2}))?)?\\)`,
-  'i'
-);
-
-
-// --- /js/utils.js ---
-
 // =================================================================================
 //  SHARED CONSTANTS (Single Source of Truth for Regex)
 // =================================================================================
@@ -498,7 +487,7 @@ window.NOTIFY_REGEX = new RegExp(
     'i'
 );
 
-
+window.PROMPT_REGEX = /^PROMPT(?:\(([^)]*)\))?:\s*([\s\S]*)/i;
 // =================================================================================
 //  CENTRALIZED DATE & RECURRENCE PARSING
 // =================================================================================
@@ -718,11 +707,9 @@ function getAllScheduledItems() {
         if (!scheduledItems.has(dateStr)) scheduledItems.set(dateStr, []);
         scheduledItems.get(dateStr).push({ ...baseItem, ...itemDetails });
       };
-      
-      const scheduleMatch = line.match(window.SCHEDULED_REGEX);
-      const notifyMatch = line.match(window.NOTIFY_REGEX);
-      const repeatMatches = [...line.matchAll(window.REPEAT_REGEX)];
 
+      // Scheduled items
+      const scheduleMatch = line.match(window.SCHEDULED_REGEX);
       if (scheduleMatch) {
         const date = parseDateString(scheduleMatch[4]);
         if (date) {
@@ -736,7 +723,9 @@ function getAllScheduledItems() {
           });
         }
       }
-      
+
+      // Repeat items
+      const repeatMatches = [...line.matchAll(window.REPEAT_REGEX)];
       if (repeatMatches.length > 0) {
         repeatMatches.forEach(repeatMatch => {
           const fullRepeatRule = repeatMatch[1];
@@ -745,46 +734,77 @@ function getAllScheduledItems() {
 
           const timeRegex = /\b(\d{1,2}:\d{2})(?:-(\d{1,2}:\d{2}))?\s*$/;
           const timeMatch = fullRepeatRule.match(timeRegex);
-          
+
           if (timeMatch) {
             startTime = timeMatch[1];
             endTime = timeMatch[2];
             if (!endTime && startTime) {
-                const start = dateFns.parse(startTime, 'HH:mm', new Date());
-                if (dateFns.isValid(start)) endTime = dateFns.format(dateFns.addHours(start, 1), 'HH:mm');
+              const start = dateFns.parse(startTime, 'HH:mm', new Date());
+              if (dateFns.isValid(start)) endTime = dateFns.format(dateFns.addHours(start, 1), 'HH:mm');
             }
             ruleForDateExpansion = fullRepeatRule.replace(timeRegex, '').trim();
           }
-          
-          // THE FIX: Pass the fullLine property to the expandRecurrence function
+
           const itemToExpand = { repeatRule: ruleForDateExpansion, fullLine: line };
           const occurrences = expandRecurrence(itemToExpand, { rangeStart, rangeEnd });
-          
+
           occurrences.forEach(occurrenceDate => {
-              const cleanText = line.replace(/\(SCHEDULED:[^)]+\)/gi, '').replace(/\(REPEAT:[^)]+\)/gi, '').replace(/^[-*]\s*\[[ x]\]\s*/, '').trim();
-              addItem(occurrenceDate, {
-                  text: cleanText,
-                  recurring: true,
-                  notify: false,
-                  recurringKey: itemToExpand.repeatRule,
-                  time: startTime,
-                  endTime: endTime,
-              });
+            const cleanText = line.replace(/\(SCHEDULED:[^)]+\)/gi, '').replace(/\(REPEAT:[^)]+\)/gi, '').replace(/^[-*]\s*\[[ x]\]\s*/, '').trim();
+            addItem(occurrenceDate, {
+              text: cleanText,
+              recurring: true,
+              notify: false,
+              recurringKey: itemToExpand.repeatRule,
+              time: startTime,
+              endTime: endTime,
+            });
           });
         });
       }
 
+      // Notify items
+      const notifyMatch = line.match(window.NOTIFY_REGEX);
       if (notifyMatch) {
-          const date = parseDateString(notifyMatch[2]);
-          if(date) {
-              addItem(date, {
-                  text: notifyMatch[1].trim(),
-                  time: notifyMatch[3] || null,
-                  recurring: false,
-                  notify: true,
-                  originalDate: notifyMatch[2]
-              });
-          }
+        const date = parseDateString(notifyMatch[2]);
+        if (date) {
+          addItem(date, {
+            text: notifyMatch[1].trim(),
+            time: notifyMatch[3] || null,
+            recurring: false,
+            notify: true,
+            originalDate: notifyMatch[2]
+          });
+        }
+      }
+
+      // PROMPT items (block-level, only if present at start of line)
+      const promptRegex = window.PROMPT_REGEX;
+      const promptMatch = line.match(promptRegex);
+      if (promptMatch) {
+        const attributesStr = promptMatch[1] || '';
+        const text = promptMatch[2].trim();
+        const attributes = {};
+        attributesStr.split(',').forEach(part => {
+          const [key, value] = part.split(':').map(s => s.trim());
+          if (key && value) attributes[key] = value;
+        });
+        // Map to date if show-on or frequent attribute is present
+        let mappedDates = [];
+        if (attributes['showon']) {
+          mappedDates = attributes['showon'].split(',').map(d => normalizeDateStringToYyyyMmDd(d.trim())).filter(Boolean);
+        } else if (attributes['frequent']) {
+          const nextDate = window.getNextRepeatOccurrence(attributes['frequent'], new Date(), new Date());
+          if (nextDate) mappedDates = [nextDate];
+        }
+        if (mappedDates.length === 0) {
+          // No date mapping, treat as undated prompt
+          addItem(new Date(), { text: `PROMPT: ${text}`, attributes });
+        } else {
+          mappedDates.forEach(dateStr => {
+            const date = parseDateString(dateStr);
+            if (date) addItem(date, { text: `PROMPT: ${text}`, attributes });
+          });
+        }
       }
     });
   }

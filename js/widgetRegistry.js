@@ -283,7 +283,7 @@ const widgetRegistry = {
   },
   // In js/widgetRegistry.js
 
-'goal': (placeholder, options) => {
+  'goal': (placeholder, options) => {
     const label = placeholder.dataset.label;
     const callCount = options.goalCount;
 
@@ -291,12 +291,12 @@ const widgetRegistry = {
     const attributesStr = placeholder.dataset.attributes;
     let attributes = {};
     try {
-        // Safely parse the JSON string back into an object
-        if (attributesStr) {
-            attributes = JSON.parse(attributesStr);
-        }
+      // Safely parse the JSON string back into an object
+      if (attributesStr) {
+        attributes = JSON.parse(attributesStr);
+      }
     } catch (e) {
-        console.error("Failed to parse goal attributes:", e);
+      console.error("Failed to parse goal attributes:", e);
     }
 
     const pageWrapper = placeholder.closest('[data-key]');
@@ -315,22 +315,22 @@ const widgetRegistry = {
 
     let goalHtml = '';
     if (!goalAnalysis) {
-        // This part now correctly displays the clean title
-        goalHtml = `<div class="goal-tracker basic">
+      // This part now correctly displays the clean title
+      goalHtml = `<div class="goal-tracker basic">
             <div class="goal-header">
                 <span class="goal-icon">🎯</span>
                 <span class="goal-title">${label}</span>
             </div>
         </div>`;
     } else {
-        const statusClass = goalAnalysis.status === 'completed' ? 'completed' :
-            goalAnalysis.status === 'deadline-passed' ? 'overdue' : 'in-progress';
-        const statusIcon = goalAnalysis.status === 'completed' ? '✅' :
-            goalAnalysis.status === 'deadline-passed' ? '⚠️' : '🎯';
-        
-        // This part now correctly displays the clean title for all goal types
-        // Your existing rendering logic for different goal types remains the same
-        goalHtml = `<div class="goal-tracker ${goalAnalysis.type} ${statusClass}">
+      const statusClass = goalAnalysis.status === 'completed' ? 'completed' :
+        goalAnalysis.status === 'deadline-passed' ? 'overdue' : 'in-progress';
+      const statusIcon = goalAnalysis.status === 'completed' ? '✅' :
+        goalAnalysis.status === 'deadline-passed' ? '⚠️' : '🎯';
+
+      // This part now correctly displays the clean title for all goal types
+      // Your existing rendering logic for different goal types remains the same
+      goalHtml = `<div class="goal-tracker ${goalAnalysis.type} ${statusClass}">
                       <div class="goal-header">
                         <span class="goal-icon">${statusIcon}</span>
                         <span class="goal-title">${label}</span>
@@ -345,8 +345,8 @@ const widgetRegistry = {
                     </div>`;
     }
     placeholder.outerHTML = goalHtml;
-},
-   // Register the books widget
+  },
+  // Register the books widget
   'books': (placeholder) => {
     if (typeof BookTracker !== 'undefined' && BookTracker.init) {
       const config = placeholder.dataset.config;
@@ -364,7 +364,7 @@ const widgetRegistry = {
         setStorage(currentPageKey, updatedContent);
         placeholder.dataset.command = newCommand;
         if (typeof debouncedSyncWithCloud === 'function') debouncedSyncWithCloud();
-        
+
         // Re-render the page to show updated widget
         if (currentPageKey.startsWith('page-')) {
           // Instead of re-rendering the entire page, just update the content
@@ -380,12 +380,12 @@ const widgetRegistry = {
           }
         }
       };
-      
+
       // Call with standardized options object
-      BookTracker.init({ 
-        placeholder, 
-        config, 
-        onCommandChange 
+      BookTracker.init({
+        placeholder,
+        config,
+        onCommandChange
       });
     } else {
       placeholder.innerHTML = '<div class="widget-error">BookTracker not loaded</div>';
@@ -409,7 +409,7 @@ const widgetRegistry = {
         setStorage(currentPageKey, updatedContent);
         placeholder.dataset.command = newCommand;
         if (typeof debouncedSyncWithCloud === 'function') debouncedSyncWithCloud();
-        
+
         // Re-render the page to show updated widget
         if (currentPageKey.startsWith('page-')) {
           // Instead of re-rendering the entire page, just update the content
@@ -425,12 +425,12 @@ const widgetRegistry = {
           }
         }
       };
-      
+
       // Call with standardized options object
-      MovieTracker.init({ 
-        placeholder, 
-        config, 
-        onCommandChange 
+      MovieTracker.init({
+        placeholder,
+        config,
+        onCommandChange
       });
     } else {
       placeholder.innerHTML = '<div class="widget-error">MovieTracker not loaded</div>';
@@ -458,7 +458,7 @@ const widgetRegistry = {
         setStorage(currentPageKey, updatedContent);
         placeholder.dataset.command = newCommand;
         if (typeof debouncedSyncWithCloud === 'function') debouncedSyncWithCloud();
-        
+
         // Re-render the page to show updated widget
         if (currentPageKey.startsWith('page-')) {
           // Instead of re-rendering the entire page, just update the content
@@ -474,14 +474,14 @@ const widgetRegistry = {
           }
         }
       };
-      
+
       // Call with standardized options object
-      futurelogWidget.init({ 
-        placeholder, 
-        options, 
-        items, 
+      futurelogWidget.init({
+        placeholder,
+        options,
+        items,
         command,
-        onCommandChange 
+        onCommandChange
       });
     } else {
       placeholder.innerHTML = '<div class="widget-error">FutureLog widget not loaded</div>';
@@ -491,8 +491,8 @@ const widgetRegistry = {
   'habits': (placeholder) => {
     if (typeof HabitTracker !== 'undefined' && HabitTracker.init) {
       const config = placeholder.dataset.config || 'today';
-      
-      
+
+
       const onCommandChange = (newCommand) => {
         const pageWrapper = placeholder.closest('[data-key]');
         const currentPageKey = pageWrapper ? pageWrapper.dataset.key : null;
@@ -507,7 +507,7 @@ const widgetRegistry = {
         setStorage(currentPageKey, updatedContent);
         placeholder.dataset.config = newCommand.replace('HABITS:', '').trim();
         if (typeof debouncedSyncWithCloud === 'function') debouncedSyncWithCloud();
-        
+
         // Re-render the page to show updated widget
         if (currentPageKey.startsWith('page-')) {
           // Instead of re-rendering the entire page, just update the content
@@ -523,59 +523,155 @@ const widgetRegistry = {
           }
         }
       };
-      
+
       // Always call the habit tracker init - let it handle re-initialization logic
-      HabitTracker.init({ 
-        placeholder, 
+      HabitTracker.init({
+        placeholder,
         command: `HABITS: ${config}`,
-        onCommandChange 
+        onCommandChange
       });
     } else {
-      
+
       placeholder.innerHTML = '<div class="widget-error">HabitTracker not loaded</div>';
+    }
+  },
+
+   'prompt': (placeholder) => {
+        // 1. PREVENT RENDERING IN UNWANTED CONTEXTS
+        const inFutureLog = placeholder.closest('.futurelog-widget-container');
+        const inMonthlyView = placeholder.closest('.monthly-calendar-day');
+        console.log('[PROMPT WIDGET] In FutureLog:', !!inFutureLog, 'In MonthlyView:', !!inMonthlyView);
+        if (inFutureLog || inMonthlyView) {
+          placeholder.remove();
+          return;
+        }
+
+        // 2. PARSE DATA FROM PLACEHOLDER
+        const text = unescape(placeholder.dataset.text);
+        const configStr = placeholder.dataset.config;
+        console.log('[PROMPT WIDGET] Config string:', configStr);
+
+        // Parse attributes from the config string (e.g., "prompt, frequent: everyday, start: 2024-01-01")
+    const attributes = {};
+    if (configStr && configStr.includes(',')) {
+      configStr.split(',').slice(1).forEach(part => {
+        const [key, value] = part.trim().split(':').map(s => s.trim());
+        if (key && value) {
+          attributes[key] = value;
+        }
+      });
+    }
+    console.log('[PROMPT WIDGET] Parsed attributes:', attributes);
+
+    // 3. GET THE DATE CONTEXT OF THE VIEW
+    const dayWrapper = placeholder.closest('[data-date]');
+    console.log('[PROMPT WIDGET] dayWrapper:', dayWrapper);
+    if (!dayWrapper) {
+      // On a regular page, render all prompts as widgets, regardless of attributes
+      renderPrompt(placeholder, text);
+      return;
+    }
+    const viewDate = new Date(dayWrapper.dataset.date + 'T00:00:00');
+    console.log('[PROMPT WIDGET] viewDate:', viewDate);
+
+    // 4. DECIDE VISIBILITY AND RENDER
+    if (checkPromptVisibility(attributes, viewDate)) {
+      console.log('[PROMPT WIDGET] Visibility check passed. Rendering prompt.');
+      const contentToShow = getPromptContent(attributes, text, viewDate);
+      renderPrompt(placeholder, contentToShow);
+    } else {
+      console.log('[PROMPT WIDGET] Visibility check failed. Removing prompt.');
+      placeholder.remove();
     }
   },
 };
 
+/** Renders the final HTML for the prompt widget. */
+function renderPrompt(placeholder, content) {
+  if (!content) {
+    placeholder.remove();
+    return;
+  }
+  const finalHtml = parseMarkdown(content);
+  const promptWidget = document.createElement('div');
+  promptWidget.className = 'prompt-widget';
+  promptWidget.innerHTML = `<span class="prompt-icon">❝</span><div class="prompt-content">${finalHtml}</div>`;
+  placeholder.replaceWith(promptWidget);
+}
+
+
+
+/** Checks if a prompt should be visible on a specific date. */
+function checkPromptVisibility(attributes, viewDate) {
+  if (Object.keys(attributes).length === 0) return true;
+
+  if (attributes['show-on']) {
+    const showOnDate = new Date(attributes['show-on'] + 'T00:00:00');
+    return dateFns.isSameDay(viewDate, showOnDate);
+  }
+  console.log('[PROMPT WIDGET] Checking frequent attribute');
+  if (attributes['frequent']) {
+    const occurrences = window.expandRecurrence({ repeatRule: attributes['frequent'] }, { rangeStart: viewDate, rangeEnd: viewDate });
+    console.log('[PROMPT WIDGET] Frequent occurrences:', occurrences);
+    return occurrences.length > 0;
+  }
+  console.log('[PROMPT WIDGET] Checking mode attribute');
+  if (attributes['mode']) return true;
+  console.log('[PROMPT WIDGET] No attributes matching specific rules');
+
+  return false;
+}
+
+/** Gets the correct content for the prompt, especially for list-based modes. */
+function getPromptContent(attributes, rawText, viewDate) {
+  if (!attributes.mode || !rawText.startsWith('-')) return rawText;
+  const items = rawText.split('\n').map(line => line.replace(/^-\s*/, '').trim()).filter(Boolean);
+  if (items.length === 0) return '';
+
+  if (attributes.mode === 'daily-sequential') {
+    const startDate = new Date((attributes.start || new Date().toISOString().split('T')[0]) + 'T00:00:00');
+    const daysDiff = dateFns.differenceInCalendarDays(viewDate, startDate);
+    return daysDiff >= 0 ? items[daysDiff % items.length] : '';
+  }
+  if (attributes.mode === 'daily-random') {
+    const dateSeed = viewDate.toISOString().split('T')[0];
+    let hash = Array.from(dateSeed).reduce((hash, char) => (hash << 5) - hash + char.charCodeAt(0), 0);
+    return items[Math.abs(hash) % items.length];
+  }
+  return rawText;
+}
+
+
 function initializeWidgetsInContainer(container) {
-  
-  
+
   const goalCallCounts = {}; // Counter for goals with the same label on one page
   const placeholders = container.querySelectorAll('.widget-placeholder:not(.widget-initialized)');
-  
-  
-  
+
   // Track processed placeholders by their unique combination of type and command
   const processedPlaceholders = new Set();
-  
+
   placeholders.forEach((placeholder, index) => {
-    
-    
-    
     const widgetType = placeholder.dataset.widgetType;
     let command = '';
-    
+
     // Different widgets store their command data differently
     if (widgetType === 'habits') {
       command = placeholder.dataset.config || 'today';
-      
     } else {
       command = placeholder.dataset.command || '';
-      
     }
-    
+
     // Create a unique key for this placeholder
     const placeholderKey = `${widgetType}-${command}-${placeholder.outerHTML}`;
-    
+
     // Skip if we've already processed an identical placeholder
     if (processedPlaceholders.has(placeholderKey)) {
-      
       placeholder.remove(); // Remove the duplicate
       return;
     }
-    
+
     processedPlaceholders.add(placeholderKey);
-    
+
     const options = {};
 
     // Special handling for goals to count occurrences
@@ -586,19 +682,18 @@ function initializeWidgetsInContainer(container) {
     }
 
     if (widgetRegistry[widgetType]) {
-      
-      
       // For habits widgets, don't mark as initialized here - let the widget handle it
       if (widgetType !== 'habits') {
         // Mark this placeholder as initialized before calling the widget
         placeholder.classList.add('widget-initialized');
       }
-      
+
       // A more generic way to pass data from the placeholder to the init function
       const initFn = widgetRegistry[widgetType];
       initFn(placeholder, options);
     } else {
-      
+      console.warn(`No widget registered for type: ${widgetType}`);
+      placeholder.outerHTML = `<div class="widget-error">Widget type "${widgetType}" not supported.</div>`;
     }
   });
 }

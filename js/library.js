@@ -66,7 +66,7 @@ function findBacklinks(targetTitle) {
           backlinks.push({ sourceTitle, snippet, plannerKey });
         }
         // --- Backlink for scheduled tasks ---
-        const scheduledRegex = window.scheduledRegex
+        const scheduledRegex = window.SCHEDULED_REGEX;
         if (scheduledRegex.test(line) && wikiLinkRegex.test(line)) {
           // For planner keys, show a nice date
           let sourceTitle, plannerKey = null;

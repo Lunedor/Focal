@@ -20,7 +20,6 @@ const wikiLinkExtension = {
   }
 };
 
-// First, let's modify the tableCheckboxExtension to generate truly unique IDs
 const tableCheckboxExtension = {
   name: 'tableCheckbox',
   level: 'inline',
@@ -57,6 +56,48 @@ const tableCheckboxExtension = {
     // Preserve the prefix in the rendered output if it exists
     return `${token.prefix || ''}<input type="checkbox" id="${id}" class="table-checkbox" ${token.checked ? 'checked' : ''}>`;
   }
+};
+
+const promptExtension = {
+  name: 'prompt',
+  level: 'block',
+  start(src) {
+    // Match PROMPT: or PROMPT(attr: val,...): at start of line
+    return src.match(/^PROMPT(:|\([^)]*\):)/i)?.index;
+  },
+  tokenizer(src, tokens) {
+    // Match PROMPT with optional attributes and block content
+    const rule = /^PROMPT(?:\(([^)]*)\))?:\s*([\s\S]*?)(?=\n{2,}|$)/i;
+    const match = rule.exec(src);
+    if (match) {
+      const raw = match[0];
+      const attributesStr = match[1] || '';
+      const text = match[2].trim();
+      let config = 'prompt';
+      if (attributesStr) {
+        config += ',' + attributesStr;
+      }
+      return {
+        type: 'prompt',
+        raw,
+        config,
+        text,
+      };
+    }
+    return false;
+  },
+  renderer(token) {
+    // Parse attributes from config for planner filtering
+    let attributesObj = {};
+    if (token.config && token.config.includes(',')) {
+      token.config.split(',').slice(1).forEach(part => {
+        const [key, value] = part.trim().split(':').map(s => s.trim());
+        if (key && value) attributesObj[key] = value;
+      });
+    }
+    const attributesStr = JSON.stringify(attributesObj);
+    return `<div class="widget-placeholder prompt-placeholder" data-widget-type="prompt" data-config='${token.config}' data-text='${escape(token.text)}' data-attributes='${attributesStr}' data-show-on='${attributesObj.showon || ''}'></div>`;
+  },
 };
 
 const goalExtension = {

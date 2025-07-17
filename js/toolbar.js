@@ -130,6 +130,7 @@ const EditModeManager = {
                 { icon: 'list', action: 'tasks', title: 'Insert TASKS:', md: { prefix: 'TASKS:\n' } },
                 { icon: 'target', action: 'goal', title: 'Insert GOAL:', md: { prefix: 'GOAL: ' } },
                 { icon: 'bar-chart-2', action: 'progress', title: 'Insert PROGRESS: []', md: { prefix: 'PROGRESS: [', suffix: ']' } },
+                { icon: 'message-square', action: 'prompt', title: 'Insert Prompt', md: { prefix: 'PROMPT: ' } },
                 { separator: true },
                 { icon: 'clock', action: 'scheduled', title: 'Insert (SCHEDULED: )', md: { prefix: '(SCHEDULED: ', suffix: ')' } },
                 { icon: 'repeat', action: 'repeat', title: 'Insert (REPEAT: )', md: { prefix: '(REPEAT: ', suffix: ')' } },

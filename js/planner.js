@@ -296,8 +296,18 @@ function updatePlannerDay(key) {
   content = content.replace(/\n?\*\*Scheduled Items\*\*[\s\S]*?(?=\n{2,}|$)/, '').trim();
 
   const scheduledBlock = buildScheduledItemsHtml(dayDateStr, allScheduled);
+  const promptBlock = buildPromptItemsHtml(dayDateStr);
   const parsed = parseMarkdown(content);
   let parsedClean = `<div class="rendered-content">${parsed}</div>`;
+
+  let promptSection = '';
+  if (promptBlock) {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = promptBlock;
+    // This logic is from your renderWeeklyPlanner, reuse it for consistency
+    const quotes = Array.from(tempDiv.querySelectorAll('.prompt-content')).map(q => `<blockquote>${q.innerHTML}</blockquote>`).join('');
+    promptSection = `<div class="prompt-section">${quotes}</div>`;
+  }
 
   const oldHtml = noteEl.innerHTML;
   const newHtml = `
@@ -305,6 +315,7 @@ function updatePlannerDay(key) {
     <div class="content-wrapper" data-key="${key}">
       ${parsedClean}
       ${scheduledBlock}
+      ${promptSection}
     </div>
   `;
 
