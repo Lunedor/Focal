@@ -225,6 +225,47 @@ TASKS: Q3 Project Delivery
 - [x] User testing
 - [ ] Final deployment
 
+---
+
+### 🔥 Calorie Tracker (CALORIE:)
+CALORIE: summary, kcal, this-week
+CALORIE: chart, kcal, this-month
+
+---
+
+### 🏋️‍♂️ Workouts Tracker (WORKOUTS:)
+WORKOUTS: summary, this-week
+WORKOUTS: chart, this-month
+
+---
+
+### 😴 Sleep Tracker (SLEEP:)
+SLEEP: summary, this-week
+SLEEP: chart, this-month
+
+---
+
+### 💡 Prompt Widget (PROMPT:)
+
+PROMPT: What are you grateful for today?
+
+# PROMPT Modes:
+# - mode: daily-sequential — shows one item per day, in order
+# - mode: daily-random — shows a random item from the list each day
+# - show-on: YYYY-MM-DD — restricts prompt to a specific date
+
+PROMPT(show-on: YYYY-MM-DD): - What is your main focus today?
+
+PROMPT(mode: daily-sequential, start: YYYY-MM-DD):
+- What is your main focus?
+- What will you do for self-care?
+
+PROMPT(mode: daily-random):
+- What's one thing you learned today?
+- What made you smile?
+- What challenge did you overcome?
+
+---
 
 ### 💪 Habit Tracker (HABITS:)
 A comprehensive system for tracking your habits.

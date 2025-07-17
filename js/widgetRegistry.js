@@ -595,7 +595,7 @@ function renderPrompt(placeholder, content) {
   const finalHtml = parseMarkdown(content);
   const promptWidget = document.createElement('div');
   promptWidget.className = 'prompt-widget';
-  promptWidget.innerHTML = `<span class="prompt-icon">❝</span><div class="prompt-content">${finalHtml}</div>`;
+  promptWidget.innerHTML = `<span class="prompt-icon">❝</span><div class="prompt-content">${finalHtml}</div><span class=\"prompt-icon\">❞</span>`;
   placeholder.replaceWith(promptWidget);
 }
 
