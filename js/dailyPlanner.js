@@ -67,8 +67,6 @@ function renderDailyPlanner(scrollToToday = false) {
     const nextDayBtn = document.getElementById('planner-next-day-btn');
     const todayBtn = document.getElementById('planner-today-btn');
     const datePickerBtn = document.getElementById('planner-date-picker-btn');
-    const dateMain = document.getElementById('planner-date-main');
-    const dateInfo = document.getElementById('planner-date-info');
 
     function setPlannerDate(newDate) {
       appState.currentDate = newDate;
@@ -168,10 +166,99 @@ function renderDailyPlanner(scrollToToday = false) {
     // --- Render main content based on mode ---
     const mainContent = document.getElementById('daily-main-content');
     if (mode === 'hourly') {
-        let html = `<table class="hourly-table app-table">
+        // Render PROMPTs above the table, formatted as blockquote, using block-based parsing
+        let html = '';
+        let allPrompts = [];
+        // Get full page content for today
+        let pageKey = itemsForToday.length > 0 ? itemsForToday[0].pageKey : null;
+        let pageContent = pageKey ? getStorage(pageKey) : '';
+        if (pageContent) {
+            // Split by PROMPT blocks
+            const blocks = pageContent.split(/^(?=PROMPT)/m).filter(Boolean);
+            blocks.forEach(block => {
+                const promptMatch = block.match(/^PROMPT(?:\(([^)]*)\))?:\s*([\s\S]*)/i);
+                if (promptMatch) {
+                    let attributesStr = promptMatch[1] || '';
+                    // Capture all lines until next PROMPT, double newline, or empty line
+                    let textLines = [];
+                    const lines = promptMatch[2].split('\n');
+                    for (let line of lines) {
+                        if (/^PROMPT/.test(line) || line.trim() === '') break;
+                        textLines.push(line);
+                    }
+                    let text = textLines.join('\n').trim();
+                    let attributes = {};
+                    if (attributesStr) {
+                        attributesStr.split(',').forEach(part => {
+                            const [key, value] = part.split(':').map(s => s.trim());
+                            if (key && value) attributes[key] = value;
+                        });
+                    }
+                    allPrompts.push({ text, attributes });
+                }
+            });
+        }
+        if (allPrompts.length > 0) {
+            html += `<div id="daily-prompts-section">`;
+            allPrompts.forEach(item => {
+                let promptText = item.text;
+                let showBlock = true;
+                // Handle daily-sequential mode
+                if (item.attributes && item.attributes.mode === 'daily-sequential') {
+                    let items = promptText.split(/\r?\n/).map(line => line.replace(/^[-*]\s*/, '').trim()).filter(line => line.length > 0);
+                    let startDateStr = item.attributes.start || dateFns.format(today, 'yyyy-MM-dd');
+                    let startDate = new Date(startDateStr + 'T00:00:00');
+                    let diffDays = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+                    if (diffDays >= 0 && diffDays < items.length) {
+                        promptText = items[diffDays];
+                    } else {
+                        showBlock = false;
+                    }
+                }
+                // Handle daily-random mode
+                if (item.attributes && item.attributes.mode === 'daily-random') {
+                    let items = promptText.split(/\r?\n/).map(line => line.replace(/^[-*]\s*/, '').trim()).filter(line => line.length > 0);
+                    if (items.length > 0) {
+                        // Seeded shuffle function (Fisher-Yates)
+                        function mulberry32(a) {
+                            return function() {
+                                var t = a += 0x6D2B79F5;
+                                t = Math.imul(t ^ t >>> 15, t | 1);
+                                t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+                                return ((t ^ t >>> 14) >>> 0) / 4294967296;
+                            }
+                        }
+                        function seededShuffle(array, seed) {
+                            let m = array.length, t, i;
+                            let random = mulberry32(seed);
+                            while (m) {
+                                i = Math.floor(random() * m--);
+                                t = array[m];
+                                array[m] = array[i];
+                                array[i] = t;
+                            }
+                            return array;
+                        }
+                        // Use todayDateStr as seed (convert to number)
+                        let seed = 0;
+                        for (let i = 0; i < todayDateStr.length; i++) seed += todayDateStr.charCodeAt(i);
+                        const shuffled = seededShuffle([...items], seed);
+                        promptText = shuffled[0];
+                    } else {
+                        showBlock = false;
+                    }
+                }
+                // Only render blockquote if promptText is non-empty and showBlock is true
+                if (showBlock && promptText) {
+                    html += `<blockquote class="prompt-blockquote"><span class="prompt-icon">❝</span> ${promptText} <span class="prompt-icon">❞</span></blockquote>`;
+                }
+            });
+            html += `</div>`;
+        }
+        html += `<table class="hourly-table app-table">
       <thead><tr><th class="hour-col">Time</th><th class="task-col">Task</th><th class="status-col">Status</th></tr></thead><tbody>`;
 
-        const allDayTasks = itemsForToday.filter(item => !item.time);
+        allDayTasks = itemsForToday.filter(item => !item.time && !/^PROMPT:?/i.test(item.text)); if (allDayTasks.length > 0) 
         if (allDayTasks.length > 0) {
             html += `<tr class="hour-row all-day-row"><td class="hour-label">All Day</td><td class="task-cell">`;
             html += allDayTasks.map((item) => {

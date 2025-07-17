@@ -313,9 +313,10 @@ function updatePlannerDay(key) {
   const newHtml = `
     <div class="heading">${box.title} <span>${dateFns.format(dayDate, 'd.M')}</span></div>
     <div class="content-wrapper" data-key="${key}">
-      ${parsedClean}
-      ${scheduledBlock}
       ${promptSection}
+    ${parsedClean}
+      ${scheduledBlock}
+      
     </div>
   `;
 

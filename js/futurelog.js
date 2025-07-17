@@ -224,7 +224,7 @@ const futurelogWidget = (() => {
         }
 
         // Get items to display - either just futurelog items or all items
-    let itemsToDisplay = [...state.items];
+    let itemsToDisplay = [...state.items].filter(item => !/^PROMPT/i.test(item.text));
         
         if (state.showAllItems) {
             // Add items from other journal pages
@@ -282,10 +282,10 @@ const futurelogWidget = (() => {
                     const cleanText = item.text.replace(/^[🔁☐☑\s\[\]x-]+/, '').trim();
                     const itemKey = `${dateFns.format(item.date, 'yyyy-MM-dd')}-${cleanText}`;
                     
-                    if (!seenItems.has(itemKey)) {
+                    if (!seenItems.has(itemKey) && !/^PROMPT/i.test(item.text)) {
                         seenItems.add(itemKey);
                         itemsToDisplay.push(item);
-                      }  const allItems = window.getAllScheduledItems();
+                    }
                 });
             }
         }

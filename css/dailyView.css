@@ -421,3 +421,7 @@ th.hour-col, th.status-col {
         text-align: left;
     }
 }
+
+blockquote.prompt-blockquote {
+    max-width: 900px;
+}

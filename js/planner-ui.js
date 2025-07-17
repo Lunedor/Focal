@@ -125,8 +125,6 @@ function renderWeeklyPlanner(scrollToToday = false) {
     const dayDate = dateFns.addDays(startOfWeek, index);
     const dayDateStr = dateFns.format(dayDate, 'yyyy-MM-dd');
 
-  // --- Do NOT inject prompt markdown into user content. Prompts will be rendered separately below. ---
-
     // --- Build scheduled/repeat items section using the helper function ---
     const scheduledBlock = buildScheduledItemsHtml(dayDateStr, allScheduled);
     const promptBlock = buildPromptItemsHtml(dayDateStr);
@@ -145,7 +143,7 @@ function renderWeeklyPlanner(scrollToToday = false) {
     if (promptBlock) {
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = promptBlock;
-      const quotes = Array.from(tempDiv.querySelectorAll('.prompt-content')).map(q => `<blockquote>${q.innerHTML}</blockquote>`).join('');
+      const quotes = Array.from(tempDiv.querySelectorAll('.prompt-content')).map(q => `<blockquote><span class="prompt-icon">❝</span> ${q.innerHTML} <span class="prompt-icon">❞</span></blockquote>`).join('');
       promptSection = `<div class="prompt-section">${quotes}</div>`;
     }
     const noteEl = document.createElement('div');
@@ -156,9 +154,9 @@ function renderWeeklyPlanner(scrollToToday = false) {
     noteEl.innerHTML = `
       <div class="heading">${box.title} ${dateString}</div>
       <div class="content-wrapper" data-key="${key}">
-        ${parsedClean}
-        ${scheduledBlock}
-        ${promptSection}
+       ${promptSection}
+       ${parsedClean}
+       ${scheduledBlock}
       </div>
     `;
     DOM.plannerGrid.appendChild(noteEl);
@@ -384,11 +382,8 @@ function buildPromptItemsHtml(dateStr) {
       const diffDays = Math.floor((dayDate - startDate) / (1000 * 60 * 60 * 24));
       const items = text.split('\n').map(line => line.replace(/^[-*]\s*/, '').trim()).filter(Boolean);
       if (diffDays >= 0 && diffDays < items.length) {
-        console.log(`[PROMPT-DEBUG] [daily-sequential] start: ${startStr}, date: ${dateStr}, diffDays: ${diffDays}, item: ${items[diffDays]}`);
-        html += `<div class=\"prompt-widget\"><span class=\"prompt-icon\">❝</span><div class=\"prompt-content\">${parseMarkdown(items[diffDays])}</div><span class=\"prompt-icon\">❞</span></div>`;
-      } else {
-        console.log(`[PROMPT-DEBUG] [daily-sequential] start: ${startStr}, date: ${dateStr}, diffDays: ${diffDays}, no item to show.`);
-      }
+  html += `<div class=\"prompt-widget\"><div class=\"prompt-content\">${items[diffDays]}</div></div>`;
+      } 
       return;
     }
     // PROMPT(mode: daily-random): show a random item each day (same item for same day)
@@ -419,20 +414,16 @@ function buildPromptItemsHtml(dateStr) {
         let seed = 0;
         for (let i = 0; i < dateStr.length; i++) seed += dateStr.charCodeAt(i);
         const shuffled = seededShuffle([...items], seed);
-        console.log(`[PROMPT-DEBUG] [daily-random] date: ${dateStr}, seed: ${seed}, item: ${shuffled[0]}`);
-        html += `<div class=\"prompt-widget\"><span class=\"prompt-icon\">❝</span><div class=\"prompt-content\">${parseMarkdown(shuffled[0])}</div><span class=\"prompt-icon\">❞</span></div>`;
-      } else {
-        console.log(`[PROMPT-DEBUG] [daily-random] date: ${dateStr}, no items to show.`);
+  html += `<div class=\"prompt-widget\"><div class=\"prompt-content\">${shuffled[0]}</div></div>`;
       }
       return;
     }
 
     if (show) {
-      console.log(`[PROMPT-DEBUG] [simple] date: ${dateStr}, reason: ${debugReason}, text: ${text}`);
-      html += `<div class=\"prompt-widget\"><span class=\"prompt-icon\">❝</span><div class=\"prompt-content\">${parseMarkdown(text)}</div><span class=\"prompt-icon\">❞</span></div>`;
+  html += `<div class=\"prompt-widget\"><div class=\"prompt-content\">${text}</div></div>`;
     }
   });
-  return html ? `<div class=\"prompt-section\">${html}</div>` : '';
+  return todayStr === dateStr && html ? `<div class=\"prompt-section\">${html}</div>` : '';
 }
 
 

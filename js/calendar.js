@@ -70,7 +70,9 @@ function renderMonthlyCalendar(date) {
     dayEl.innerHTML = `<div class="day-number">${dateFns.format(day, 'd')}</div>`;
 
     // --- NEW: Add event indicators and tooltip data ---
-    const itemsForDay = allScheduled.get(dayDateStr) || [];
+  let itemsForDay = allScheduled.get(dayDateStr) || [];
+  // Exclude PROMPT widgets
+  itemsForDay = itemsForDay.filter(item => !/^PROMPT/i.test(item.text));
 
     if (itemsForDay.length > 0) {
         // Determine event type for styling
