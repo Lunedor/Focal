@@ -305,7 +305,7 @@ function renderDailyPlanner(scrollToToday = false) {
         }
 
         const renderedTaskRows = new Set();
-        for (let hour = startHour; hour < endHour; hour++) {
+        for (let hour = startHour; hour <= endHour; hour++) {
             const hourStart = hour * 60;
             const hourEnd = (hour + 1) * 60;
             let foundTask = null;
