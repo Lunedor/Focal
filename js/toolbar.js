@@ -129,13 +129,12 @@ const EditModeManager = {
                 { separator: true },
                 { icon: 'list', action: 'tasks', title: 'Insert TASKS:', md: { prefix: 'TASKS:\n' } },
                 { icon: 'target', action: 'goal', title: 'Insert GOAL:', md: { prefix: 'GOAL: ' } },
-                { icon: 'bar-chart-2', action: 'progress', title: 'Insert PROGRESS: []', md: { prefix: 'PROGRESS: [', suffix: ']' } },
+                { icon: 'percent', action: 'progress', title: 'Insert PROGRESS: []', md: { prefix: 'PROGRESS: [', suffix: ']' } },
                 { icon: 'message-square', action: 'prompt', title: 'Insert Prompt', md: { prefix: 'PROMPT: ' } },
                 { separator: true },
                 { icon: 'clock', action: 'scheduled', title: 'Insert (SCHEDULED: )', md: { prefix: '(SCHEDULED: ', suffix: ')' } },
                 { icon: 'repeat', action: 'repeat', title: 'Insert (REPEAT: )', md: { prefix: '(REPEAT: ', suffix: ')' } },
                 { icon: 'bell', action: 'notify', title: 'Insert (NOTIFY: )', md: { prefix: '(NOTIFY: ', suffix: ')' } },
-                { separator: true },
                 { icon: 'calendar', action: 'custom-date', title: 'Insert Date/Time', md: null },
                 { separator: true },
                 { icon: 'bookmark', action: 'futurelog', title: 'Insert Future Log', md: null },
@@ -152,8 +151,8 @@ const EditModeManager = {
         }
 
         // Split buttons into two rows
-        const row1 = buttons.slice(0, 13);
-        const row2 = buttons.slice(13);
+        const row1 = buttons.slice(0, 15);
+        const row2 = buttons.slice(15);
 
         function renderRow(row) {
             return `<div class="toolbar-row">` +

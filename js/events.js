@@ -7,6 +7,4 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeEventHandlers();      // Mobile sidebar, gestures, general events
     initializeNavigation();         // All navigation handlers
     initializeCheckboxHandlers();   // Checkbox management
-    
-    
 });
