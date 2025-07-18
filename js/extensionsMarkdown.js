@@ -1,4 +1,47 @@
 // --- MARKDOWN CONFIGURATION ---
+
+/**
+ * Centralized function to get the correct prompt text for a given date and attributes.
+ * Supports 'daily-sequential' and 'daily-random' modes.
+ * @param {string} promptText - The raw prompt text (may be multiline).
+ * @param {object} attributes - Attributes object parsed from PROMPT block.
+ * @param {Date} date - The date for which to get the prompt.
+ * @returns {string} The prompt text for the given date, or empty string if none.
+ */
+function getPromptForDate(promptText, attributes, date) {
+  const todayDateStr = (typeof dateFns !== 'undefined' && dateFns.format) ? dateFns.format(date, 'yyyy-MM-dd') : date.toISOString().slice(0,10);
+  let text = promptText;
+  if (attributes && attributes.mode === 'daily-sequential') {
+    let items = text.split(/\r?\n/).map(line => line.replace(/^[-*]\s*/, '').trim()).filter(Boolean);
+    let startDateStr = attributes.start || todayDateStr;
+    let startDate = new Date(startDateStr + 'T00:00:00');
+    let diffDays = Math.floor((date - startDate) / (1000 * 60 * 60 * 24));
+    return (diffDays >= 0 && diffDays < items.length) ? items[diffDays] : '';
+  } else if (attributes && attributes.mode === 'daily-random') {
+    let items = text.split(/\r?\n/).map(line => line.replace(/^[-*]\s*/, '').trim()).filter(Boolean);
+    if (items.length > 0) {
+      let seed = todayDateStr.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      let selectedIdx = seed % items.length;
+      if (typeof console !== 'undefined') {
+        console.log('[PROMPT DEBUG] daily-random', {
+          date: todayDateStr,
+          seed,
+          items,
+          selectedIdx,
+          selectedItem: items[selectedIdx]
+        });
+      }
+      return items[selectedIdx];
+    }
+    return '';
+  }
+  return text;
+}
+
+// Expose for use in other modules
+if (typeof window !== 'undefined') {
+  window.getPromptForDate = getPromptForDate;
+}
 const wikiLinkExtension = {
   name: 'wikiLink',
   level: 'inline',

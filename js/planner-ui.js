@@ -337,90 +337,10 @@ function buildPromptItemsHtml(dateStr) {
   allPrompts.forEach(prompt => {
     const text = prompt.text;
     const attributes = prompt.attributes;
-    let show = false;
-    let debugReason = '';
-
-    // PROMPT: ... (no attributes): show only today
-    if (Object.keys(attributes).length === 0) {
-      if (dateStr === todayStr) {
-        show = true;
-        debugReason = 'No attributes, show only today.';
-      }
-    }
-    // PROMPT(show-on: YYYY-MM-DD): ...: show only on the matching date
-    else if (attributes['show-on']) {
-      if (attributes['show-on'] === dateStr) {
-        show = true;
-        debugReason = 'show-on matches date.';
-      }
-    }
-    // PROMPT(frequent: everyday): ...: show every day
-    else if (attributes['frequent']) {
-      if (attributes['frequent'] === 'everyday') {
-        show = true;
-        debugReason = 'frequent: everyday.';
-      } else if (attributes['frequent'].startsWith('every ')) {
-        // e.g. every monday
-        const weekday = attributes['frequent'].replace('every ', '').trim().toLowerCase();
-        // Accept both 'monday' and 'mon' (3-letter)
-        const dayNameFull = dateFns.format(dayDate, 'dddd').toLowerCase();
-        const dayNameShort = dateFns.format(dayDate, 'ddd').toLowerCase();
-        if (weekday === dayNameFull || weekday === dayNameShort) {
-          show = true;
-          debugReason = `frequent: ${weekday}, matches ${dayNameFull}/${dayNameShort}.`;
-        }
-      }
-    }
-    // PROMPT(mode: daily-sequential, start: YYYY-MM-DD): show the Nth item on the Nth day after start
-    else if (attributes['mode'] === 'daily-sequential') {
-      // If start is not provided, use today as the start date for the first day only
-      let startStr = attributes['start'];
-      if (!startStr) {
-        startStr = todayStr;
-      }
-      const startDate = new Date(startStr + 'T00:00:00');
-      const diffDays = Math.floor((dayDate - startDate) / (1000 * 60 * 60 * 24));
-      const items = text.split('\n').map(line => line.replace(/^[-*]\s*/, '').trim()).filter(Boolean);
-      if (diffDays >= 0 && diffDays < items.length) {
-  html += `<div class=\"prompt-widget\"><div class=\"prompt-content\">${items[diffDays]}</div></div>`;
-      } 
-      return;
-    }
-    // PROMPT(mode: daily-random): show a random item each day (same item for same day)
-    else if (attributes['mode'] === 'daily-random') {
-      const items = text.split('\n').map(line => line.replace(/^[-*]\s*/, '').trim()).filter(Boolean);
-      if (items.length > 0) {
-        // Seeded shuffle function (Fisher-Yates)
-        function mulberry32(a) {
-          return function() {
-            var t = a += 0x6D2B79F5;
-            t = Math.imul(t ^ t >>> 15, t | 1);
-            t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-            return ((t ^ t >>> 14) >>> 0) / 4294967296;
-          }
-        }
-        function seededShuffle(array, seed) {
-          let m = array.length, t, i;
-          let random = mulberry32(seed);
-          while (m) {
-            i = Math.floor(random() * m--);
-            t = array[m];
-            array[m] = array[i];
-            array[i] = t;
-          }
-          return array;
-        }
-        // Use dateStr as seed (convert to number)
-        let seed = 0;
-        for (let i = 0; i < dateStr.length; i++) seed += dateStr.charCodeAt(i);
-        const shuffled = seededShuffle([...items], seed);
-  html += `<div class=\"prompt-widget\"><div class=\"prompt-content\">${shuffled[0]}</div></div>`;
-      }
-      return;
-    }
-
-    if (show) {
-  html += `<div class=\"prompt-widget\"><div class=\"prompt-content\">${text}</div></div>`;
+    // Use centralized prompt selection logic
+    let promptText = (window.getPromptForDate || getPromptForDate)(text, attributes, dayDate);
+    if (promptText) {
+      html += `<div class=\"prompt-widget\"><div class=\"prompt-content\">${promptText}</div></div>`;
     }
   });
   return todayStr === dateStr && html ? `<div class=\"prompt-section\">${html}</div>` : '';

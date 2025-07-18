@@ -232,27 +232,15 @@ function generatePromptsHtml(itemsForToday, today) {
     if (allPrompts.length > 0) {
         html += `<div id="daily-prompts-section">`;
         allPrompts.forEach(item => {
-            let promptText = item.text;
-            let showBlock = true;
-
-            // Handle modes
-            if (item.attributes.mode === 'daily-sequential') {
-                let items = promptText.split(/\r?\n/).map(line => line.replace(/^[-*]\s*/, '').trim()).filter(Boolean);
-                let startDate = new Date((item.attributes.start || todayDateStr) + 'T00:00:00');
-                let diffDays = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
-                promptText = (diffDays >= 0 && diffDays < items.length) ? items[diffDays] : '';
-                showBlock = !!promptText;
-            } else if (item.attributes.mode === 'daily-random') {
-                let items = promptText.split(/\r?\n/).map(line => line.replace(/^[-*]\s*/, '').trim()).filter(Boolean);
-                if (items.length > 0) {
-                    let seed = todayDateStr.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-                    promptText = items[seed % items.length]; // Simplified seeding for example
-                } else {
-                    showBlock = false;
+            let promptText = (window.getPromptForDate || getPromptForDate)(item.text, item.attributes, today);
+                if (typeof console !== 'undefined') {
+                    console.log('[PROMPT UI DEBUG] Rendering prompt', {
+                        date: dateFns.format(today, 'yyyy-MM-dd'),
+                        item,
+                        promptText
+                    });
                 }
-            }
-
-            if (showBlock && promptText) {
+            if (promptText) {
                 html += `<blockquote class="prompt-blockquote"><span class="prompt-icon">❝</span> ${promptText} <span class="prompt-icon">❞</span></blockquote>`;
             }
         });
