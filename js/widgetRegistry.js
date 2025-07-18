@@ -106,9 +106,9 @@ const widgetRegistry = {
       let lines = (command + (transactions ? '\n' + transactions : '')).split('\n');
       let configLine = lines[0] || '';
       let dataStr = lines.slice(1).join('\n');
+      const pageWrapper = placeholder.closest('[data-key]');
+      const currentPageKey = pageWrapper ? pageWrapper.dataset.key : null;
       const onCommandChange = (newCommand) => {
-        const pageWrapper = placeholder.closest('[data-key]');
-        const currentPageKey = pageWrapper ? pageWrapper.dataset.key : null;
         if (!currentPageKey) return;
         const currentContent = getStorage(currentPageKey);
         if (!currentContent) return;
@@ -228,9 +228,9 @@ const widgetRegistry = {
       let lines = (command + (transactions ? '\n' + transactions : '')).split('\n');
       let configLine = lines[0] || '';
       let dataStr = lines.slice(1).join('\n');
+      const pageWrapper = placeholder.closest('[data-key]');
+      const currentPageKey = pageWrapper ? pageWrapper.dataset.key : null;
       const onCommandChange = (newCommand) => {
-        const pageWrapper = placeholder.closest('[data-key]');
-        const currentPageKey = pageWrapper ? pageWrapper.dataset.key : null;
         if (!currentPageKey) return;
         const currentContent = getStorage(currentPageKey);
         if (!currentContent) return;
