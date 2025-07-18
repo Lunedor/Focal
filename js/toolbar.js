@@ -140,7 +140,7 @@ const EditModeManager = {
                 { icon: 'bookmark', action: 'futurelog', title: 'Insert Future Log', md: null },
                 { icon: 'rotate-cw', action: 'habit', title: 'Insert Habit Tracker', md: null },
                 { icon: 'dollar-sign', action: 'finance', title: 'Insert Finance Tracker', md: null },
-                { icon: 'bar-chart-2', action: 'calorie', title: 'Insert Calorie Tracker', md: null },
+                { icon: 'pie-chart', action: 'calorie', title: 'Insert Calorie Tracker', md: null },
                 { icon: 'moon', action: 'sleep', title: 'Insert Sleep Tracker', md: null },
                 { icon: 'activity', action: 'workouts', title: 'Insert Workouts Tracker', md: null },
                 { icon: 'bar-chart-2', action: 'mood', title: 'Insert Mood Tracker', md: null },
