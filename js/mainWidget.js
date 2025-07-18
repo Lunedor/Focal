@@ -1,5 +1,5 @@
 // js/mainWidget.js
-// Centralized Main Widget Logic for Focal Journal
+// Centralized Main Widget Logic for Focal Journal (Refactored for DRY principles)
 // Supports: finance, calorie, workouts, sleep, and more
 
 const MainWidget = (() => {
@@ -8,1889 +8,604 @@ const MainWidget = (() => {
         finance: {
             title: 'Finance',
             currency: 'USD',
-            fields: ['amount', 'category', 'date', 'note'],
-            summary: true,
-            chart: true,
-            pie: true,
+            fields: ['date', 'note', 'amount', 'category'],
+            summary: true, chart: true, pie: true,
+            summaryCards: [
+                { key: 'income', label: 'Income', class: 'income', value: (s, u) => `${u}${(s.income || 0).toFixed(2)}` },
+                { key: 'expenses', label: 'Expenses', class: 'expense', value: (s, u) => `${u}${Math.abs(s.expenses || 0).toFixed(2)}` },
+                { key: 'net', label: 'Net', class: 'net', value: (s, u) => `${s.net >= 0 ? '+' : '-'}${u}${Math.abs(s.net || 0).toFixed(2)}` }
+            ],
+            modalFields: [
+                { name: 'entryType', label: 'Transaction Type', type: 'radio', options: [{label: 'Income', value: 'income'}, {label: 'Expense', value: 'expense'}], default: 'income' },
+                { name: 'date', label: 'Date', type: 'date', required: true },
+                { name: 'note', label: 'Description', type: 'text', placeholder: 'e.g., Salary, Groceries', required: true },
+                { name: 'amount', label: 'Amount', type: 'number', step: '0.01', min: '0.01', placeholder: '0.00', required: true },
+                { name: 'category', label: 'Category', type: 'select', options: ['Salary', 'Groceries', 'Rent', 'Utilities', 'Food', 'Transport', 'Shopping', 'Health', 'Entertainment', 'Travel', 'Education', 'Insurance', 'Gifts', 'Other'], required: true }
+            ]
         },
         calorie: {
             title: 'Calorie Tracker',
             unit: 'kcal',
             fields: ['date', 'item', 'kcal', 'note'],
-            summary: true,
-            chart: true,
-            pie: false,
+            summary: true, chart: true, pie: false,
+            summaryCards: [
+                { key: 'intake', label: 'Intake', class: 'income', value: (s) => `${(s.intake || 0).toFixed(0)} kcal` },
+                { key: 'target', label: 'Target', class: 'expense', value: (s) => `${(s.target || 2000).toFixed(0)} kcal` },
+                { key: 'remaining', label: 'Remaining', class: 'net', value: (s) => `${Math.max((s.target || 2000) - (s.intake || 0), 0).toFixed(0)} kcal` }
+            ],
+            modalFields: [
+                { name: 'date', label: 'Date', type: 'date', required: true },
+                { name: 'item', label: 'Entry', type: 'text', placeholder: 'e.g., Apple, Pizza', required: true },
+                { name: 'kcal', label: 'Calories (intake)', type: 'number', placeholder: 'e.g., 250', required: true },
+                { name: 'note', label: 'Note', type: 'text', placeholder: 'e.g., Breakfast' }
+            ]
         },
         workouts: {
             title: 'Workouts',
             fields: ['date', 'exercise', 'duration', 'note'],
-            summary: true,
-            chart: true,
-            pie: false,
+            summary: true, chart: true, pie: false,
+            summaryCards: [
+                { key: 'total', label: 'Total Duration', class: 'income', value: s => `${(s.total || 0).toFixed(1)} min` }
+            ],
+            modalFields: [
+                { name: 'date', label: 'Date', type: 'date', required: true },
+                { name: 'exercise', label: 'Exercise', type: 'text', placeholder: 'e.g., Running, Yoga', required: true },
+                { name: 'duration', label: 'Duration (min)', type: 'number', min: '1', placeholder: '0', required: true },
+                { name: 'note', label: 'Note', type: 'text', placeholder: 'e.g., Felt great', required: true }
+            ]
         },
         sleep: {
             title: 'Sleep Tracker',
             fields: ['date', 'hours', 'quality', 'note'],
-            summary: true,
-            chart: true,
-            pie: false,
-        },
-        // Add more types as needed
-    };
-
-    // --- STATE ---
-    let state = {
-        type: 'finance',
-        command: '',
-        data: [],
-        config: widgetConfigs.finance,
-        onCommandChange: null,
-        containerEl: null,
-    };
-
-    // --- PARSER ---
-    function parseCommand(commandStr, type) {
-        // Remove prefix and parse config
-        let config = widgetConfigs[type] || widgetConfigs.finance;
-        let lines = commandStr.split('\n').map(l => l.trim()).filter(Boolean);
-        // For finance: FINANCE: summary+chart, USD, this-year
-        // For calorie: CALORIE: summary+chart, kcal, this-week
-        // For others: WORKOUTS: ...
-        let settings = {};
-        if (lines.length > 0) {
-            let firstLine = lines[0];
-            let parts = firstLine.replace(/^[A-Z]+:/i, '').split(',').map(p => p.trim());
-            settings.layout = parts[0] || 'summary';
-            settings.unit = parts[1] || config.currency || config.unit || '';
-            settings.period = parts[2] || 'all';
+            summary: true, chart: true, pie: false,
+            summaryCards: [
+                { key: 'hours', label: 'Total Hours', class: 'income', value: s => `${(s.hours || 0).toFixed(1)} h` },
+                { key: 'avgQuality', label: 'Avg Quality', class: 'net', value: s => `${(s.avgQuality || 0).toFixed(1)} / 10` }
+            ],
+            modalFields: [
+                { name: 'date', label: 'Date', type: 'date', required: true },
+                { name: 'hours', label: 'Hours Slept', type: 'number', step: '0.1', min: '0', placeholder: '0.0', required: true },
+                { name: 'quality', label: 'Quality (0-10)', type: 'number', step: '0.1', min: '0', max: '10', placeholder: '0.0', required: true },
+                { name: 'note', label: 'Note', type: 'text', placeholder: 'e.g., Restless night', required: true }
+            ]
         }
+    };
+
+    const filterOptions = [
+        { label: 'All Time', value: 'all' }, { label: 'This Month', value: 'this-month' },
+        { label: 'This Year', value: 'this-year' }, { label: 'Last 3 Months', value: 'last-3-months' },
+        { label: 'Last 6 Months', value: 'last-6-months' }, { label: 'Last 12 Months', value: 'last-12-months' }
+    ];
+
+    const pieColors = ['#4CAF50', '#F44336', '#2196F3', '#FF9800', '#9C27B0', '#00BCD4', '#FFEB3B', '#795548', '#607D8B', '#E91E63'];
+
+    // --- HELPERS ---
+    // Helper: Parse target from command for calorie widget
+    function getCalorieTargetFromCommand(commandStr) {
+        const firstLine = (commandStr.split('\n')[0] || '').trim();
+        const parts = firstLine.replace(/^[A-Z]+:/i, '').split(',').map(p => p.trim());
+        const target = parseInt(parts[1], 10);
+        return isNaN(target) ? 2000 : target;
+    }
+
+    // --- PARSERS ---
+    function parseCommand(commandStr, type) {
+        const config = widgetConfigs[type] || widgetConfigs.finance;
+        const firstLine = (commandStr.split('\n')[0] || '').trim();
+        const parts = firstLine.replace(/^[A-Z]+:/i, '').split(',').map(p => p.trim());
+        const settings = {
+            layout: (parts[0] || 'summary').split('+').map(s => s.trim().toLowerCase()),
+            unit: parts[1] || config.currency || config.unit || '',
+            period: parts[2] || 'all'
+        };
         return { config, settings };
     }
 
     function parseData(dataStr, type) {
-        // Parse data lines according to widget type
-        let config = widgetConfigs[type] || widgetConfigs.finance;
-        let lines = dataStr.split('\n').map(l => l.trim()).filter(Boolean);
-        let data = lines.map(line => {
-            // Remove leading dash for all widget types
+        const config = widgetConfigs[type] || widgetConfigs.finance;
+        return dataStr.split('\n').map(l => l.trim()).filter(Boolean).map(line => {
             if (line.startsWith('- ')) line = line.slice(2).trim();
-            let parts = line.split(',').map(p => p.trim());
-            let obj = {};
-            if (type === 'finance') {
-                // Map: date, description, amount, category
-                obj.date = parts[0] || '';
-                obj.amount = parts[2] || '';
-                obj.category = parts[3] || '';
-                obj.note = parts[1] || '';
-                obj.date = obj.date ? new Date(obj.date) : '';
-            } else if (type === 'calorie') {
-                // Map: date, item, kcal, note
-                obj.date = parts[0] || '';
-                obj.item = parts[1] || '';
-                obj.kcal = parts[2] || '';
-                obj.note = parts[3] || '';
-                if (obj.date) obj.date = new Date(obj.date);
-            } else {
-                // For other widgets, map fields in order
-                config.fields.forEach((field, idx) => {
-                    obj[field] = parts[idx] || '';
-                });
-                if (obj.date) obj.date = new Date(obj.date);
-            }
+            const parts = line.split(',').map(p => p.trim());
+            const obj = {};
+            config.fields.forEach((field, idx) => {
+                obj[field] = parts[idx] || '';
+            });
+            if (obj.date) obj.date = new Date(obj.date);
             return obj;
         });
-        return data;
     }
 
-    // --- RENDER ---
-    // --- NEW: Renderers for independent widget features ---
-function renderSummary(container, type, command, dataStr, onCommandChange, storageKey) {
-        // Use the universal widget renderer but only enable summary, table, add, filter, modal (no chart, no pie)
-        const widgetInstanceId = 'summary-' + Math.random().toString(36).substr(2, 9);
-        // Parse config and data
-        const config = widgetConfigs[type] || widgetConfigs.finance;
-        const data = parseData(dataStr, type);
-        const { settings } = MainWidget.parseCommand(command, type);
-        let unit = settings.unit || config.currency || config.unit || '';
-        // Parse filter from command string
-        let filterRange = (() => {
-            let lines = command.split('\n').map(l => l.trim()).filter(Boolean);
-            if (lines.length > 0) {
-                let firstLine = lines[0];
-                let parts = firstLine.replace(/^[A-Z]+:/i, '').split(',').map(p => p.trim());
-                return parts[2] || 'all';
-            }
-            return 'all';
-        })();
+    // --- DATA HELPERS ---
+    function filterEntriesByPeriod(entries, period) {
+        if (!period || period === 'all') return entries;
         const now = new Date();
-        const filterOptions = [
-            { label: 'All Time', value: 'all' },
-            { label: 'This Month', value: 'this-month' },
-            { label: 'This Year', value: 'this-year' },
-            { label: 'Last 3 Months', value: 'last-3-months' },
-            { label: 'Last 6 Months', value: 'last-6-months' },
-            { label: 'Last 12 Months', value: 'last-12-months' }
-        ];
-        function filterEntries(range) {
-            if (!range || range === 'all') return data;
-            return data.filter(e => {
-                if (!(e.date instanceof Date) || isNaN(e.date)) return false;
-                if (range === 'this-month') {
-                    return e.date.getFullYear() === now.getFullYear() && e.date.getMonth() === now.getMonth();
-                } else if (range === 'this-year') {
-                    return e.date.getFullYear() === now.getFullYear();
-                } else if (range === 'last-3-months') {
-                    const past = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
-                    return e.date >= past;
-                } else if (range === 'last-6-months') {
-                    const past = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
-                    return e.date >= past;
-                } else if (range === 'last-12-months') {
-                    const past = new Date(now.getFullYear(), now.getMonth() - 12, now.getDate());
-                    return e.date >= past;
-                }
-                return true;
-            });
-        }
-        // filteredEntries is already declared below, so just log after its declaration
-        // --- SUMMARY LOGIC (per widget type) ---
-        let summary = {};
-        const filteredEntries = filterEntries(filterRange);
+        return entries.filter(e => {
+            if (!(e.date instanceof Date) || isNaN(e.date)) return false;
+            const monthsAgo = (m) => new Date(now.getFullYear(), now.getMonth() - m, now.getDate());
+            switch (period) {
+                case 'this-month': return e.date.getFullYear() === now.getFullYear() && e.date.getMonth() === now.getMonth();
+                case 'this-year': return e.date.getFullYear() === now.getFullYear();
+                case 'last-3-months': return e.date >= monthsAgo(3);
+                case 'last-6-months': return e.date >= monthsAgo(6);
+                case 'last-12-months': return e.date >= monthsAgo(12);
+                default: return true;
+            }
+        });
+    }
+
+    function getSummaryData(entries, type) {
+        const summary = {};
         if (type === 'finance') {
-            summary.income = filteredEntries.filter(e => parseFloat(e.amount) > 0).reduce((sum, e) => sum + parseFloat(e.amount), 0);
-            summary.expenses = filteredEntries.filter(e => parseFloat(e.amount) < 0).reduce((sum, e) => sum + parseFloat(e.amount), 0);
+            summary.income = entries.filter(e => parseFloat(e.amount) > 0).reduce((sum, e) => sum + parseFloat(e.amount), 0);
+            summary.expenses = entries.filter(e => parseFloat(e.amount) < 0).reduce((sum, e) => sum + parseFloat(e.amount), 0);
             summary.net = summary.income + summary.expenses;
         } else if (type === 'calorie') {
-            // All values are in e.kcal, positive for intake, negative for burned
-            summary.intake = filteredEntries.filter(e => parseFloat(e.kcal) > 0).reduce((sum, e) => sum + parseFloat(e.kcal), 0);
-            summary.burn = filteredEntries.filter(e => parseFloat(e.kcal) < 0).reduce((sum, e) => sum + Math.abs(parseFloat(e.kcal)), 0);
-            summary.net = summary.intake - summary.burn;
-        } else if (type === 'workouts') {
-            summary.total = filteredEntries.filter(e => parseFloat(e.duration) > 0).reduce((sum, e) => sum + parseFloat(e.duration), 0);
-        } else if (type === 'sleep') {
-            summary.hours = filteredEntries.filter(e => parseFloat(e.hours) > 0).reduce((sum, e) => sum + parseFloat(e.hours), 0);
-            summary.avgQuality = filteredEntries.length ? (filteredEntries.reduce((sum, e) => sum + parseFloat(e.quality || 0), 0) / filteredEntries.length) : 0;
-        }
-        // --- SUMMARY CARDS (per widget type) ---
-        // DRY summary card logic
-        const summaryCardConfigs = {
-            finance: [
-                { key: 'income', label: 'Income', class: 'income', value: s => `${unit}${(s.income || 0).toFixed(2)}` },
-                { key: 'expenses', label: 'Expenses', class: 'expense', value: s => `${unit}${Math.abs(s.expenses || 0).toFixed(2)}` },
-                { key: 'net', label: 'Net', class: 'net', value: s => `${s.net >= 0 ? '+' : '-'}${unit}${Math.abs(s.net || 0).toFixed(2)}` }
-            ],
-            calorie: [
-                { key: 'intake', label: 'Intake', class: 'income', value: s => `${unit}${(s.intake || 0).toFixed(0)}` },
-                { key: 'burn', label: 'Burned', class: 'expense', value: s => `${unit}${(s.burn || 0).toFixed(0)}` },
-                { key: 'net', label: 'Net', class: 'net', value: s => `${s.net >= 0 ? '+' : '-'}${unit}${Math.abs(s.net || 0).toFixed(0)}` }
-            ],
-            workouts: [
-                { key: 'total', label: 'Total Duration', class: 'income', value: s => `${(s.total || 0).toFixed(1)} min` }
-            ],
-            sleep: [
-                { key: 'hours', label: 'Total Hours', class: 'income', value: s => `${(s.hours || 0).toFixed(1)} h` },
-                { key: 'avgQuality', label: 'Avg Quality', class: 'net', value: s => `${(s.avgQuality || 0).toFixed(1)} / 10` }
-            ]
-        };
-        const cardConfig = summaryCardConfigs[type] || [];
-        let summaryCardsHtml = '';
-        if (cardConfig.length) {
-            summaryCardsHtml = `
-                <div class="finance-summary-cards">
-                    ${cardConfig.map(card => `
-                        <div class="finance-card ${card.class}">
-                            <div class="finance-card-label">${card.label}</div>
-                            <div class="finance-card-value">${card.value(summary)}</div>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-        }
-        // --- ENTRY TABLE (DRY for all widget types) ---
-        function getEntriesHtml(filtered) {
-            if (filtered.length === 0) return '';
-            // Add remove button to each row
-            // All widget types: add remove button to each row
-            return filtered.map((e, idx) => {
-                let rowHtml = '';
-                if (type === 'finance') {
-                    const amountClass = parseFloat(e.amount) > 0 ? 'income' : 'expense';
-                    rowHtml = `
-                        <tr class="finance-transaction-row" data-entry-idx="${idx}">
-                            <td>${e.date instanceof Date && !isNaN(e.date) ? window.dateFns.format(e.date, 'MMM d') : e.date}</td>
-                            <td>${e.note || ''}</td>
-                            <td>${e.category || ''}</td>
-                            <td class="${amountClass}">${unit}${parseFloat(e.amount).toFixed(2)}</td>
-                            <td><button class="entry-remove-btn" title="Remove Entry">✕</button></td>
-                        </tr>
-                    `;
-                } else {
-                    rowHtml = `
-                        <tr data-entry-idx="${idx}">
-                            ${config.fields.map((field, fidx) => {
-                                if (field === 'date') {
-                                    const val = e[field];
-                                    if (val instanceof Date && !isNaN(val)) {
-                                        return `<td>${window.dateFns.format(val, 'MMM d')}</td>`;
-                                    } else {
-                                        return `<td>${val}</td>`;
-                                    }
-                                } else {
-                                    return `<td>${e[field] !== undefined ? e[field] : ''}</td>`;
-                                }
-                            }).join('')}
-                            <td><button class="entry-remove-btn" title="Remove Entry">✕</button></td>
-                        </tr>
-                    `;
-                }
-                return rowHtml;
-            }).join('');
-        }
-        function renderEntryTable() {
-            let headers = [];
-            if (type === 'finance') headers = ['Date', 'Description', 'Category', 'Amount', ''];
-            else if (type === 'calorie') headers = ['Date', 'Entries', 'Kcal', 'Note', ''];
-            else headers = config.fields.map(f => f.charAt(0).toUpperCase() + f.slice(1)).concat(['']);
-            return `
-                <div class="finance-transaction-list">
-                    <h3 class="finance-widget-subtitle">Recent Entries</h3>
-                    <div class="finance-transaction-table-container">
-                        <table>
-                            <thead>
-                                <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
-                            </thead>
-                            <tbody>${getEntriesHtml(filteredEntries)}</tbody>
-                        </table>
-                    </div>
-                </div>
-            `;
-        }
-        // --- FILTER DROPDOWN ---
-        function renderFilterDropdown() {
-            const selectedOption = filterOptions.find(opt => opt.value === filterRange) || filterOptions[0];
-            return `
-                <div class="finance-filter-dropdown" tabindex="-1">
-                    <button type="button" class="finance-filter-btn" id="summary-filter-btn-${widgetInstanceId}" tabindex="0">${selectedOption.label} <span class="dropdown-arrow">▼</span></button>
-                    <div class="finance-filter-list" id="summary-filter-list-${widgetInstanceId}">
-                        ${filterOptions.map(opt => `<div class="finance-filter-item${filterRange === opt.value ? ' selected' : ''}" data-range="${opt.value}" tabindex="0">${opt.label}</div>`).join('')}
-                    </div>
-                </div>
-            `;
-        }
-        // --- ADD BUTTON ---
-        function renderAddButton() {
-            return `<button type="button" class="finance-add-button" id="finance-add-btn" title="Add New Entry" tabindex="0">+ New Entry</button>`;
-        }
-        // --- HEADER ---
-        function renderHeader() {
-            return `
-                <div class="finance-widget-header">
-                    <h3 class="finance-widget-title">${config.title}</h3>
-                    <div class="finance-widget-controls">
-                        ${renderAddButton()}
-                        ${renderFilterDropdown()}
-                    </div>
-                </div>
-            `;
-        }
-        // --- MODAL (per widget type) ---
-        function renderModal() {
-            const today = new Date();
-            const yyyy = today.getFullYear();
-            const mm = String(today.getMonth() + 1).padStart(2, '0');
-            const dd = String(today.getDate()).padStart(2, '0');
-            const todayStr = `${yyyy}-${mm}-${dd}`;
-            if (type === 'finance') {
-                const commonCategories = [
-                    'Salary', 'Groceries', 'Rent', 'Utilities', 'Food', 'Transport', 'Shopping', 'Health', 'Entertainment', 'Travel', 'Education', 'Insurance', 'Gifts', 'Other'
-                ];
-                const userCategories = Array.from(new Set(data.map(t => t.category).filter(cat => cat && !commonCategories.includes(cat))));
-                return `
-                    <div class="modal-overlay" id="finance-entry-modal">
-                        <div class="modal">
-                            <div class="modal-header">
-                                <h3 id="finance-modal-title">Add Financial Entry</h3>
-                                <button id="finance-modal-close" class="modal-close">×</button>
-                            </div>
-                            <div class="modal-body">
-                                <form id="finance-entry-form" class="finance-entry-form">
-                                    <div class="finance-form-group">
-                                        <label>Transaction Type</label>
-                                        <div class="finance-entry-type">
-                                            <input type="radio" id="income-type" name="entryType" value="income" checked>
-                                            <label for="income-type" class="income">Income</label>
-                                            <input type="radio" id="expense-type" name="entryType" value="expense">
-                                            <label for="expense-type" class="expense">Expense</label>
-                                        </div>
-                                    </div>
-                                    <div class="finance-form-group">
-                                        <label for="finance-entry-date">Date</label>
-                                        <div class="date-picker-container">
-                                            <input type="date" id="finance-entry-date" value="${todayStr}" required>
-                                        </div>
-                                    </div>
-                                    <div class="finance-form-group">
-                                        <label for="finance-entry-description">Description</label>
-                                        <input type="text" id="finance-entry-description" placeholder="e.g., Salary, Groceries, Rent" required>
-                                    </div>
-                                    <div class="finance-form-row">
-                                        <div class="finance-form-group">
-                                            <label for="finance-entry-amount">Amount</label>
-                                            <input type="number" id="finance-entry-amount" step="0.01" min="0.01" placeholder="0.00" required>
-                                        </div>
-                                        <div class="finance-form-group">
-                                            <label for="finance-entry-category">Category</label>
-                                            <select id="finance-entry-category" required>
-                                                <option value="" disabled selected>Select category...</option>
-                                                <optgroup label="Common Categories">
-                                                    ${commonCategories.map(cat => `<option value="${cat}">${cat}</option>`).join('')}
-                                                </optgroup>
-                                                ${userCategories.length > 0 ? `<optgroup label="Your Categories">${userCategories.map(cat => `<option value="${cat}">${cat}</option>`).join('')}</optgroup>` : ''}
-                                                <option value="__custom__">Custom...</option>
-                                            </select>
-                                            <input type="text" id="finance-entry-category-custom" placeholder="Enter custom category..." />
-                                        </div>
-                                    </div>
-                                </form>
-                            </div>
-                            <div class="modal-footer">
-                                <button id="finance-modal-cancel" class="modal-btn secondary">Cancel</button>
-                                <button id="finance-modal-confirm" class="modal-btn primary">New Entry</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            } else if (type === 'calorie') {
-                return `
-                    <div class="modal-overlay" id="calorie-entry-modal">
-                        <div class="modal">
-                            <div class="modal-header">
-                                <h3 id="calorie-modal-title">Add Calorie Entry</h3>
-                                <button id="calorie-modal-close" class="modal-close">×</button>
-                            </div>
-                            <div class="modal-body">
-                                <form id="calorie-entry-form" class="finance-entry-form">
-                                    <div class="finance-form-group">
-                                        <label for="calorie-entry-date">Date</label>
-                                        <div class="date-picker-container">
-                                            <input type="date" id="calorie-entry-date" value="${todayStr}" required>
-                                        </div>
-                                    </div>
-                                    <div class="finance-form-group">
-                                        <label for="calorie-entry-item">Entry</label>
-                                        <input type="text" id="calorie-entry-item" placeholder="e.g., Apple, Pizza" required>
-                                    </div>
-                                    <div class="finance-form-group">
-                                        <label for="calorie-entry-value">Calories (+ for intake, - for burned)</label>
-                                        <input type="number" id="calorie-entry-value" step="1" placeholder="e.g., 250 or -100" required>
-                                    </div>
-                                    <div class="finance-form-group">
-                                        <label for="calorie-entry-note">Note</label>
-                                        <input type="text" id="calorie-entry-note" placeholder="e.g., Breakfast, Running">
-                                    </div>
-                                </form>
-                            </div>
-                            <div class="modal-footer">
-                                <button id="calorie-modal-cancel" class="modal-btn secondary">Cancel</button>
-                                <button id="calorie-modal-confirm" class="modal-btn primary">New Entry</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            } else if (type === 'workouts') {
-                return `
-                    <div class="modal-overlay" id="workouts-entry-modal">
-                        <div class="modal">
-                            <div class="modal-header">
-                                <h3 id="workouts-modal-title">Add Workout Entry</h3>
-                                <button id="workouts-modal-close" class="modal-close">×</button>
-                            </div>
-                            <div class="modal-body">
-                                <form id="workouts-entry-form" class="finance-entry-form">
-                                    <div class="finance-form-group">
-                                        <label for="workouts-entry-date">Date</label>
-                                        <div class="date-picker-container">
-                                            <input type="date" id="workouts-entry-date" value="${todayStr}" required>
-                                        </div>
-                                    </div>
-                                    <div class="finance-form-group">
-                                        <label for="workouts-entry-exercise">Exercise</label>
-                                        <input type="text" id="workouts-entry-exercise" placeholder="e.g., Running, Yoga" required>
-                                    </div>
-                                    <div class="finance-form-group">
-                                        <label for="workouts-entry-duration">Duration (min)</label>
-                                        <input type="number" id="workouts-entry-duration" step="1" min="1" placeholder="0" required>
-                                    </div>
-                                    <div class="finance-form-group">
-                                        <label for="workouts-entry-note">Note</label>
-                                        <input type="text" id="workouts-entry-note" placeholder="e.g., Felt great" required>
-                                    </div>
-                                </form>
-                            </div>
-                            <div class="modal-footer">
-                                <button id="workouts-modal-cancel" class="modal-btn secondary">Cancel</button>
-                                <button id="workouts-modal-confirm" class="modal-btn primary">New Entry</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            } else if (type === 'sleep') {
-                return `
-                    <div class="modal-overlay" id="sleep-entry-modal">
-                        <div class="modal">
-                            <div class="modal-header">
-                                <h3 id="sleep-modal-title">Add Sleep Entry</h3>
-                                <button id="sleep-modal-close" class="modal-close">×</button>
-                            </div>
-                            <div class="modal-body">
-                                <form id="sleep-entry-form" class="finance-entry-form">
-                                    <div class="finance-form-group">
-                                        <label for="sleep-entry-date">Date</label>
-                                        <div class="date-picker-container">
-                                            <input type="date" id="sleep-entry-date" value="${todayStr}" required>
-                                        </div>
-                                    </div>
-                                    <div class="finance-form-group">
-                                        <label for="sleep-entry-hours">Hours Slept</label>
-                                        <input type="number" id="sleep-entry-hours" step="0.1" min="0" placeholder="0.0" required>
-                                    </div>
-                                    <div class="finance-form-group">
-                                        <label for="sleep-entry-quality">Quality (0-10)</label>
-                                        <input type="number" id="sleep-entry-quality" step="0.1" min="0" max="10" placeholder="0.0" required>
-                                    </div>
-                                    <div class="finance-form-group">
-                                        <label for="sleep-entry-note">Note</label>
-                                        <input type="text" id="sleep-entry-note" placeholder="e.g., Restless night" required>
-                                    </div>
-                                </form>
-                            </div>
-                            <div class="modal-footer">
-                                <button id="sleep-modal-cancel" class="modal-btn secondary">Cancel</button>
-                                <button id="sleep-modal-confirm" class="modal-btn primary">New Entry</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
+            summary.intake = entries.filter(e => parseFloat(e.kcal) > 0).reduce((sum, e) => sum + parseFloat(e.kcal), 0);
+            // Get target from config/settings if available, fallback to 2000
+            let target = 2000;
+            if (window.MainWidget && window.MainWidget._currentCalorieTarget) {
+                target = window.MainWidget._currentCalorieTarget;
             }
-            return '';
+            summary.target = target;
+            summary.remaining = Math.max(target - summary.intake, 0);
+        } else if (type === 'workouts') {
+            summary.total = entries.reduce((sum, e) => sum + parseFloat(e.duration || 0), 0);
+        } else if (type === 'sleep') {
+            summary.hours = entries.reduce((sum, e) => sum + parseFloat(e.hours || 0), 0);
+            summary.avgQuality = entries.length ? (entries.reduce((sum, e) => sum + parseFloat(e.quality || 0), 0) / entries.length) : 0;
         }
-        // --- FINAL RENDER ---
-        container.innerHTML = `
-            <div class="finance-widget" id="main-finance-widget-root-${widgetInstanceId}">
-                ${renderHeader()}
-                ${summaryCardsHtml}
-                ${renderEntryTable()}
-                ${renderModal()}
-            </div>
-        `;
-        // --- EVENT HANDLERS (unified for all widgets) ---
-        const widgetRoot = container.querySelector(`#main-finance-widget-root-${widgetInstanceId}`);
-        if (widgetRoot) {
-            widgetRoot.addEventListener('mousedown', e => { e.stopPropagation(); });
-            widgetRoot.addEventListener('click', e => { e.stopPropagation(); });
-        }
-        if (window.feather) window.feather.replace();
-        // Filter dropdown
-        const filterBtn = container.querySelector(`#summary-filter-btn-${widgetInstanceId}`);
-        const filterList = container.querySelector(`#summary-filter-list-${widgetInstanceId}`);
-        if (filterBtn && filterList) {
-            filterBtn.addEventListener('mousedown', (e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                filterList.style.display = filterList.style.display === 'none' ? 'block' : 'none';
-            });
-            filterList.querySelectorAll('.finance-filter-item').forEach(item => {
-                item.addEventListener('mousedown', e => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    filterRange = item.dataset.range;
-                    // Update command string with new filter
-                    let commandLines = command.split('\n');
-                    if (commandLines.length === 0) commandLines.push('FINANCE: summary, USD, all');
-                    // Update the period in the first line
-                    let firstLine = commandLines[0];
-                    let parts = firstLine.replace(/^[A-Z]+:/i, '').split(',').map(p => p.trim());
-                    if (parts.length < 3) {
-                        while (parts.length < 3) parts.push('');
-                    }
-                    parts[2] = filterRange;
-                    commandLines[0] = (firstLine.match(/^[A-Z]+:/i) ? firstLine.match(/^[A-Z]+:/i)[0] : 'FINANCE:') + ' ' + parts.join(', ');
-                    let newCommand = commandLines.join('\n');
-                    if (typeof onCommandChange === 'function') {
-                        onCommandChange(newCommand);
-                    }
-                    // Re-render widget with new filter
-                    renderSummary(container, type, newCommand, dataStr, onCommandChange);
-                });
-            });
-            setTimeout(() => {
-                document.addEventListener('mousedown', function handler(e) {
-                    if (!filterBtn.contains(e.target) && !filterList.contains(e.target)) {
-                        filterList.style.display = 'none';
-                        document.removeEventListener('mousedown', handler);
-                    }
-                });
-            }, 0);
-        }
-        // Remove entry button logic with confirm modal
-        const tableBody = container.querySelector('.finance-transaction-table-container tbody');
-        if (tableBody) {
-            tableBody.querySelectorAll('tr').forEach((row, idx) => {
-                const removeBtn = row.querySelector('.entry-remove-btn');
-                if (removeBtn) {
-                    removeBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        // Use the same confirm modal as habit widget
-                        if (window.HabitTracker && typeof window.HabitTracker.showCustomConfirm === 'function') {
-                            window.HabitTracker.showCustomConfirm('Are you sure you want to remove this entry?', () => {
-                                // Find the index in filteredEntries
-                                const entryIdx = idx;
-                                // Combine command and dataStr to reconstruct the full block
-                                let commandLines = [command, ...dataStr.split('\n').filter(Boolean)];
-                                let dataLines = commandLines.slice(1);
-                                let filtered = filterEntries(filterRange);
-                                let entryToRemove = filtered[entryIdx];
-                                // Find the string line for this entry (robust match)
-                                let idxToRemove = -1;
-                                for (let i = 0; i < dataLines.length; i++) {
-                                    let rawLine = dataLines[i];
-                                    let parsed = parseData(rawLine, type)[0];
-                                    let match = false;
-                                    if (type === 'finance') {
-                                        let d1 = (parsed.date instanceof Date && !isNaN(parsed.date)) ? parsed.date.toISOString() : (parsed.date + '').trim();
-                                        let d2 = (entryToRemove.date instanceof Date && !isNaN(entryToRemove.date)) ? entryToRemove.date.toISOString() : (entryToRemove.date + '').trim();
-                                        let amt1 = (parsed.amount + '').trim();
-                                        let amt2 = (entryToRemove.amount + '').trim();
-                                        let cat1 = (parsed.category + '').trim();
-                                        let cat2 = (entryToRemove.category + '').trim();
-                                        let note1 = (parsed.note + '').trim();
-                                        let note2 = (entryToRemove.note + '').trim();
-                                        match = (
-                                            d1 === d2 &&
-                                            amt1 === amt2 &&
-                                            cat1 === cat2 &&
-                                            note1 === note2
-                                        );
-                                    } else {
-                                        match = config.fields.every(f => {
-                                            if (f === 'date') {
-                                                let d1 = (parsed[f] instanceof Date && !isNaN(parsed[f])) ? parsed[f].toISOString() : (parsed[f] + '').trim();
-                                                let d2 = (entryToRemove[f] instanceof Date && !isNaN(entryToRemove[f])) ? entryToRemove[f].toISOString() : (entryToRemove[f] + '').trim();
-                                                return d1 === d2;
-                                            }
-                                            return (parsed[f] + '').trim() === (entryToRemove[f] + '').trim();
-                                        });
-                                    }
-                                    if (match) {
-                                        idxToRemove = i + 1; // +1 because first line is command
-                                        break;
-                                    }
-                                }
-                                if (idxToRemove > 0) {
-                                    commandLines.splice(idxToRemove, 1);
-                                    let newCommand = commandLines.join('\n');
-                                    // Persist to storage and re-render app
-                                    if (typeof window.setStorage === 'function' && storageKey) {
-                                        window.setStorage(storageKey, newCommand);
-                                    }
-                                    if (typeof window.renderApp === 'function') {
-                                        window.renderApp();
-                                    }
-                                    if (typeof onCommandChange === 'function') {
-                                        onCommandChange(newCommand);
-                                    }
-                                }
-                            });
-                        } else {
-                            // fallback: no confirm, just remove
-                            const entryIdx = idx;
-                            let commandLines = [command, ...dataStr.split('\n').filter(Boolean)];
-                            let dataLines = commandLines.slice(1);
-                            let filtered = filterEntries(filterRange);
-                            let entryToRemove = filtered[entryIdx];
-                            let idxToRemove = -1;
-                            for (let i = 0; i < dataLines.length; i++) {
-                                let rawLine = dataLines[i];
-                                let parsed = parseData(rawLine, type)[0];
-                                let match = false;
-                                if (type === 'finance') {
-                                    let d1 = (parsed.date instanceof Date && !isNaN(parsed.date)) ? parsed.date.toISOString() : (parsed.date + '').trim();
-                                    let d2 = (entryToRemove.date instanceof Date && !isNaN(entryToRemove.date)) ? entryToRemove.date.toISOString() : (entryToRemove.date + '').trim();
-                                    let amt1 = (parsed.amount + '').trim();
-                                    let amt2 = (entryToRemove.amount + '').trim();
-                                    let cat1 = (parsed.category + '').trim();
-                                    let cat2 = (entryToRemove.category + '').trim();
-                                    let note1 = (parsed.note + '').trim();
-                                    let note2 = (entryToRemove.note + '').trim();
-                                    match = (
-                                        d1 === d2 &&
-                                        amt1 === amt2 &&
-                                        cat1 === cat2 &&
-                                        note1 === note2
-                                    );
-                                } else {
-                                    match = config.fields.every(f => {
-                                        if (f === 'date') {
-                                            let d1 = (parsed[f] instanceof Date && !isNaN(parsed[f])) ? parsed[f].toISOString() : (parsed[f] + '').trim();
-                                            let d2 = (entryToRemove[f] instanceof Date && !isNaN(entryToRemove[f])) ? entryToRemove[f].toISOString() : (entryToRemove[f] + '').trim();
-                                            return d1 === d2;
-                                        }
-                                        return (parsed[f] + '').trim() === (entryToRemove[f] + '').trim();
-                                    });
-                                }
-                                if (match) {
-                                    idxToRemove = i + 1;
-                                    break;
-                                }
-                            }
-                            if (idxToRemove > 0) {
-                                commandLines.splice(idxToRemove, 1);
-                                let newCommand = commandLines.join('\n');
-                                if (typeof window.setStorage === 'function' && storageKey) {
-                                    window.setStorage(storageKey, newCommand);
-                                }
-                                if (typeof window.renderApp === 'function') {
-                                    window.renderApp();
-                                }
-                                if (typeof onCommandChange === 'function') {
-                                    onCommandChange(newCommand);
-                                }
-                            }
-                        }
-                    });
-                }
-            });
-        }
-        // Add button/modal logic (per widget type)
-        const addBtn = container.querySelector('#finance-add-btn');
-        const modal = container.querySelector('.modal-overlay');
-        if (addBtn && modal) {
-            addBtn.addEventListener('mousedown', (e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                modal.classList.add('active');
-            });
-        }
-        // Modal close/cancel
-        const closeBtn = modal ? modal.querySelector('.modal-close') : null;
-        const cancelBtn = modal ? modal.querySelector('.modal-btn.secondary') : null;
-        if (closeBtn && modal) closeBtn.addEventListener('click', () => { modal.classList.remove('active'); });
-        if (cancelBtn && modal) cancelBtn.addEventListener('click', () => { modal.classList.remove('active'); });
-        // Modal confirm (add entry, per widget type)
-        const confirmBtn = modal ? modal.querySelector('.modal-btn.primary') : null;
-        if (confirmBtn && modal) {
-            confirmBtn.addEventListener('click', e => {
-                e.preventDefault();
-                if (type === 'finance') {
-                    const form = modal.querySelector('#finance-entry-form');
-                    const typeVal = form.querySelector('input[name="entryType"]:checked').value;
-                    const date = form.querySelector('#finance-entry-date').value;
-                    const note = form.querySelector('#finance-entry-description').value;
-                    const amount = form.querySelector('#finance-entry-amount').value;
-                    let category = form.querySelector('#finance-entry-category').value;
-                    const customCat = form.querySelector('#finance-entry-category-custom').value;
-                    if (category === '__custom__') category = customCat;
-                    if (!date || !note || !amount || !category) return;
-                    const amt = typeVal === 'income' ? Math.abs(parseFloat(amount)) : -Math.abs(parseFloat(amount));
-                    const yyyy = date.slice(0, 4);
-                    const mm = date.slice(5, 7);
-                    const dd = date.slice(8, 10);
-                    const formattedDate = `${yyyy}-${mm}-${dd}`;
-                    const newLine = `- ${formattedDate}, ${note}, ${amt}, ${category}`;
-                    let commandLines = command.split('\n');
-                    if (commandLines.length === 0) commandLines.push('FINANCE: summary, USD, all');
-                    commandLines.push(newLine);
-                    let newCommand = commandLines.join('\n');
-                    if (typeof onCommandChange === 'function') {
-                        onCommandChange(newCommand);
-                    }
-                    modal.classList.remove('active');
-                } else if (type === 'calorie') {
-                    const form = modal.querySelector('#calorie-entry-form');
-                    const date = form.querySelector('#calorie-entry-date').value;
-                    const item = form.querySelector('#calorie-entry-item').value;
-                    const value = form.querySelector('#calorie-entry-value').value;
-                    const note = form.querySelector('#calorie-entry-note').value;
-                    if (!date || !item || !value) return;
-                    const yyyy = date.slice(0, 4);
-                    const mm = date.slice(5, 7);
-                    const dd = date.slice(8, 10);
-                    const formattedDate = `${yyyy}-${mm}-${dd}`;
-                    const valueNum = Number(value);
-                    const noteVal = note ? note : '';
-                    const newLine = `- ${formattedDate}, ${item}, ${valueNum}, ${noteVal}`;
-                    let commandLines = command.split('\n');
-                    if (commandLines.length === 0) commandLines.push('CALORIE: summary, kcal, all');
-                    commandLines.push(newLine);
-                    let newCommand = commandLines.join('\n');
-                    if (typeof onCommandChange === 'function') {
-                        onCommandChange(newCommand);
-                    }
-                    modal.classList.remove('active');
-                } else if (type === 'workouts') {
-                    const form = modal.querySelector('#workouts-entry-form');
-                    const date = form.querySelector('#workouts-entry-date').value;
-                    const exercise = form.querySelector('#workouts-entry-exercise').value;
-                    const duration = form.querySelector('#workouts-entry-duration').value;
-                    const note = form.querySelector('#workouts-entry-note').value;
-                    if (!date || !exercise || !duration || !note) return;
-                    const yyyy = date.slice(0, 4);
-                    const mm = date.slice(5, 7);
-                    const dd = date.slice(8, 10);
-                    const formattedDate = `${yyyy}-${mm}-${dd}`;
-                    const newLine = `- ${formattedDate}, ${exercise}, ${duration}, ${note}`;
-                    let commandLines = command.split('\n');
-                    if (commandLines.length === 0) commandLines.push('WORKOUTS: summary, , all');
-                    commandLines.push(newLine);
-                    let newCommand = commandLines.join('\n');
-                    if (typeof onCommandChange === 'function') {
-                        onCommandChange(newCommand);
-                    }
-                    modal.classList.remove('active');
-                } else if (type === 'sleep') {
-                    const form = modal.querySelector('#sleep-entry-form');
-                    const date = form.querySelector('#sleep-entry-date').value;
-                    const hours = form.querySelector('#sleep-entry-hours').value;
-                    const quality = form.querySelector('#sleep-entry-quality').value;
-                    const note = form.querySelector('#sleep-entry-note').value;
-                    if (!date || !hours || !quality || !note) return;
-                    const yyyy = date.slice(0, 4);
-                    const mm = date.slice(5, 7);
-                    const dd = date.slice(8, 10);
-                    const formattedDate = `${yyyy}-${mm}-${dd}`;
-                    const newLine = `- ${formattedDate}, ${hours}, ${quality}, ${note}`;
-                    let commandLines = command.split('\n');
-                    if (commandLines.length === 0) commandLines.push('SLEEP: summary, , all');
-                    commandLines.push(newLine);
-                    let newCommand = commandLines.join('\n');
-                    if (typeof onCommandChange === 'function') {
-                        onCommandChange(newCommand);
-                    }
-                    modal.classList.remove('active');
-                }
-            });
-        }
+        return summary;
     }
 
-    function renderChart(container, type, command, dataStr, onCommandChange) {
-        const widgetInstanceId = 'chart-' + Math.random().toString(36).substr(2, 9);
-        const config = widgetConfigs[type] || widgetConfigs.finance;
-        const data = parseData(dataStr, type);
-        const { settings } = MainWidget.parseCommand(command, type);
-        let unit = settings.unit || config.currency || config.unit || '';
-        // Parse filter from command string
-        let filterRange = (() => {
-            let lines = command.split('\n').map(l => l.trim()).filter(Boolean);
-            if (lines.length > 0) {
-                let firstLine = lines[0];
-                let parts = firstLine.replace(/^[A-Z]+:/i, '').split(',').map(p => p.trim());
-                return parts[2] || 'all';
-            }
-            return 'all';
-        })();
-        const now = new Date();
-        const filterOptions = [
-            { label: 'All Time', value: 'all' },
-            { label: 'This Month', value: 'this-month' },
-            { label: 'This Year', value: 'this-year' },
-            { label: 'Last 3 Months', value: 'last-3-months' },
-            { label: 'Last 6 Months', value: 'last-6-months' },
-            { label: 'Last 12 Months', value: 'last-12-months' }
-        ];
-        function filterEntries(range) {
-            if (!range || range === 'all') return data;
-            return data.filter(e => {
-                if (!(e.date instanceof Date) || isNaN(e.date)) return false;
-                if (range === 'this-month') {
-                    return e.date.getFullYear() === now.getFullYear() && e.date.getMonth() === now.getMonth();
-                } else if (range === 'this-year') {
-                    return e.date.getFullYear() === now.getFullYear();
-                } else if (range === 'last-3-months') {
-                    const past = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
-                    return e.date >= past;
-                } else if (range === 'last-6-months') {
-                    const past = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
-                    return e.date >= past;
-                } else if (range === 'last-12-months') {
-                    const past = new Date(now.getFullYear(), now.getMonth() - 12, now.getDate());
-                    return e.date >= past;
-                }
-                return true;
-            });
-        }
-        let chartData = null;
-        const filteredEntries = filterEntries(filterRange);
+    function getChartData(entries, type) {
+        const byKey = {};
+        let datasets = [];
+
         if (type === 'finance') {
-            const byMonth = {};
-            filteredEntries.forEach(e => {
+            entries.forEach(e => {
                 if (!(e.date instanceof Date) || isNaN(e.date)) return;
                 const ym = e.date.getFullYear() + '-' + String(e.date.getMonth() + 1).padStart(2, '0');
-                if (!byMonth[ym]) byMonth[ym] = { income: 0, expenses: 0 };
-                if (parseFloat(e.amount) > 0) byMonth[ym].income += parseFloat(e.amount);
-                else byMonth[ym].expenses += Math.abs(parseFloat(e.amount));
+                if (!byKey[ym]) byKey[ym] = { income: 0, expenses: 0 };
+                if (parseFloat(e.amount) > 0) byKey[ym].income += parseFloat(e.amount);
+                else byKey[ym].expenses += Math.abs(parseFloat(e.amount));
             });
-            const labels = Object.keys(byMonth).sort();
-            chartData = {
+            const labels = Object.keys(byKey).sort();
+            return {
                 labels,
                 datasets: [
-                    { label: 'Income', data: labels.map(l => byMonth[l].income), backgroundColor: '#4CAF50' },
-                    { label: 'Expenses', data: labels.map(l => byMonth[l].expenses), backgroundColor: '#F44336' }
+                    { label: 'Income', data: labels.map(l => byKey[l].income), backgroundColor: '#4CAF50' },
+                    { label: 'Expenses', data: labels.map(l => byKey[l].expenses), backgroundColor: '#F44336' }
                 ]
             };
         } else if (type === 'calorie') {
-            // Aggregate by day: intake (positive), burned (negative)
-            const byDay = {};
-            filteredEntries.forEach(e => {
+            let target = 2000;
+            if (window.MainWidget && window.MainWidget._currentCalorieTarget) {
+                target = window.MainWidget._currentCalorieTarget;
+            }
+            entries.forEach(e => {
                 if (!(e.date instanceof Date) || isNaN(e.date)) return;
                 const d = e.date.toISOString().slice(0, 10);
-                if (!byDay[d]) byDay[d] = { intake: 0, burn: 0 };
+                if (!byKey[d]) byKey[d] = { intake: 0 };
                 const kcal = parseFloat(e.kcal) || 0;
-                if (kcal >= 0) byDay[d].intake += kcal;
-                else byDay[d].burn += Math.abs(kcal);
+                if (kcal >= 0) byKey[d].intake += kcal;
             });
-            const labels = Object.keys(byDay).sort();
-            chartData = {
+            const labels = Object.keys(byKey).sort();
+            return {
                 labels,
                 datasets: [
-                    { label: 'Intake', data: labels.map(l => byDay[l].intake), backgroundColor: '#4CAF50' },
-                    { label: 'Burned', data: labels.map(l => byDay[l].burn), backgroundColor: '#F44336' }
+                    { label: 'Intake', data: labels.map(l => byKey[l].intake), backgroundColor: '#4CAF50' },
+                    { label: 'Target', data: labels.map(() => target), backgroundColor: '#F44336' }
                 ]
             };
+    // Helper: Parse target from command for calorie widget
+    function getCalorieTargetFromCommand(commandStr) {
+        const firstLine = (commandStr.split('\n')[0] || '').trim();
+        const parts = firstLine.replace(/^[A-Z]+:/i, '').split(',').map(p => p.trim());
+        const target = parseInt(parts[1], 10);
+        return isNaN(target) ? 2000 : target;
+    }
         } else if (type === 'workouts') {
-            const byDay = {};
-            filteredEntries.forEach(e => {
+            entries.forEach(e => {
                 if (!(e.date instanceof Date) || isNaN(e.date)) return;
                 const d = e.date.toISOString().slice(0, 10);
-                if (!byDay[d]) byDay[d] = 0;
-                byDay[d] += parseFloat(e.duration) || 0;
+                if (!byKey[d]) byKey[d] = 0;
+                byKey[d] += parseFloat(e.duration) || 0;
             });
-            const labels = Object.keys(byDay).sort();
-            chartData = {
+             const labels = Object.keys(byKey).sort();
+            return {
                 labels,
-                datasets: [
-                    { label: 'Duration', data: labels.map(l => byDay[l]), backgroundColor: '#2196F3' }
-                ]
+                datasets: [{ label: 'Duration', data: labels.map(l => byKey[l]), backgroundColor: '#2196F3' }]
             };
         } else if (type === 'sleep') {
-            const byDay = {};
-            filteredEntries.forEach(e => {
+            entries.forEach(e => {
                 if (!(e.date instanceof Date) || isNaN(e.date)) return;
                 const d = e.date.toISOString().slice(0, 10);
-                if (!byDay[d]) byDay[d] = { hours: 0, quality: 0, count: 0 };
-                byDay[d].hours += parseFloat(e.hours) || 0;
-                byDay[d].quality += parseFloat(e.quality) || 0;
-                byDay[d].count += 1;
+                if (!byKey[d]) byKey[d] = { hours: 0, quality: 0, count: 0 };
+                byKey[d].hours += parseFloat(e.hours) || 0;
+                byKey[d].quality += parseFloat(e.quality) || 0;
+                byKey[d].count += 1;
             });
-            const labels = Object.keys(byDay).sort();
-            chartData = {
+            const labels = Object.keys(byKey).sort();
+            return {
                 labels,
                 datasets: [
-                    { label: 'Hours', data: labels.map(l => byDay[l].hours), backgroundColor: '#4CAF50' },
-                    { label: 'Avg Quality', data: labels.map(l => byDay[l].count ? byDay[l].quality / byDay[l].count : 0), backgroundColor: '#FF9800' }
+                    { label: 'Hours', data: labels.map(l => byKey[l].hours), backgroundColor: '#4CAF50' },
+                    { label: 'Avg Quality', data: labels.map(l => byKey[l].count ? byKey[l].quality / byKey[l].count : 0), backgroundColor: '#FF9800' }
                 ]
             };
         }
-        function renderFilterDropdown() {
-            const selectedOption = filterOptions.find(opt => opt.value === filterRange) || filterOptions[0];
-            return `
-                <div class="finance-filter-dropdown" tabindex="-1">
-                    <button type="button" class="finance-filter-btn" id="chart-filter-btn-${widgetInstanceId}" tabindex="0">${selectedOption.label} <span class="dropdown-arrow">▼</span></button>
-                    <div class="finance-filter-list" id="chart-filter-list-${widgetInstanceId}">
-                        ${filterOptions.map(opt => `<div class="finance-filter-item${filterRange === opt.value ? ' selected' : ''}" data-range="${opt.value}" tabindex="0">${opt.label}</div>`).join('')}
-                    </div>
-                </div>
-            `;
-        }
-        container.innerHTML = `
-            <div class="finance-widget-chart" id="chart-widget-root-${widgetInstanceId}">
-                <div class="finance-widget-header">
-                    <h3 class="finance-widget-title">${config.title} Chart</h3>
-                    <div class="finance-widget-controls">
-                        ${renderFilterDropdown()}
-                    </div>
-                </div>
-                <div class="finance-chart-container"><canvas id="chart-canvas-${widgetInstanceId}"></canvas></div>
-            </div>
-        `;
-        // Prevent event propagation to parent (edit mode, etc)
-        const chartRoot = container.querySelector(`#chart-widget-root-${widgetInstanceId}`);
-        if (chartRoot) {
-            ['mousedown', 'mouseup', 'click', 'dblclick', 'touchstart', 'touchend'].forEach(evt => {
-                chartRoot.addEventListener(evt, e => { e.stopPropagation(); });
-            });
-        }
-        // Chart.js rendering
-        const ctx = container.querySelector(`#chart-canvas-${widgetInstanceId}`);
-        if (ctx && window.Chart && chartData) {
-            new window.Chart(ctx, {
-                type: 'bar',
-                data: chartData,
-                options: {
-                    responsive: true,
-                    plugins: { legend: { display: true } },
-                    scales: { x: { beginAtZero: true }, y: { beginAtZero: true } }
-                }
-            });
-        }
-        // Filter dropdown event
-        const filterBtn = container.querySelector(`#chart-filter-btn-${widgetInstanceId}`);
-        const filterList = container.querySelector(`#chart-filter-list-${widgetInstanceId}`);
-        if (filterBtn && filterList) {
-            filterBtn.addEventListener('mousedown', (e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                filterList.style.display = filterList.style.display === 'none' ? 'block' : 'none';
-            });
-            filterList.querySelectorAll('.finance-filter-item').forEach(item => {
-                item.addEventListener('mousedown', e => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    filterRange = item.dataset.range;
-                    // Update command string with new filter
-                    let commandLines = command.split('\n');
-                    if (commandLines.length === 0) commandLines.push('FINANCE: summary+chart, USD, all');
-                    // Update the period in the first line
-                    let firstLine = commandLines[0];
-                    let parts = firstLine.replace(/^[A-Z]+:/i, '').split(',').map(p => p.trim());
-                    if (parts.length < 3) {
-                        while (parts.length < 3) parts.push('');
-                    }
-                    parts[2] = filterRange;
-                    commandLines[0] = (firstLine.match(/^[A-Z]+:/i) ? firstLine.match(/^[A-Z]+:/i)[0] : 'FINANCE:') + ' ' + parts.join(', ');
-                    let newCommand = commandLines.join('\n');
-                    if (typeof onCommandChange === 'function') {
-                        onCommandChange(newCommand);
-                    }
-                    // Re-render widget with new filter
-                    renderChart(container, type, newCommand, dataStr, onCommandChange);
-                });
-            });
-            setTimeout(() => {
-                document.addEventListener('mousedown', function handler(e) {
-                    if (!filterBtn.contains(e.target) && !filterList.contains(e.target)) {
-                        filterList.style.display = 'none';
-                        document.removeEventListener('mousedown', handler);
-                    }
-                });
-            }, 0);
-        }
+        return null;
     }
 
-    function renderPie(container, type, command, dataStr, onCommandChange) {
-        const widgetInstanceId = 'pie-' + Math.random().toString(36).substr(2, 9);
-        const config = widgetConfigs[type] || widgetConfigs.finance;
-        const data = parseData(dataStr, type);
-        const { settings } = MainWidget.parseCommand(command, type);
-        let unit = settings.unit || config.currency || config.unit || '';
-        // Parse filter from command string
-        let filterRange = (() => {
-            let lines = command.split('\n').map(l => l.trim()).filter(Boolean);
-            if (lines.length > 0) {
-                let firstLine = lines[0];
-                let parts = firstLine.replace(/^[A-Z]+:/i, '').split(',').map(p => p.trim());
-                return parts[2] || 'all';
-            }
-            return 'all';
-        })();
-        const now = new Date();
-        const filterOptions = [
-            { label: 'All Time', value: 'all' },
-            { label: 'This Month', value: 'this-month' },
-            { label: 'This Year', value: 'this-year' },
-            { label: 'Last 3 Months', value: 'last-3-months' },
-            { label: 'Last 6 Months', value: 'last-6-months' },
-            { label: 'Last 12 Months', value: 'last-12-months' }
-        ];
-        function filterEntries(range) {
-            if (!range || range === 'all') return data;
-            return data.filter(e => {
-                if (!(e.date instanceof Date) || isNaN(e.date)) return false;
-                if (range === 'this-month') {
-                    return e.date.getFullYear() === now.getFullYear() && e.date.getMonth() === now.getMonth();
-                } else if (range === 'this-year') {
-                    return e.date.getFullYear() === now.getFullYear();
-                } else if (range === 'last-3-months') {
-                    const past = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
-                    return e.date >= past;
-                } else if (range === 'last-6-months') {
-                    const past = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
-                    return e.date >= past;
-                } else if (range === 'last-12-months') {
-                    const past = new Date(now.getFullYear(), now.getMonth() - 12, now.getDate());
-                    return e.date >= past;
-                }
-                return true;
-            });
-        }
-        let pieData = null;
-        const filteredEntries = filterEntries(filterRange);
-        if (type === 'finance') {
-            const expensesByCategory = filteredEntries.filter(e => parseFloat(e.amount) < 0).reduce((acc, e) => {
-                const cat = e.category || 'Uncategorized';
-                acc[cat] = (acc[cat] || 0) + Math.abs(parseFloat(e.amount));
-                return acc;
-            }, {});
-            const pieColors = [
-                '#4CAF50', '#F44336', '#2196F3', '#FF9800', '#9C27B0',
-                '#00BCD4', '#FFEB3B', '#795548', '#607D8B', '#E91E63'
-            ];
-            const cats = Object.keys(expensesByCategory);
-            pieData = {
-                labels: cats,
-                datasets: [{
-                    data: cats.map(c => expensesByCategory[c]),
-                    backgroundColor: cats.map((c, i) => pieColors[i % pieColors.length])
-                }]
-            };
-        }
-        function renderFilterDropdown() {
-            const selectedOption = filterOptions.find(opt => opt.value === filterRange) || filterOptions[0];
-            return `
-                <div class="finance-filter-dropdown" tabindex="-1">
-                    <button type="button" class="finance-filter-btn" id="pie-filter-btn-${widgetInstanceId}" tabindex="0">${selectedOption.label} <span class="dropdown-arrow">▼</span></button>
-                    <div class="finance-filter-list" id="pie-filter-list-${widgetInstanceId}">
-                        ${filterOptions.map(opt => `<div class="finance-filter-item${filterRange === opt.value ? ' selected' : ''}" data-range="${opt.value}" tabindex="0">${opt.label}</div>`).join('')}
-                    </div>
-                </div>
-            `;
-        }
-        container.innerHTML = `
-            <div class="finance-widget-pie" id="pie-widget-root-${widgetInstanceId}">
-                <div class="finance-widget-header">
-                    <h3 class="finance-widget-title">${config.title} Pie Chart</h3>
-                    <div class="finance-widget-controls">
-                        ${renderFilterDropdown()}
-                    </div>
-                </div>
-                <div class="finance-pie-container"><canvas id="pie-canvas-${widgetInstanceId}"></canvas></div>
-            </div>
-        `;
-        // Prevent event propagation to parent (edit mode, etc)
-        const pieRoot = container.querySelector(`#pie-widget-root-${widgetInstanceId}`);
-        if (pieRoot) {
-            ['mousedown', 'mouseup', 'click', 'dblclick', 'touchstart', 'touchend'].forEach(evt => {
-                pieRoot.addEventListener(evt, e => { e.stopPropagation(); });
-            });
-        }
-        // Chart.js rendering
-        const ctx = container.querySelector(`#pie-canvas-${widgetInstanceId}`);
-        if (ctx && window.Chart && pieData) {
-            new window.Chart(ctx, {
-                type: 'pie',
-                data: pieData,
-                options: {
-                    responsive: true,
-                    plugins: { legend: { display: true } }
-                }
-            });
-        }
-        // Filter dropdown event
-        const filterBtn = container.querySelector(`#pie-filter-btn-${widgetInstanceId}`);
-        const filterList = container.querySelector(`#pie-filter-list-${widgetInstanceId}`);
-        if (filterBtn && filterList) {
-            filterBtn.addEventListener('mousedown', (e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                filterList.style.display = filterList.style.display === 'none' ? 'block' : 'none';
-            });
-            filterList.querySelectorAll('.finance-filter-item').forEach(item => {
-                item.addEventListener('mousedown', e => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    filterRange = item.dataset.range;
-                    // Update command string with new filter
-                    let commandLines = command.split('\n');
-                    if (commandLines.length === 0) commandLines.push('FINANCE: summary+chartpie, USD, all');
-                    // Update the period in the first line
-                    let firstLine = commandLines[0];
-                    let parts = firstLine.replace(/^[A-Z]+:/i, '').split(',').map(p => p.trim());
-                    if (parts.length < 3) {
-                        while (parts.length < 3) parts.push('');
-                    }
-                    parts[2] = filterRange;
-                    commandLines[0] = (firstLine.match(/^[A-Z]+:/i) ? firstLine.match(/^[A-Z]+:/i)[0] : 'FINANCE:') + ' ' + parts.join(', ');
-                    let newCommand = commandLines.join('\n');
-                    if (typeof onCommandChange === 'function') {
-                        onCommandChange(newCommand);
-                    }
-                    // Re-render widget with new filter
-                    renderPie(container, type, newCommand, dataStr, onCommandChange);
-                });
-            });
-            setTimeout(() => {
-                document.addEventListener('mousedown', function handler(e) {
-                    if (!filterBtn.contains(e.target) && !filterList.contains(e.target)) {
-                        filterList.style.display = 'none';
-                        document.removeEventListener('mousedown', handler);
-                    }
-                });
-            }, 0);
-        }
-    }
+    function getPieData(entries, type) {
+        if (type !== 'finance') return null;
+        const expensesByCategory = entries.filter(e => parseFloat(e.amount) < 0).reduce((acc, e) => {
+            const cat = e.category || 'Uncategorized';
+            acc[cat] = (acc[cat] || 0) + Math.abs(parseFloat(e.amount));
+            return acc;
+        }, {});
 
-    // Legacy: keep for compatibility, but now only renders all features stacked (not recommended)
-    function render(container, type, command, dataStr, onCommandChange) {
-        // For backward compatibility, render all features stacked
-        renderSummary(container, type, command, dataStr, onCommandChange);
-        renderChart(container, type, command, dataStr, onCommandChange);
-        renderPie(container, type, command, dataStr, onCommandChange);
-    }
-
-
-    // --- UNIVERSAL WIDGET RENDERER (modular, config-driven) ---
-    function renderUniversalWidget(container, widgetInstanceId) {
-        // --- STATE ---
-        let entries = state.data;
-        const { settings } = MainWidget.parseCommand(state.command, state.type);
-        let unit = settings.unit || state.config.currency || state.config.unit || '';
-        if (typeof state.filterRange === 'undefined') state.filterRange = 'all';
-        let filterRange = state.filterRange;
-        const now = new Date();
-        const filterOptions = [
-            { label: 'All Time', value: 'all' },
-            { label: 'This Month', value: 'month' },
-            { label: 'This Year', value: 'year' },
-            { label: 'Last 3 Months', value: '3m' },
-            { label: 'Last 6 Months', value: '6m' },
-            { label: 'Last 12 Months', value: '12m' }
-        ];
-        // Parse layout features (summary, chart, chartpie, table, etc)
-        const layoutFeatures = (settings.layout || '').split('+').map(s => s.trim().toLowerCase());
-        function hasFeature(f) { return layoutFeatures.includes(f); }
-        function filterEntries(range) {
-            if (!range || range === 'all') return entries;
-            return entries.filter(e => {
-                if (!(e.date instanceof Date) || isNaN(e.date)) return false;
-                if (range === 'month') {
-                    return e.date.getFullYear() === now.getFullYear() && e.date.getMonth() === now.getMonth();
-                } else if (range === 'year') {
-                    return e.date.getFullYear() === now.getFullYear();
-                } else if (range.endsWith('m')) {
-                    const months = parseInt(range);
-                    const past = new Date(now.getFullYear(), now.getMonth() - months, now.getDate());
-                    return e.date >= past;
-                }
-                return true;
-            });
-        }
-
-        // --- SUMMARY LOGIC (per widget type) ---
-        let summary = {};
-        let breakdownHtml = '';
-        let chartHtml = '';
-        let pieHtml = '';
-        const filteredEntries = filterEntries(filterRange);
-        let chartData = null;
-        let pieData = null;
-        if (state.type === 'finance') {
-            // Finance: income, expenses, net, category breakdown
-            summary.income = filteredEntries.filter(e => parseFloat(e.amount) > 0).reduce((sum, e) => sum + parseFloat(e.amount), 0);
-            summary.expenses = filteredEntries.filter(e => parseFloat(e.amount) < 0).reduce((sum, e) => sum + parseFloat(e.amount), 0);
-            summary.net = summary.income + summary.expenses;
-            // Category breakdown
-            const expensesByCategory = filteredEntries.filter(e => parseFloat(e.amount) < 0).reduce((acc, e) => {
-                const cat = e.category || 'Uncategorized';
-                acc[cat] = (acc[cat] || 0) + Math.abs(parseFloat(e.amount));
-                return acc;
-            }, {});
-            const totalExpenses = Math.abs(summary.expenses);
-            const pieColors = [
-                '#4CAF50', '#F44336', '#2196F3', '#FF9800', '#9C27B0',
-                '#00BCD4', '#FFEB3B', '#795548', '#607D8B', '#E91E63'
-            ];
-            breakdownHtml = Object.entries(expensesByCategory).length ? `
-                <div class="finance-category-breakdown">
-                    <h3 class="finance-widget-subtitle">Spending by Category</h3>
-                    ${Object.entries(expensesByCategory)
-                        .sort(([, a], [, b]) => b - a)
-                        .map(([category, amount], index) => {
-                            const percentage = totalExpenses > 0 ? (amount / totalExpenses) * 100 : 0;
-                            const colorIndex = index % pieColors.length;
-                            const color = pieColors[colorIndex];
-                            return `
-                                <div class="finance-category-bar-item">
-                                    <div class="finance-category-color" style="background-color: ${color};"></div>
-                                    <div class="finance-category-label">${category}</div>
-                                    <div class="finance-category-bar">
-                                        <div class="finance-category-bar-fill" style="width: ${percentage}%; background-color: ${color};"></div>
-                                    </div>
-                                    <div class="finance-category-amount">${unit}${amount.toFixed(2)}</div>
-                                </div>
-                            `;
-                        }).join('')}
-                </div>
-            ` : '';
-            // Chart data: income/expenses over time (by month)
-            if (hasFeature('chart')) {
-                const byMonth = {};
-                filteredEntries.forEach(e => {
-                    if (!(e.date instanceof Date) || isNaN(e.date)) return;
-                    const ym = e.date.getFullYear() + '-' + String(e.date.getMonth() + 1).padStart(2, '0');
-                    if (!byMonth[ym]) byMonth[ym] = { income: 0, expenses: 0 };
-                    if (parseFloat(e.amount) > 0) byMonth[ym].income += parseFloat(e.amount);
-                    else byMonth[ym].expenses += Math.abs(parseFloat(e.amount));
-                });
-                const labels = Object.keys(byMonth).sort();
-                chartData = {
-                    labels,
-                    datasets: [
-                        { label: 'Income', data: labels.map(l => byMonth[l].income), backgroundColor: '#4CAF50' },
-                        { label: 'Expenses', data: labels.map(l => byMonth[l].expenses), backgroundColor: '#F44336' }
-                    ]
-                };
-                chartHtml = `<div class="finance-chart-container"><canvas id="finance-bar-chart-${widgetInstanceId}"></canvas></div>`;
-            }
-            // Pie data: category breakdown
-            if (hasFeature('chartpie')) {
-                const cats = Object.keys(expensesByCategory);
-                pieData = {
-                    labels: cats,
-                    datasets: [{
-                        data: cats.map(c => expensesByCategory[c]),
-                        backgroundColor: cats.map((c, i) => pieColors[i % pieColors.length])
-                    }]
-                };
-                pieHtml = `<div class="finance-pie-container"><canvas id="finance-pie-chart-${widgetInstanceId}"></canvas></div>`;
-            }
-        } else if (state.type === 'calorie') {
-            summary.intake = filteredEntries.filter(e => parseFloat(e.intake) > 0).reduce((sum, e) => sum + parseFloat(e.intake), 0);
-            summary.burn = filteredEntries.filter(e => parseFloat(e.burn) > 0).reduce((sum, e) => sum + parseFloat(e.burn), 0);
-            summary.net = summary.intake - summary.burn;
-            if (hasFeature('chart')) {
-                const byDay = {};
-                filteredEntries.forEach(e => {
-                    if (!(e.date instanceof Date) || isNaN(e.date)) return;
-                    const d = e.date.toISOString().slice(0, 10);
-                    if (!byDay[d]) byDay[d] = { intake: 0, burn: 0 };
-                    byDay[d].intake += parseFloat(e.intake) || 0;
-                    byDay[d].burn += parseFloat(e.burn) || 0;
-                });
-                const labels = Object.keys(byDay).sort();
-                chartData = {
-                    labels,
-                    datasets: [
-                        { label: 'Intake', data: labels.map(l => byDay[l].intake), backgroundColor: '#4CAF50' },
-                        { label: 'Burned', data: labels.map(l => byDay[l].burn), backgroundColor: '#F44336' }
-                    ]
-                };
-                chartHtml = `<div class="finance-chart-container"><canvas id="calorie-bar-chart-${widgetInstanceId}"></canvas></div>`;
-            }
-        } else if (state.type === 'workouts') {
-            summary.total = filteredEntries.filter(e => parseFloat(e.duration) > 0).reduce((sum, e) => sum + parseFloat(e.duration), 0);
-            if (hasFeature('chart')) {
-                const byDay = {};
-                filteredEntries.forEach(e => {
-                    if (!(e.date instanceof Date) || isNaN(e.date)) return;
-                    const d = e.date.toISOString().slice(0, 10);
-                    if (!byDay[d]) byDay[d] = 0;
-                    byDay[d] += parseFloat(e.duration) || 0;
-                });
-                const labels = Object.keys(byDay).sort();
-                chartData = {
-                    labels,
-                    datasets: [
-                        { label: 'Duration', data: labels.map(l => byDay[l]), backgroundColor: '#2196F3' }
-                    ]
-                };
-                chartHtml = `<div class="finance-chart-container"><canvas id="workouts-bar-chart-${widgetInstanceId}"></canvas></div>`;
-            }
-        } else if (state.type === 'sleep') {
-            summary.hours = filteredEntries.filter(e => parseFloat(e.hours) > 0).reduce((sum, e) => sum + parseFloat(e.hours), 0);
-            summary.avgQuality = filteredEntries.length ? (filteredEntries.reduce((sum, e) => sum + parseFloat(e.quality || 0), 0) / filteredEntries.length) : 0;
-            if (hasFeature('chart')) {
-                const byDay = {};
-                filteredEntries.forEach(e => {
-                    if (!(e.date instanceof Date) || isNaN(e.date)) return;
-                    const d = e.date.toISOString().slice(0, 10);
-                    if (!byDay[d]) byDay[d] = { hours: 0, quality: 0, count: 0 };
-                    byDay[d].hours += parseFloat(e.hours) || 0;
-                    byDay[d].quality += parseFloat(e.quality) || 0;
-                    byDay[d].count += 1;
-                });
-                const labels = Object.keys(byDay).sort();
-                chartData = {
-                    labels,
-                    datasets: [
-                        { label: 'Hours', data: labels.map(l => byDay[l].hours), backgroundColor: '#4CAF50' },
-                        { label: 'Avg Quality', data: labels.map(l => byDay[l].count ? byDay[l].quality / byDay[l].count : 0), backgroundColor: '#FF9800' }
-                    ]
-                };
-                chartHtml = `<div class="finance-chart-container"><canvas id="sleep-bar-chart-${widgetInstanceId}"></canvas></div>`;
-            }
-        }
-
-        // DRY summary card logic for all widget types
-        const summaryCardConfigs = {
-            finance: [
-                { key: 'income', label: 'Income', class: 'income', value: s => `${unit}${(s.income || 0).toFixed(2)}` },
-                { key: 'expenses', label: 'Expenses', class: 'expense', value: s => `${unit}${Math.abs(s.expenses || 0).toFixed(2)}` },
-                { key: 'net', label: 'Net', class: 'net', value: s => `${s.net >= 0 ? '+' : '-'}${unit}${Math.abs(s.net || 0).toFixed(2)}` }
-            ],
-            calorie: [
-                { key: 'intake', label: 'Intake', class: 'income', value: s => `${unit}${(s.intake || 0).toFixed(0)}` },
-                { key: 'burn', label: 'Burned', class: 'expense', value: s => `${unit}${(s.burn || 0).toFixed(0)}` },
-                { key: 'net', label: 'Net', class: 'net', value: s => `${s.net >= 0 ? '+' : '-'}${unit}${Math.abs(s.net || 0).toFixed(0)}` }
-            ],
-            workouts: [
-                { key: 'total', label: 'Total Duration', class: 'income', value: s => `${(s.total || 0).toFixed(1)} min` }
-            ],
-            sleep: [
-                { key: 'hours', label: 'Total Hours', class: 'income', value: s => `${(s.hours || 0).toFixed(1)} h` },
-                { key: 'avgQuality', label: 'Avg Quality', class: 'net', value: s => `${(s.avgQuality || 0).toFixed(1)} / 10` }
-            ]
+        const cats = Object.keys(expensesByCategory);
+        return {
+            labels: cats,
+            datasets: [{
+                data: cats.map(c => expensesByCategory[c]),
+                backgroundColor: cats.map((_, i) => pieColors[i % pieColors.length])
+            }]
         };
-        const cardConfig = summaryCardConfigs[state.type] || [];
-        let summaryCardsHtml = '';
-        if (cardConfig.length) {
-            summaryCardsHtml = `
-                <div class="finance-summary-cards">
-                    ${cardConfig.map(card => `
-                        <div class="finance-card ${card.class}">
-                            <div class="finance-card-label">${card.label}</div>
-                            <div class="finance-card-value">${card.value(summary)}</div>
-                        </div>
-                    `).join('')}
+    }
+
+
+    // --- GENERIC RENDERERS ---
+    function renderHeader(title, filterPeriod, onFilterChange) {
+        const selectedOption = filterOptions.find(opt => opt.value === filterPeriod) || filterOptions[0];
+        const filterDropdownHtml = `
+            <div class="finance-filter-dropdown">
+                <button type="button" class="finance-filter-btn">${selectedOption.label} <span class="dropdown-arrow">▼</span></button>
+                <div class="finance-filter-list" style="display:none;">
+                    ${filterOptions.map(opt => `<div class="finance-filter-item${filterPeriod === opt.value ? ' selected' : ''}" data-range="${opt.value}">${opt.label}</div>`).join('')}
                 </div>
-            `;
-        }
+            </div>`;
 
-        // --- ENTRY TABLE ---
-        function getEntriesHtml(filtered) {
-            if (state.type === 'finance') {
-                return filtered.map(e => {
-                    const amountClass = parseFloat(e.amount) > 0 ? 'income' : 'expense';
-                    return `
-                        <tr class="finance-transaction-row">
-                            <td>${e.date instanceof Date && !isNaN(e.date) ? window.dateFns.format(e.date, 'MMM d') : e.date}</td>
-                            <td>${e.note || ''}</td>
-                            <td>${e.category || ''}</td>
-                            <td class="${amountClass}">${unit}${parseFloat(e.amount).toFixed(2)}</td>
-                        </tr>
-                    `;
-                }).join('');
-            } else if (state.type === 'calorie') {
-                return filtered.map(e => `
-                    <tr>
-                        <td>${e.date instanceof Date && !isNaN(e.date) ? window.dateFns.format(e.date, 'MMM d') : e.date}</td>
-                        <td>${e.intake || ''}</td>
-                        <td>${e.burn || ''}</td>
-                        <td>${e.note || ''}</td>
-                    </tr>
-                `).join('');
-            } else if (state.type === 'workouts') {
-                return filtered.map(e => `
-                    <tr>
-                        <td>${e.date instanceof Date && !isNaN(e.date) ? window.dateFns.format(e.date, 'MMM d') : e.date}</td>
-                        <td>${e.exercise || ''}</td>
-                        <td>${e.duration || ''}</td>
-                        <td>${e.note || ''}</td>
-                    </tr>
-                `).join('');
-            } else if (state.type === 'sleep') {
-                return filtered.map(e => `
-                    <tr>
-                        <td>${e.date instanceof Date && !isNaN(e.date) ? window.dateFns.format(e.date, 'MMM d') : e.date}</td>
-                        <td>${e.hours || ''}</td>
-                        <td>${e.quality || ''}</td>
-                        <td>${e.note || ''}</td>
-                    </tr>
-                `).join('');
-            }
-            return '';
-        }
-
-        function renderEntryTable() {
-            let headers = [];
-            if (state.type === 'finance') headers = ['Date', 'Description', 'Category', 'Amount'];
-            else if (state.type === 'calorie') headers = ['Date', 'Entries', 'Kcal', 'Note'];
-            else if (state.type === 'workouts') headers = ['Date', 'Exercise', 'Duration', 'Note'];
-            else if (state.type === 'sleep') headers = ['Date', 'Hours', 'Quality', 'Note'];
-            return `
-                <div class="finance-transaction-list">
-                    <h3 class="finance-widget-subtitle">Recent Entries</h3>
-                    <div class="finance-transaction-table-container">
-                        <table>
-                            <thead>
-                                <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
-                            </thead>
-                            <tbody>${getEntriesHtml(filteredEntries)}</tbody>
-                        </table>
-                    </div>
+        return `
+            <div class="finance-widget-header">
+                <h3 class="finance-widget-title">${title}</h3>
+                <div class="finance-widget-controls">
+                    <button type="button" class="finance-add-button" title="Add New Entry">+ New Entry</button>
+                    ${filterDropdownHtml}
                 </div>
-            `;
-        }
-
-        // --- FILTER DROPDOWN ---
-        function renderFilterDropdown() {
-            return `
-                <div class="finance-filter-dropdown" tabindex="-1">
-                    <button type="button" class="finance-filter-btn" id="finance-filter-btn" tabindex="0">${filterOptions.find(opt => opt.value === filterRange).label} <span class="dropdown-arrow">▼</span></button>
-                    <div class="finance-filter-list" id="finance-filter-list">
-                        ${filterOptions.map(opt => `<div class="finance-filter-item${filterRange === opt.value ? ' selected' : ''}" data-range="${opt.value}" tabindex="0">${opt.label}</div>`).join('')}
+            </div>`;
+    }
+    
+    function renderSummaryCards(summary, config, unit) {
+        if (!config.summaryCards || config.summaryCards.length === 0) return '';
+        return `
+            <div class="finance-summary-cards">
+                ${config.summaryCards.map(card => `
+                    <div class="finance-card ${card.class}">
+                        <div class="finance-card-label">${card.label}</div>
+                        <div class="finance-card-value">${card.value(summary, unit)}</div>
                     </div>
-                </div>
-            `;
-        }
+                `).join('')}
+            </div>`;
+    }
 
-        // --- ADD BUTTON ---
-        function renderAddButton() {
-            return `<button type="button" class="finance-add-button" id="finance-add-btn" title="Add New Entry" tabindex="0">+ New Entry</button>`;
-        }
-
-        // --- HEADER ---
-        function renderHeader() {
-            return `
-                <div class="finance-widget-header">
-                    <h3 class="finance-widget-title">${state.config.title}</h3>
-                    <div class="finance-widget-controls">
-                        ${renderAddButton()}
-                        ${renderFilterDropdown()}
-                    </div>
-                </div>
-            `;
-        }
-
-        // --- MODAL (per widget type) ---
-        function renderModal() {
-            const today = new Date();
-            const yyyy = today.getFullYear();
-            const mm = String(today.getMonth() + 1).padStart(2, '0');
-            const dd = String(today.getDate()).padStart(2, '0');
-            const todayStr = `${yyyy}-${mm}-${dd}`;
-            if (state.type === 'finance') {
-                // ...existing code for finance modal...
-                const commonCategories = [
-                    'Salary', 'Groceries', 'Rent', 'Utilities', 'Food', 'Transport', 'Shopping', 'Health', 'Entertainment', 'Travel', 'Education', 'Insurance', 'Gifts', 'Other'
-                ];
-                const userCategories = Array.from(new Set(state.data.map(t => t.category).filter(cat => cat && !commonCategories.includes(cat))));
-                return `
-                    <div class="modal-overlay" id="finance-entry-modal">
-                        <div class="modal">
-                            <div class="modal-header">
-                                <h3 id="finance-modal-title">Add Financial Entry</h3>
-                                <button id="finance-modal-close" class="modal-close">×</button>
-                            </div>
-                            <div class="modal-body">
-                                <form id="finance-entry-form" class="finance-entry-form">
-                                    <div class="finance-form-group">
-                                        <label>Transaction Type</label>
-                                        <div class="finance-entry-type">
-                                            <input type="radio" id="income-type" name="entryType" value="income" checked>
-                                            <label for="income-type" class="income">Income</label>
-                                            <input type="radio" id="expense-type" name="entryType" value="expense">
-                                            <label for="expense-type" class="expense">Expense</label>
-                                        </div>
-                                    </div>
-                                    <div class="finance-form-group">
-                                        <label for="finance-entry-date">Date</label>
-                                        <div class="date-picker-container">
-                                            <input type="date" id="finance-entry-date" value="${todayStr}" required>
-                                        </div>
-                                    </div>
-                                    <div class="finance-form-group">
-                                        <label for="finance-entry-description">Description</label>
-                                        <input type="text" id="finance-entry-description" placeholder="e.g., Salary, Groceries, Rent" required>
-                                    </div>
-                                    <div class="finance-form-row">
-                                        <div class="finance-form-group">
-                                            <label for="finance-entry-amount">Amount</label>
-                                            <input type="number" id="finance-entry-amount" step="0.01" min="0.01" placeholder="0.00" required>
-                                        </div>
-                                        <div class="finance-form-group">
-                                            <label for="finance-entry-category">Category</label>
-                                            <select id="finance-entry-category" required>
-                                                <option value="" disabled selected>Select category...</option>
-                                                <optgroup label="Common Categories">
-                                                    ${commonCategories.map(cat => `<option value="${cat}">${cat}</option>`).join('')}
-                                                </optgroup>
-                                                ${userCategories.length > 0 ? `<optgroup label="Your Categories">${userCategories.map(cat => `<option value="${cat}">${cat}</option>`).join('')}</optgroup>` : ''}
-                                                <option value="__custom__">Custom...</option>
-                                            </select>
-                                            <input type="text" id="finance-entry-category-custom" placeholder="Enter custom category..." />
-                                        </div>
-                                    </div>
-                                </form>
-                            </div>
-                            <div class="modal-footer">
-                                <button id="finance-modal-cancel" class="modal-btn secondary">Cancel</button>
-                                <button id="finance-modal-confirm" class="modal-btn primary">New Entry</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            } else if (state.type === 'calorie') {
-                return `
-                    <div class="modal-overlay" id="calorie-entry-modal">
-                        <div class="modal">
-                            <div class="modal-header">
-                                <h3 id="calorie-modal-title">Add Calorie Entry</h3>
-                                <button id="calorie-modal-close" class="modal-close">×</button>
-                            </div>
-                            <div class="modal-body">
-                                <form id="calorie-entry-form" class="finance-entry-form">
-                                    <div class="finance-form-group">
-                                        <label for="calorie-entry-date">Date</label>
-                                        <div class="date-picker-container">
-                                            <input type="date" id="calorie-entry-date" value="${todayStr}" required>
-                                        </div>
-                                    </div>
-                                    <div class="finance-form-row">
-                                        <div class="finance-form-group">
-                                            <label for="calorie-entry-intake">Burned (${unit})</label>
-                                            <input type="number" id="calorie-entry-intake" step="1" min="0" placeholder="0" required>
-                                        </div>
-                                        <div class="finance-form-group">
-                                            <label for="calorie-entry-burn">Intake (${unit})</label>
-                                            <input type="number" id="calorie-entry-burn" step="1" min="0" placeholder="0" required>
-                                        </div>
-                                    </div>
-                                    <div class="finance-form-group">
-                                        <label for="calorie-entry-note">Note</label>
-                                        <input type="text" id="calorie-entry-note" placeholder="e.g., Breakfast, Running" required>
-                                    </div>
-                                </form>
-                            </div>
-                            <div class="modal-footer">
-                                <button id="calorie-modal-cancel" class="modal-btn secondary">Cancel</button>
-                                <button id="calorie-modal-confirm" class="modal-btn primary">New Entry</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            } else if (state.type === 'workouts') {
-                return `
-                    <div class="modal-overlay" id="workouts-entry-modal">
-                        <div class="modal">
-                            <div class="modal-header">
-                                <h3 id="workouts-modal-title">Add Workout Entry</h3>
-                                <button id="workouts-modal-close" class="modal-close">×</button>
-                            </div>
-                            <div class="modal-body">
-                                <form id="workouts-entry-form" class="finance-entry-form">
-                                    <div class="finance-form-group">
-                                        <label for="workouts-entry-date">Date</label>
-                                        <div class="date-picker-container">
-                                            <input type="date" id="workouts-entry-date" value="${todayStr}" required>
-                                        </div>
-                                    </div>
-                                    <div class="finance-form-group">
-                                        <label for="workouts-entry-exercise">Exercise</label>
-                                        <input type="text" id="workouts-entry-exercise" placeholder="e.g., Running, Yoga" required>
-                                    </div>
-                                    <div class="finance-form-group">
-                                        <label for="workouts-entry-duration">Duration (min)</label>
-                                        <input type="number" id="workouts-entry-duration" step="1" min="1" placeholder="0" required>
-                                    </div>
-                                    <div class="finance-form-group">
-                                        <label for="workouts-entry-note">Note</label>
-                                        <input type="text" id="workouts-entry-note" placeholder="e.g., Felt great" required>
-                                    </div>
-                                </form>
-                            </div>
-                            <div class="modal-footer">
-                                <button id="workouts-modal-cancel" class="modal-btn secondary">Cancel</button>
-                                <button id="workouts-modal-confirm" class="modal-btn primary">New Entry</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            } else if (state.type === 'sleep') {
-                return `
-                    <div class="modal-overlay" id="sleep-entry-modal">
-                        <div class="modal">
-                            <div class="modal-header">
-                                <h3 id="sleep-modal-title">Add Sleep Entry</h3>
-                                <button id="sleep-modal-close" class="modal-close">×</button>
-                            </div>
-                            <div class="modal-body">
-                                <form id="sleep-entry-form" class="finance-entry-form">
-                                    <div class="finance-form-group">
-                                        <label for="sleep-entry-date">Date</label>
-                                        <div class="date-picker-container">
-                                            <input type="date" id="sleep-entry-date" value="${todayStr}" required>
-                                        </div>
-                                    </div>
-                                    <div class="finance-form-group">
-                                        <label for="sleep-entry-hours">Hours Slept</label>
-                                        <input type="number" id="sleep-entry-hours" step="0.1" min="0" placeholder="0.0" required>
-                                    </div>
-                                    <div class="finance-form-group">
-                                        <label for="sleep-entry-quality">Quality (0-10)</label>
-                                        <input type="number" id="sleep-entry-quality" step="0.1" min="0" max="10" placeholder="0.0" required>
-                                    </div>
-                                    <div class="finance-form-group">
-                                        <label for="sleep-entry-note">Note</label>
-                                        <input type="text" id="sleep-entry-note" placeholder="e.g., Restless night" required>
-                                    </div>
-                                </form>
-                            </div>
-                            <div class="modal-footer">
-                                <button id="sleep-modal-cancel" class="modal-btn secondary">Cancel</button>
-                                <button id="sleep-modal-confirm" class="modal-btn primary">New Entry</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
-            return '';
-        }
-
-        // --- FINAL RENDER ---
-        container.innerHTML = `
-            <div class="finance-widget" id="main-finance-widget-root-${widgetInstanceId}">
-                ${renderHeader()}
-                ${hasFeature('summary') ? summaryCardsHtml : ''}
-                ${hasFeature('chart') ? chartHtml : ''}
-                ${hasFeature('chartpie') ? pieHtml : ''}
-                ${breakdownHtml}
-                ${renderEntryTable()}
-                ${renderModal()}
-            </div>
-        `;
-
-        // --- CHART RENDERING (Chart.js) ---
-        if (hasFeature('chart') && chartData) {
-            let chartId = '';
-            if (state.type === 'finance') chartId = `finance-bar-chart-${widgetInstanceId}`;
-            else if (state.type === 'calorie') chartId = `calorie-bar-chart-${widgetInstanceId}`;
-            else if (state.type === 'workouts') chartId = `workouts-bar-chart-${widgetInstanceId}`;
-            else if (state.type === 'sleep') chartId = `sleep-bar-chart-${widgetInstanceId}`;
-            const ctx = container.querySelector(`#${chartId}`);
-            if (ctx && window.Chart) {
-                new window.Chart(ctx, {
-                    type: 'bar',
-                    data: chartData,
-                    options: {
-                        responsive: true,
-                        plugins: { legend: { display: true } },
-                        scales: { x: { beginAtZero: true }, y: { beginAtZero: true } }
-                    }
-                });
-            }
-        }
-        if (hasFeature('chartpie') && pieData) {
-            const ctx = container.querySelector(`#finance-pie-chart-${widgetInstanceId}`);
-            if (ctx && window.Chart) {
-                new window.Chart(ctx, {
-                    type: 'pie',
-                    data: pieData,
-                    options: {
-                        responsive: true,
-                        plugins: { legend: { display: true } }
-                    }
-                });
-            }
-        }
-
-        // --- EVENT HANDLERS (unified for all widgets) ---
-        const widgetRoot = container.querySelector(`#main-finance-widget-root-${widgetInstanceId}`);
-        if (widgetRoot) {
-            widgetRoot.addEventListener('mousedown', e => { e.stopPropagation(); });
-            widgetRoot.addEventListener('click', e => { e.stopPropagation(); });
-        }
-        if (window.feather) window.feather.replace();
-
-        // Filter dropdown
-        const filterBtn = container.querySelector('#finance-filter-btn');
-        const filterList = container.querySelector('#finance-filter-list');
-        if (filterBtn && filterList) {
-            filterBtn.addEventListener('mousedown', (e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                filterList.style.display = filterList.style.display === 'none' ? 'block' : 'none';
-            });
-            filterList.querySelectorAll('.finance-filter-item').forEach(item => {
-                item.addEventListener('mousedown', e => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    filterRange = item.dataset.range;
-                    state.filterRange = filterRange;
-                    // Persist filter selection in command string (if present)
-                    let commandLines = state.command.split('\n');
-                    if (commandLines.length > 0) {
-                        let firstLine = commandLines[0];
-                        let parts = firstLine.replace(/^[A-Z]+:/i, '').split(',').map(p => p.trim());
-                        if (parts.length < 3) { while (parts.length < 3) parts.push(''); }
-                        let periodMap = {
-                            'all': 'all',
-                            'month': 'this-month',
-                            'year': 'this-year',
-                            '3m': 'last-3-months',
-                            '6m': 'last-6-months',
-                            '12m': 'last-12-months'
-                        };
-                        parts[2] = periodMap[filterRange] || 'all';
-                        let newFirstLine = (firstLine.match(/^[A-Z]+:/i) ? firstLine.match(/^[A-Z]+:/i)[0] : (state.type.toUpperCase() + ':')) + ' ' + parts.join(', ');
-                        commandLines[0] = newFirstLine;
-                        let newCommand = commandLines.join('\n');
-                        if (typeof state.onCommandChange === 'function') {
-                            state.onCommandChange(newCommand);
-                        }
-                    }
-                    renderUniversalWidget(container);
-                });
-            });
-            setTimeout(() => {
-                document.addEventListener('mousedown', function handler(e) {
-                    if (!filterBtn.contains(e.target) && !filterList.contains(e.target)) {
-                        filterList.style.display = 'none';
-                        document.removeEventListener('mousedown', handler);
-                    }
-                });
-            }, 0);
-        }
-
-        // Add button/modal logic (per widget type)
-        const addBtn = container.querySelector('#finance-add-btn');
-        const modal = container.querySelector('.modal-overlay');
-        if (addBtn && modal) {
-            addBtn.addEventListener('mousedown', (e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                modal.classList.add('active');
-            });
-        }
-        // Modal close/cancel
-        const closeBtn = modal ? modal.querySelector('.modal-close') : null;
-        const cancelBtn = modal ? modal.querySelector('.modal-btn.secondary') : null;
-        if (closeBtn && modal) closeBtn.addEventListener('click', () => { modal.classList.remove('active'); });
-        if (cancelBtn && modal) cancelBtn.addEventListener('click', () => { modal.classList.remove('active'); });
-
-        // Modal confirm (add entry, per widget type)
-        const confirmBtn = modal ? modal.querySelector('.modal-btn.primary') : null;
-        if (confirmBtn && modal) {
-            confirmBtn.addEventListener('click', e => {
-                e.preventDefault();
-                if (state.type === 'finance') {
-                    const form = modal.querySelector('#finance-entry-form');
-                    const type = form.querySelector('input[name="entryType"]:checked').value;
-                    const date = form.querySelector('#finance-entry-date').value;
-                    const note = form.querySelector('#finance-entry-description').value;
-                    const amount = form.querySelector('#finance-entry-amount').value;
-                    let category = form.querySelector('#finance-entry-category').value;
-                    const customCat = form.querySelector('#finance-entry-category-custom').value;
-                    if (category === '__custom__') category = customCat;
-                    if (!date || !note || !amount || !category) return;
-                    const amt = type === 'income' ? Math.abs(parseFloat(amount)) : -Math.abs(parseFloat(amount));
-                    const yyyy = date.slice(0, 4);
-                    const mm = date.slice(5, 7);
-                    const dd = date.slice(8, 10);
-                    const formattedDate = `${yyyy}-${mm}-${dd}`;
-                    const newLine = `- ${formattedDate}, ${note}, ${amt}, ${category}`;
-                    let commandLines = state.command.split('\n');
-                    if (commandLines.length === 0) commandLines.push('FINANCE: summary+chart, USD, all');
-                    commandLines.push(newLine);
-                    let newCommand = commandLines.join('\n');
-                    if (typeof state.onCommandChange === 'function') {
-                        state.onCommandChange(newCommand);
-                    }
-                    modal.style.display = 'none';
-                } else if (state.type === 'calorie') {
-                    const form = modal.querySelector('#calorie-entry-form');
-                    const date = form.querySelector('#calorie-entry-date').value;
-                    const intake = form.querySelector('#calorie-entry-intake').value;
-                    const burn = form.querySelector('#calorie-entry-burn').value;
-                    const note = form.querySelector('#calorie-entry-note').value;
-                    if (!date || !intake || !burn || !note) return;
-                    const yyyy = date.slice(0, 4);
-                    const mm = date.slice(5, 7);
-                    const dd = date.slice(8, 10);
-                    const formattedDate = `${yyyy}-${mm}-${dd}`;
-                    const newLine = `- ${formattedDate}, ${intake}, ${burn}, ${note}`;
-                    let commandLines = state.command.split('\n');
-                    if (commandLines.length === 0) commandLines.push('CALORIE: summary+chart, kcal, all');
-                    commandLines.push(newLine);
-                    let newCommand = commandLines.join('\n');
-                    if (typeof state.onCommandChange === 'function') {
-                        state.onCommandChange(newCommand);
-                    }
-                    modal.style.display = 'none';
-                } else if (state.type === 'workouts') {
-                    const form = modal.querySelector('#workouts-entry-form');
-                    const date = form.querySelector('#workouts-entry-date').value;
-                    const exercise = form.querySelector('#workouts-entry-exercise').value;
-                    const duration = form.querySelector('#workouts-entry-duration').value;
-                    const note = form.querySelector('#workouts-entry-note').value;
-                    if (!date || !exercise || !duration || !note) return;
-                    const yyyy = date.slice(0, 4);
-                    const mm = date.slice(5, 7);
-                    const dd = date.slice(8, 10);
-                    const formattedDate = `${yyyy}-${mm}-${dd}`;
-                    const newLine = `- ${formattedDate}, ${exercise}, ${duration}, ${note}`;
-                    let commandLines = state.command.split('\n');
-                    if (commandLines.length === 0) commandLines.push('WORKOUTS: summary+chart, , all');
-                    commandLines.push(newLine);
-                    let newCommand = commandLines.join('\n');
-                    if (typeof state.onCommandChange === 'function') {
-                        state.onCommandChange(newCommand);
-                    }
-                    modal.style.display = 'none';
-                } else if (state.type === 'sleep') {
-                    const form = modal.querySelector('#sleep-entry-form');
-                    const date = form.querySelector('#sleep-entry-date').value;
-                    const hours = form.querySelector('#sleep-entry-hours').value;
-                    const quality = form.querySelector('#sleep-entry-quality').value;
-                    const note = form.querySelector('#sleep-entry-note').value;
-                    if (!date || !hours || !quality || !note) return;
-                    const yyyy = date.slice(0, 4);
-                    const mm = date.slice(5, 7);
-                    const dd = date.slice(8, 10);
-                    const formattedDate = `${yyyy}-${mm}-${dd}`;
-                    const newLine = `- ${formattedDate}, ${hours}, ${quality}, ${note}`;
-                    let commandLines = state.command.split('\n');
-                    if (commandLines.length === 0) commandLines.push('SLEEP: summary+chart, , all');
-                    commandLines.push(newLine);
-                    let newCommand = commandLines.join('\n');
-                    if (typeof state.onCommandChange === 'function') {
-                        state.onCommandChange(newCommand);
-                    }
-                    modal.style.display = 'none';
+    function renderEntryTable(entries, config) {
+        const headers = config.fields.map(f => f.charAt(0).toUpperCase() + f.slice(1)).concat(['']);
+        const getRowHtml = (e, idx) => {
+            const rowData = config.fields.map(field => {
+                let val = e[field];
+                if (field === 'date' && val instanceof Date && !isNaN(val)) {
+                    return `<td>${window.dateFns ? window.dateFns.format(val, 'MMM d') : val.toLocaleDateString()}</td>`;
                 }
+                if (config.type === 'finance' && field === 'amount') {
+                    const amountClass = parseFloat(val) > 0 ? 'income' : 'expense';
+                    return `<td class="${amountClass}">${config.currency}${parseFloat(val).toFixed(2)}</td>`;
+                }
+                return `<td>${val !== undefined ? val : ''}</td>`;
+            }).join('');
+            // Only show remove button if this is a real data row (not empty)
+            const isEmpty = config.fields.every(field => !e[field]);
+            return `<tr data-entry-index="${idx}">${rowData}<td>${!isEmpty ? '<button class="entry-remove-btn" title="Remove Entry">✕</button>' : ''}</td></tr>`;
+        };
+
+        return `
+            <div class="finance-transaction-list">
+                <h3 class="finance-widget-subtitle">Recent Entries</h3>
+                <div class="finance-transaction-table-container">
+                    <table>
+                        <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+                        <tbody>${entries.map(getRowHtml).join('')}</tbody>
+                    </table>
+                </div>
+            </div>`;
+    }
+
+    function renderModal(type, config, allEntries) {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        let fieldsHtml = (config.modalFields || []).map(field => {
+            const required = field.required ? 'required' : '';
+            switch (field.type) {
+                case 'radio':
+                    return `
+                        <div class="finance-form-group">
+                            <label>${field.label}</label>
+                            <div class="finance-entry-type">
+                                ${field.options.map((opt, i) => `
+                                    <input type="radio" id="${field.name}-${opt.value}" name="${field.name}" value="${opt.value}" ${ (field.default === opt.value || i === 0) ? 'checked' : ''}>
+                                    <label for="${field.name}-${opt.value}" class="${opt.value}">${opt.label}</label>
+                                `).join('')}
+                            </div>
+                        </div>`;
+                case 'select':
+                     const userCategories = type === 'finance' ? Array.from(new Set(allEntries.map(t => t.category).filter(cat => cat && !field.options.includes(cat)))) : [];
+                    return `
+                        <div class="finance-form-group">
+                            <label for="entry-${field.name}">${field.label}</label>
+                            <select id="entry-${field.name}" name="${field.name}" ${required}>
+                                <option value="" disabled selected>Select...</option>
+                                <optgroup label="Common">
+                                    ${field.options.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
+                                </optgroup>
+                                ${userCategories.length > 0 ? `<optgroup label="Yours">${userCategories.map(cat => `<option value="${cat}">${cat}</option>`).join('')}</optgroup>` : ''}
+                                <option value="__custom__">Custom...</option>
+                            </select>
+                            <input type="text" id="entry-${field.name}-custom" name="${field.name}-custom" style="display:none;" placeholder="New Category" />
+                        </div>`;
+                default:
+                    return `
+                        <div class="finance-form-group">
+                            <label for="entry-${field.name}">${field.label}</label>
+                            <input type="${field.type}" id="entry-${field.name}" name="${field.name}" value="${field.type === 'date' ? todayStr : ''}"
+                                   placeholder="${field.placeholder || ''}" step="${field.step || ''}" min="${field.min || ''}" max="${field.max || ''}" ${required}>
+                        </div>`;
+            }
+        }).join('');
+
+        return `
+            <div class="modal-overlay">
+                <div class="modal">
+                    <div class="modal-header">
+                        <h3>Add ${config.title} Entry</h3>
+                        <button class="modal-close">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <form class="app-entry-form">${fieldsHtml}</form>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="modal-btn secondary">Cancel</button>
+                        <button class="modal-btn primary">Add Entry</button>
+                    </div>
+                </div>
+            </div>`;
+    }
+
+    function renderChartContainer(id, title) {
+        return `<div class="finance-widget-chart"><h3>${title}</h3><div class="finance-chart-container"><canvas id="${id}"></canvas></div></div>`;
+    }
+    
+    // --- MAIN RENDER FUNCTION ---
+    function render(container, type, command, dataStr, onCommandChange, storageKey) {
+        const instanceId = type + '-' + Math.random().toString(36).substr(2, 9);
+        const { config, settings } = parseCommand(command, type);
+        config.type = type; // inject type into config for convenience
+
+        // For calorie widget, parse and store target globally for use in summary/chart
+        if (type === 'calorie') {
+            const target = getCalorieTargetFromCommand(command);
+            window.MainWidget._currentCalorieTarget = target;
+        }
+
+        const allEntries = parseData(dataStr, type);
+        const filteredEntries = filterEntriesByPeriod(allEntries, settings.period);
+
+        // --- Prepare HTML sections ---
+        let summaryHtml = '', tableHtml = '', chartHtml = '', pieHtml = '';
+        if (settings.layout.includes('summary')) {
+            const summaryData = getSummaryData(filteredEntries, type);
+            summaryHtml = renderSummaryCards(summaryData, config, settings.unit);
+        }
+        tableHtml = renderEntryTable(filteredEntries, config);
+
+        if (settings.layout.includes('chart') && config.chart) {
+            chartHtml = renderChartContainer(`chart-${instanceId}`, `${config.title} Chart`);
+        }
+        if (settings.layout.includes('pie') && config.pie) {
+            pieHtml = renderChartContainer(`pie-${instanceId}`, `Expense Breakdown`);
+        }
+
+        // --- Final Assembly ---
+        container.innerHTML = `
+            <div class="finance-widget" id="widget-root-${instanceId}">
+                ${renderHeader(config.title, settings.period)}
+                ${summaryHtml}
+                ${chartHtml}
+                ${pieHtml}
+                ${tableHtml}
+                ${renderModal(type, config, allEntries)}
+            </div>`;
+        
+        // --- Render Charts ---
+        if (chartHtml) {
+            const chartData = getChartData(filteredEntries, type);
+            const ctx = container.querySelector(`#chart-${instanceId}`);
+            if (ctx && window.Chart && chartData) {
+                new window.Chart(ctx, { type: 'bar', data: chartData, options: { responsive: true, plugins: { legend: { display: true } }, scales: { x: {}, y: { beginAtZero: true } } }});
+            }
+        }
+        if (pieHtml) {
+            const pieData = getPieData(filteredEntries, type);
+            const ctx = container.querySelector(`#pie-${instanceId}`);
+            if (ctx && window.Chart && pieData) {
+                new window.Chart(ctx, { type: 'pie', data: pieData, options: { responsive: true, plugins: { legend: { display: true } } } });
+            }
+        }
+        
+        // --- UNIFIED EVENT HANDLERS ---
+        const widgetRoot = container.querySelector(`#widget-root-${instanceId}`);
+        
+        // Prevent parent interactions
+        ['mousedown', 'click', 'dblclick'].forEach(evt => {
+            widgetRoot.addEventListener(evt, e => e.stopPropagation());
+        });
+
+        // Filter Dropdown
+        const filterBtn = widgetRoot.querySelector('.finance-filter-btn');
+        const filterList = widgetRoot.querySelector('.finance-filter-list');
+        filterBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            filterList.style.display = filterList.style.display === 'none' ? 'block' : 'none';
+        });
+        document.addEventListener('click', function closeFilter(e) {
+            if (!filterBtn.contains(e.target)) {
+                filterList.style.display = 'none';
+            }
+        }, { once: true, capture: true });
+
+        filterList.querySelectorAll('.finance-filter-item').forEach(item => {
+            item.addEventListener('click', e => {
+                e.preventDefault();
+                const newPeriod = e.target.dataset.range;
+                let cmdLines = command.split('\n');
+                let firstLine = cmdLines[0] || `${type.toUpperCase()}: summary, ${settings.unit}, all`;
+                let parts = firstLine.replace(/^[A-Z]+:/i, '').split(',').map(p => p.trim());
+                parts[2] = newPeriod;
+                cmdLines[0] = (firstLine.match(/^[A-Z]+:/i) || `${type.toUpperCase()}:`)[0] + ' ' + parts.join(', ');
+                if (onCommandChange) onCommandChange(cmdLines.join('\n'));
+            });
+        });
+        
+        // Modal Handling
+        const modal = widgetRoot.querySelector('.modal-overlay');
+        widgetRoot.querySelector('.finance-add-button').addEventListener('click', () => modal.classList.add('active'));
+        modal.querySelector('.modal-close').addEventListener('click', () => modal.classList.remove('active'));
+        modal.querySelector('.modal-btn.secondary').addEventListener('click', () => modal.classList.remove('active'));
+        
+        const categorySelect = modal.querySelector('select[name="category"]');
+        if (categorySelect) {
+            categorySelect.addEventListener('change', () => {
+                const customInput = modal.querySelector('input[name="category-custom"]');
+                customInput.style.display = categorySelect.value === '__custom__' ? 'block' : 'none';
             });
         }
-    }
+        
+        // Add Entry
+        modal.querySelector('.modal-btn.primary').addEventListener('click', () => {
+            const form = modal.querySelector('.app-entry-form');
+            const formData = new FormData(form);
+            const values = Object.fromEntries(formData.entries());
+            
+            if (form.checkValidity() === false) {
+                alert('Please fill out all required fields.');
+                return;
+            }
 
-    // --- GENERIC TABLE RENDERER (for other types) ---
-    function renderGenericTable(container) {
-        const tableEl = document.createElement('table');
-        tableEl.className = 'main-widget-table';
-        const thead = document.createElement('thead');
-        const tr = document.createElement('tr');
-        state.config.fields.forEach(field => {
-            const th = document.createElement('th');
-            th.textContent = field;
-            tr.appendChild(th);
+            let newLine = '- ';
+            if (type === 'finance') {
+                let category = values.category === '__custom__' ? values['category-custom'] : values.category;
+                const amount = values.entryType === 'expense' ? -Math.abs(parseFloat(values.amount)) : Math.abs(parseFloat(values.amount));
+                newLine += `${values.date}, ${values.note}, ${amount.toFixed(2)}, ${category}`;
+            } else {
+                 newLine += config.fields.map(field => values[field] || '').join(', ');
+            }
+            
+            if (onCommandChange) onCommandChange(command + '\n' + newLine);
+            modal.classList.remove('active');
         });
-        thead.appendChild(tr);
-        tableEl.appendChild(thead);
-        const tbody = document.createElement('tbody');
-        state.data.forEach(row => {
-            const tr = document.createElement('tr');
-            state.config.fields.forEach(field => {
-                const td = document.createElement('td');
-                td.textContent = row[field];
-                tr.appendChild(td);
-            });
-            tbody.appendChild(tr);
-        });
-        tableEl.appendChild(tbody);
-        container.appendChild(tableEl);
-    }
 
-    // --- API ---
+        // Remove Entry
+        widgetRoot.querySelectorAll('.entry-remove-btn').forEach(btn => {
+        btn.addEventListener('click', e => {
+            const row = e.target.closest('tr');
+            const entryIndex = parseInt(row.dataset.entryIndex, 10);
+            // Defensive: Only proceed if entryIndex is valid and filteredEntries has that index
+            if (isNaN(entryIndex) || !filteredEntries[entryIndex]) {
+                console.warn('Delete operation aborted: Invalid entry index or no entry at index.', {entryIndex, filteredEntries});
+                return;
+            }
+            const entryToRemove = filteredEntries[entryIndex];
+
+            // Dynamically get the storage key from the DOM at click time
+            const pageWrapper = widgetRoot.closest('[data-key]');
+            const currentPageKey = pageWrapper ? pageWrapper.dataset.key : null;
+
+            const confirmRemoval = () => {
+                // Combine the command header and data string to get all lines
+                const fullText = command + '\n' + dataStr;
+                let allLines = fullText.split('\n');
+
+                // --- START OF NEW FIX ---
+
+                // Re-create the string representation of the entry to be removed.
+                // This must perfectly match the line format in your data string.
+                const entryToRemoveString = '- ' + config.fields.map(field => {
+                    let val = entryToRemove[field];
+                    if (field === 'date' && val instanceof Date && !isNaN(val)) {
+                        // Format the date back to YYYY-MM-DD to match the source
+                        const y = val.getFullYear();
+                        const m = String(val.getMonth() + 1).padStart(2, '0');
+                        const d = String(val.getDate()).padStart(2, '0');
+                        return `${y}-${m}-${d}`;
+                    }
+                    if (type === 'finance' && field === 'amount') {
+                        return parseFloat(val).toFixed(2);
+                    }
+                    return val;
+                }).join(', ');
+                
+                // Find the index of this exact line in the combined text array.
+                // We search from index 1 to skip the header.
+                const lineIndexToRemove = allLines.indexOf(entryToRemoveString, 1);
+
+                console.log('DEBUG: Attempting to remove line:', entryToRemoveString);
+                console.log('DEBUG: Found at index:', lineIndexToRemove);
+
+                if (lineIndexToRemove > 0) { // Index must be > 0 (not the header)
+                    allLines.splice(lineIndexToRemove, 1);
+                    const newCommandStr = allLines.join('\n');
+
+                    console.log(`Removing entry: ${entryToRemove.date} - ${entryToRemove.note || entryToRemove.kcal || ''}`);
+                    console.log(`Saving updated command to storage key: ${currentPageKey}`);
+
+                    if (typeof window.setStorage === 'function' && currentPageKey) {
+                        window.setStorage(currentPageKey, newCommandStr);
+                    }
+                    if (typeof window.renderApp === 'function') {
+                        window.renderApp();
+                    }
+                    if (onCommandChange) {
+                        onCommandChange(newCommandStr);
+                    }
+                } else {
+                    console.warn('Delete operation aborted: Could not find the exact line to remove.', { lineToRemove: entryToRemoveString, allLines });
+                    // As a fallback, you could alert the user.
+                    alert("Error: Could not find the entry to remove. Please refresh and try again.");
+                }
+                // --- END OF NEW FIX ---
+            };
+
+            if (window.HabitTracker && typeof window.HabitTracker.showCustomConfirm === 'function') {
+                window.HabitTracker.showCustomConfirm('Are you sure you want to remove this entry?', confirmRemoval);
+            } else if (confirm('Are you sure you want to remove this entry?')) {
+                confirmRemoval();
+            }
+        });
+    });
+}
+    // --- PUBLIC API ---
     return {
-        render, // legacy: renders all features stacked
-        renderSummary,
-        renderChart,
-        renderPie,
-        renderUniversalWidget,
+        render,
+        // Expose individual renderers if still needed for legacy/specific uses, otherwise they can be removed.
+        renderSummary: (container, type, command, dataStr, onCommandChange) => render(container, type, command.replace(/chart|pie/g, 'summary'), dataStr, onCommandChange),
+        renderChart: (container, type, command, dataStr, onCommandChange) => render(container, type, command.replace(/summary|pie/g, 'chart'), dataStr, onCommandChange),
+        renderPie: (container, type, command, dataStr, onCommandChange) => render(container, type, command.replace(/summary|chart/g, 'pie'), dataStr, onCommandChange),
         parseCommand,
         parseData,
-        widgetConfigs,
-        state
+        widgetConfigs
     };
 })();
 
-// Make globally available
-window.MainWidget = MainWidget;
+// Make globally available if needed
+if (window) {
+    window.MainWidget = MainWidget;
+}

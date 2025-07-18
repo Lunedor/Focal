@@ -79,21 +79,21 @@ const widgetRegistry = {
       // Clear container
       placeholder.innerHTML = '';
       // Render requested widgets
+      const pageWrapper = placeholder.closest('[data-key]');
+      const currentPageKey = pageWrapper ? pageWrapper.dataset.key : null;
       if (layout.includes('summary')) {
         const summaryDiv = document.createElement('div');
-        const pageWrapper = placeholder.closest('[data-key]');
-        const currentPageKey = pageWrapper ? pageWrapper.dataset.key : null;
         window.MainWidget.renderSummary(summaryDiv, 'finance', configLine, dataStr, onCommandChange, currentPageKey);
         placeholder.appendChild(summaryDiv);
       }
       if (layout.includes('chart')) {
         const chartDiv = document.createElement('div');
-        window.MainWidget.renderChart(chartDiv, 'finance', configLine, dataStr, onCommandChange);
+        window.MainWidget.renderChart(chartDiv, 'finance', configLine, dataStr, onCommandChange, currentPageKey);
         placeholder.appendChild(chartDiv);
       }
       if (layout.includes('chartpie')) {
         const pieDiv = document.createElement('div');
-        window.MainWidget.renderPie(pieDiv, 'finance', configLine, dataStr, onCommandChange);
+        window.MainWidget.renderPie(pieDiv, 'finance', configLine, dataStr, onCommandChange, currentPageKey);
         placeholder.appendChild(pieDiv);
       }
     }
@@ -149,12 +149,12 @@ const widgetRegistry = {
       }
       if (layout.includes('chart')) {
         const chartDiv = document.createElement('div');
-        window.MainWidget.renderChart(chartDiv, 'calorie', configLine, dataStr, onCommandChange);
+        window.MainWidget.renderChart(chartDiv, 'calorie', configLine, dataStr, onCommandChange, currentPageKey);
         placeholder.appendChild(chartDiv);
       }
       if (layout.includes('chartpie')) {
         const pieDiv = document.createElement('div');
-        window.MainWidget.renderPie(pieDiv, 'calorie', configLine, dataStr, onCommandChange);
+        window.MainWidget.renderPie(pieDiv, 'calorie', configLine, dataStr, onCommandChange, currentPageKey);
         placeholder.appendChild(pieDiv);
       }
     }
@@ -201,21 +201,21 @@ const widgetRegistry = {
         return 'summary';
       })();
       placeholder.innerHTML = '';
+      const pageWrapper = placeholder.closest('[data-key]');
+      const currentPageKey = pageWrapper ? pageWrapper.dataset.key : null;
       if (layout.includes('summary')) {
         const summaryDiv = document.createElement('div');
-        const pageWrapper = placeholder.closest('[data-key]');
-        const currentPageKey = pageWrapper ? pageWrapper.dataset.key : null;
         window.MainWidget.renderSummary(summaryDiv, 'workouts', configLine, dataStr, onCommandChange, currentPageKey);
         placeholder.appendChild(summaryDiv);
       }
       if (layout.includes('chart')) {
         const chartDiv = document.createElement('div');
-        window.MainWidget.renderChart(chartDiv, 'workouts', configLine, dataStr, onCommandChange);
+        window.MainWidget.renderChart(chartDiv, 'workouts', configLine, dataStr, onCommandChange, currentPageKey);
         placeholder.appendChild(chartDiv);
       }
       if (layout.includes('chartpie')) {
         const pieDiv = document.createElement('div');
-        window.MainWidget.renderPie(pieDiv, 'workouts', configLine, dataStr, onCommandChange);
+        window.MainWidget.renderPie(pieDiv, 'workouts', configLine, dataStr, onCommandChange, currentPageKey);
         placeholder.appendChild(pieDiv);
       }
     }
@@ -271,12 +271,12 @@ const widgetRegistry = {
       }
       if (layout.includes('chart')) {
         const chartDiv = document.createElement('div');
-        window.MainWidget.renderChart(chartDiv, 'sleep', configLine, dataStr, onCommandChange);
+        window.MainWidget.renderChart(chartDiv, 'sleep', configLine, dataStr, onCommandChange, currentPageKey);
         placeholder.appendChild(chartDiv);
       }
       if (layout.includes('chartpie')) {
         const pieDiv = document.createElement('div');
-        window.MainWidget.renderPie(pieDiv, 'sleep', configLine, dataStr, onCommandChange);
+        window.MainWidget.renderPie(pieDiv, 'sleep', configLine, dataStr, onCommandChange, currentPageKey);
         placeholder.appendChild(pieDiv);
       }
     }
