@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>jsMind Minimal Integration Test</title>
+<link type="text/css" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsmind@0.8.7/style/jsmind.min.css" />
+<style>
+  body { background: #222; color: #fff; }
+  #jsmind_container {
+    width: 100%;
+    height: 600px;
+    border: solid 1px #ccc;
+    background: #fff;
+    margin: 40px auto;
+  }
+</style>
+</head>
+<body>
+<h2 style="color:#fff">jsMind Minimal Integration Test</h2>
+<div id="controls">
+  <button id="add_node">Add Node</button>
+  <button id="remove_node">Remove Node</button>
+  <button id="zoom_in">Zoom In</button>
+  <button id="zoom_out">Zoom Out</button>
+</div>
+<div id="jsmind_container"></div>
+<script src="https://cdn.jsdelivr.net/npm/jsmind@0.8.7/js-legacy/jsmind.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsmind@0.8.7/js-legacy/jsmind.draggable-node.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsmind@0.8.7/js-legacy/jsmind.screenshot.js"></script>
+<script>
+var mind = {
+  meta:{
+    name:'jsMind remote',
+    author:'hizzgdev@163.com',
+    version:'0.2'
+  },
+  format:'node_tree',
+  data:{
+    id:'root',
+    topic:'Central Topic',
+    children:[
+      {id:'easy',topic:'Easy to use',direction:'right',children:[
+        {id:'easy1',topic:'Easy to create'},
+        {id:'easy2',topic:'Easy to edit'},
+      ]},
+      {id:'open',topic:'Open Source',direction:'right',children:[
+        {id:'open1',topic:'on GitHub'},
+      ]},
+      {id:'powerful',topic:'Powerful',direction:'left',children:[
+        {id:'powerful1',topic:'Many features'},
+        {id:'powerful2',topic:'Customizable'},
+      ]}
+    ]
+  }
+};
+var options = {
+  container:'jsmind_container',
+  editable:true,
+  theme:'primary'
+};
+var jm = new jsMind(options);
+jm.show(mind);
+window.jm = jm;
+document.getElementById('add_node').onclick = function(){
+  var selected_node = jm.get_selected_node();
+  if(!selected_node){
+    alert('Please select a node first.');
+    return;
+  }
+  var nodeid = jsMind.util.uuid.newid();
+  var topic = 'New Node';
+  jm.add_node(selected_node, nodeid, topic);
+};
+document.getElementById('remove_node').onclick = function(){
+  var selected_node = jm.get_selected_node();
+  if(!selected_node){
+    alert('Please select a node first.');
+    return;
+  }
+  if(selected_node.isroot){
+    alert('Cannot remove the root node.');
+    return;
+  }
+  jm.remove_node(selected_node);
+};
+document.getElementById('zoom_in').onclick = function(){ jm.view.zoomIn(); };
+document.getElementById('zoom_out').onclick = function(){ jm.view.zoomOut(); };
+</script>
+</body>
+</html>

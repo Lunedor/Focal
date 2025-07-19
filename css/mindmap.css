@@ -1,0 +1,65 @@
+/* mindmap.css - Custom styles for the mind map widget */
+.mindmap-widget {
+  background: var(--color-background, #fff);
+  border: 1px solid var(--color-border, #eee);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  color: var(--color-text, #222);
+  padding: 0;
+  margin: 16px 0;
+  position: relative;
+  overflow: auto;
+  transition: box-shadow 0.2s;
+}
+.mindmap-widget:focus-within, .mindmap-widget:focus {
+  box-shadow: 0 0 0 2px var(--color-focus, #007aff);
+}
+.mindmap-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: var(--color-planner-bg, #f8f8f8);
+  border-bottom: 1px solid var(--color-border, #eee);
+  padding: 8px 12px;
+  border-radius: 8px 8px 0 0;
+}
+.mindmap-toolbar button {
+  background: var(--color-button, #007aff);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.mindmap-toolbar button:hover {
+  background: var(--color-button-hover, #005ecb);
+}
+.mindmap-toolbar .mindmap-toolbar-title {
+  font-weight: bold;
+  font-size: 1.1em;
+  margin-right: auto;
+  color: var(--color-text, #222);
+}
+.mindmap-widget .jsmind-inner {
+  background: #fff !important;
+  height: 600px !important;
+  width: 100% !important;
+  min-width: 600px !important;
+  display: block !important;
+  position: relative !important;
+  border: 1px solid #ccc;
+}
+.mindmap-widget canvas {
+  background: transparent !important;
+  height: 600px !important;
+  width: 100% !important;
+  min-width: 600px !important;
+  display: block !important;
+}
+.mindmap-widget .jmnode {
+  font-family: inherit;
+  font-size: 1em;
+  color: var(--color-text, #222);
+}
