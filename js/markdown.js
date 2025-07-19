@@ -1,4 +1,22 @@
+// js/markdown.js ---
+
+// 1. Create a new renderer instance FIRST. This was the missing piece.
 const renderer = new marked.Renderer();
+
+// Custom code block renderer for Mermaid
+renderer.code = function(code, infostring, escaped) {
+  const lang = (infostring || '').trim().toLowerCase();
+
+  if (lang === 'mermaid') {
+    // This is the correct logic: output a simple <div>.
+    // It will be ignored by your 'enhanceCodeBlocks' script.
+    return `<pre class="mermaid">${code}</pre>`;
+  }
+
+  // For all other languages, use the default behavior so they can be enhanced.
+  return marked.Renderer.prototype.code.call(this, code, infostring, escaped);
+};
+
 renderer.listitem = (text, task, checked) => {
   // 1. Get the raw markdown for this list item block.
   let rawText = '';
@@ -79,6 +97,7 @@ renderer.listitem = (text, task, checked) => {
 };
 
 marked.use({
+  renderer: renderer,
   extensions: [
     futurelogExtension,
     wikiLinkExtension,
@@ -93,12 +112,10 @@ marked.use({
     booksExtension,
     moviesExtension,
     habitsExtension,
-    promptExtension,
-    mindmapExtension
+    promptExtension
   ],
   gfm: true,
-  breaks: true,
-  renderer: renderer
+  breaks: true
 });
 
 // --- MARKDOWN PARSING LOGIC ---
@@ -113,7 +130,6 @@ marked.use({
  * This is the single source of truth for creating clickable date links.
  */
 function renderScheduledAndRepeatLinks(html) {
-
   // Only replace in text nodes, not inside HTML tags or attributes
   // Split by tags, process only text parts
   return html.replace(/(<[^>]+>)|([^<]+)/g, (match, tag, text) => {
@@ -238,19 +254,85 @@ function renderScheduledAndRepeatLinks(html) {
 /**
  * The main markdown parsing function for the application.
  */
+/**
+ * The main markdown parsing function for the application.
+ */
 const parseMarkdown = (text, options = {}) => {
   if (!text) return '';
 
-  // Step 1: Convert raw markdown to basic HTML.
-  // This correctly processes wiki-links, lists, tables, etc., into their HTML counterparts.
-  let html = marked.parse(text, { breaks: true });
+  // 1. Create a NEW, LOCAL renderer every single time.
+  // This makes it immune to any other script modifying the global state.
+  const localRenderer = new marked.Renderer();
 
-  // Step 2: Enhance the generated HTML.
-  // This finds any date/repeat text within the HTML and wraps it in our clickable spans.
+  // 2. Define the 'code' behavior directly on this new renderer.
+  localRenderer.code = function(code, infostring, escaped) {
+    const lang = (infostring || '').trim().toLowerCase();
+    if (lang === 'mermaid') {
+      // If it's a mermaid block, output the special div.
+      // This will be IGNORED by your enhanceCodeBlocks function.
+      return `<div class="mermaid">${code}</div>`;
+    }
+    // For all other languages, output the standard <pre><code> structure.
+    // This WILL be picked up and processed by enhanceCodeBlocks.
+    return marked.Renderer.prototype.code.call(this, code, infostring, escaped);
+  };
+
+  // 3. IMPORTANT: Define the 'listitem' behavior on this renderer as well.
+  // This ensures your custom task list rendering continues to work.
+  localRenderer.listitem = (text, task, checked) => {
+     // (The full function body from your file, starting with `let rawText = '';`)
+      let rawText = '';
+      if (typeof text === 'string') { rawText = text; } 
+      else if (text && typeof text === 'object') { rawText = text.raw || text.text || ''; }
+      const taskMatch = rawText.match(/^\s*([-*]|\d+\.)\s+\[([xX ])\]\s/);
+      if (taskMatch) {
+        const isChecked = taskMatch[2].trim().toLowerCase() === 'x';
+        let content = rawText.replace(/^\s*([-*]|\d+\.)\s+\[[xX ]\]\s/, '');
+        const lines = content.split('\n');
+        let itemText = lines[0];
+        let subListMarkdown = lines.slice(1).join('\n');
+        let liAttributes = '', inputAttributes = '';
+        const attrMatch = itemText.match(/\{([^}]+)\}$/);
+        if (attrMatch) {
+          const attrString = attrMatch[1];
+          itemText = itemText.replace(/\{[^}]+\}$/, '').trim();
+          if (/key=/.test(attrString)) {
+            const attrRegex = /(key|line-index|scheduled-date)=(.+?)(?=\s+(?:key|line-index|scheduled-date)=|$)/g;
+            let match;
+            while ((match = attrRegex.exec(attrString)) !== null) {
+              const k = match[1], v = match[2].trim();
+              if (k && v) { inputAttributes += ` data-${k}="${v}"`; }
+            }
+          }
+        }
+        const scheduledFromMatch = itemText.match(/^(.*)\s+\(from\s+\[\[([^\]]+)\]\]\)$/);
+        if (scheduledFromMatch) {
+          liAttributes = `data-original-task-content="${scheduledFromMatch[1].trim()}"`;
+        }
+        const parsedItemText = marked.parseInline(itemText);
+        const parsedSubList = subListMarkdown ? marked.parse(subListMarkdown) : '';
+        const checkboxId = 'list-checkbox-' + Math.random().toString(36).substring(2, 15);
+        return `<li class="task-list-item${isChecked ? ' checked-item' : ''}" ${liAttributes}><input type="checkbox" id="${checkboxId}" class="list-checkbox"${inputAttributes}${isChecked ? ' checked' : ''}> ${parsedItemText}${parsedSubList}</li>`;
+      } else {
+        let content = rawText.replace(/^\s*([-*]|\d+\.)\s+/, '');
+        let parsedContent = marked.parse(content);
+        const pTagRegex = /^<p>([\s\S]*)<\/p>\n?$/;
+        if (pTagRegex.test(parsedContent)) {
+          parsedContent = parsedContent.replace(pTagRegex, '$1');
+        }
+        return `<li>${parsedContent}</li>`;
+      }
+  };
+
+  // 4. Use this freshly created renderer for this specific parse job.
+  let html = marked.parse(text, {
+    renderer: localRenderer // Pass the local renderer as an option.
+  });
+
+  // The rest of your enhancement logic remains the same
   html = renderScheduledAndRepeatLinks(html);
-
-  // Step 3: Perform final minor cleanups and widget rendering (logic is unchanged).
   html = html.replace(/(<input[^>]*type="checkbox"[^>]*)\s*disabled[^>]*>/g, '$1>');
+  // ... (the rest of your function remains unchanged) ...
   html = html.replace(/<td>([\s\n]*)(?:-\s+)?\[([ xX])\]([\s\n]*)<\/td>/gi, (match, before, checked, after) => {
     const isChecked = checked.toLowerCase() === 'x';
     return `<td class="checkbox-cell">${before}<input type="checkbox" class="table-checkbox" ${isChecked ? 'checked' : ''}>${after}</td>`;

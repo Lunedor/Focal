@@ -276,7 +276,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Function to process code blocks in rendered content
   const enhanceCodeBlocks = () => {
     // Find all code blocks in the rendered content
-    document.querySelectorAll('.rendered-content pre code[class^="language-"]').forEach(codeBlock => {
+    document.querySelectorAll('.rendered-content pre:not(.mermaid) code[class^="language-"]').forEach(codeBlock => {
       const pre = codeBlock.parentElement;
       if (!pre.dataset.enhanced) {
         // Extract language from class name
