@@ -1,86 +1,115 @@
-# Focal Journal 🎯
+# 🎯 Focal Journal
 
-A minimalist, local-first digital bullet journal and planner—designed to help you organize your life entirely in your browser. Track tasks, notes, goals, habits, moods, finances, books, and movies with a fast, markdown-powered interface.
+A minimalist, **privacy-first digital bullet journal** and life planner — all in your browser.
+Track tasks, goals, habits, moods, finances, books, movies, and more with a lightning-fast, markdown-powered interface.
 
-![Focal Journal Screenshot](Screenshots/Screenshot_1.jpg)
+> ✅ Works offline & online
+> 📱 Optimized for mobile and desktop
+> 🔒 End-to-end encrypted & local-first
+> 🚀 Deployed on [GitHub Pages →](https://lunedor.github.io/Focal)
 
-> ✅ Mobile-optimized UI
-> 🚀 Deployed with [GitHub Pages](https://lunedor.github.io/Focal)
-
----
-
-## ✨ Features
-
-* **Weekly, Daily & Monthly Planner:** Plan your time with markdown entries, including hourly and Gantt views.
-* **Future Log Calendar:** Visualize long-term plans, recurring tasks, and scheduled events.
-* **Task Management:** Create tasks with checkboxes, summaries, and status syncing across views.
-* **Goal Tracker:** Set goals, track progress, link goals to tasks, and visualize achievements.
-* **Habit Tracker:** Define routines, track streaks, view charts and rewards.
-* **Mood Tracker:** Log moods with emojis/colors; view trends as calendar, chart, or circular.
-* **Finance Tracker:** Manage income and expenses with categories, charts, and summaries.
-* **Calorie Tracker:** Log daily calorie intake, set targets, and visualize with charts.
-* **Workouts Tracker:** Track workouts, durations, and see progress over time.
-* **Sleep Tracker:** Record sleep hours and quality, view trends and averages.
-* **Book Tracker:** Track reading progress and stats, with Google Books integration.
-* **Movie Tracker:** Manage watchlists, favorites, and stats via TMDB.
-* **Prompt Widgets:** Add daily prompts, affirmations, or questions to any page.
-* **Wiki-Style Notes:** Use `[[links]]` to create interconnected pages and backlink navigation.
-* **Notifications:** Add reminders with `(NOTIFY: YYYY-MM-DD HH:mm)` syntax.
-* **Recurring & Scheduled Items:** Use `(REPEAT: ...)` and `(SCHEDULED: YYYY-MM-DD)` in any planner view.
-* **AI Syntax Assistant:** Auto-generate planning syntax via Google Gemini integration.
-* **Keyboard Shortcuts:** Fast, keyboard-first workflow.
-* **Customizable Themes:** Switch between multiple light/dark themes.
-* **Local-First Privacy:** All data stays in your browser by default.
-* **Cloud Sync (Optional):** Sync data securely via Firebase.
-* **Responsive UI:** Fully functional on both desktop and mobile.
-* **Drag-and-Drop Sidebar:** Reorder or pin pages easily.
+![Screenshot](Screenshots/Screenshot_1.jpg)
 
 ---
 
-## 🤖 AI Syntax Assistant
+## ✨ Why Focal Journal?
 
-Describe what you need—like “reminder to water plants every Tuesday”—and the AI will generate correct syntax:
-
-1. Click “AI Syntax Assistant” in the toolbar.
-2. Enter a natural language request.
-3. Google Gemini (with Focal's syntax prompt) returns structured planner code.
-4. It's inserted and saved automatically.
+* No accounts or downloads needed to get started
+* Your data stays local — unless you *choose* to sync
+* Markdown + natural language AI = ultra-fast planning
+* Track every aspect of your life — from tasks to workouts
 
 ---
 
-## 📚 Markdown Syntax Extensions
+## 💡 Key Features
 
-Focal extends Markdown with powerful widgets and syntax:
+### 🗓️ Planners
+
+* **Daily / Weekly / Monthly views** with Markdown syntax
+* **Future Log**: visualize long-term goals & recurring events
+
+### ✅ Task & Goal Management
+
+* Task checkboxes, summaries, and synced status across pages
+* Link goals to tasks and track achievements visually
+
+### 📈 Trackers & Logs
+
+* **Habits**: define routines, track streaks, view charts
+* **Mood**: log emotions with emoji/colors, see trends over time
+* **Sleep / Workouts / Calories**: log activity with detailed stats
+* **Finance**: manage income/expenses with charts and summaries
+* **Books & Movies**: manage lists with Google Books & TMDB support
+
+### 🤖 AI Syntax Assistant *(Premium)*
+
+* Powered by Google Gemini
+* Describe anything in plain language:
+  *"Remind me to work out every Monday"*
+  → Focal generates proper syntax instantly
+
+### 🔔 Reminders & Recurring Logic
+
+* `SCHEDULED`, `REPEAT`, and `NOTIFY` tags work in any page
+* Receive push notifications (cross-device)
+
+### 📦 Import / Export
+
+* Backup or migrate your journal with **JSON import/export**
+* Supports both full data and per-page exports
+
+### 📚 Markdown Extensions & Widgets
+
+* Prompt/affirmation widgets for journaling
+* Wiki-style `[[linked pages]]` + backlinks
+* Extended Markdown widgets for all trackers
+
+### 🎨 UI & Themes
+
+* Multiple light/dark themes
+* Drag-and-drop sidebar
+* Fully responsive for desktop & mobile use
+
+---
+
+## 🔐 Privacy & Sync
+
+* **Local-first** by default — all your data stays in your browser
+* **Secure Firebase Sync** *(Premium)*: multi-device encrypted sync
+* **End-to-end encryption** of synced data
+* **PWA installable** — use it like a native app on any platform
+
+---
+
+## 💬 Markdown Syntax Extensions
 
 ```markdown
-[[Page Title]]               # Wiki-style link
-GOAL: Run 10km               # Goal
-TASKS: this-week             # Task summaries
-HABITS: define               # Define habits
-HABITS: today|stats|chart    # Habit widgets
-MOOD: chart, emoji           # Mood chart
-FINANCE: chartpie, USD       # Finance overview
-CALORIE: summary+chart, 2000 # Calorie tracker
-WORKOUTS: summary+chart      # Workouts tracker
-SLEEP: summary+chart         # Sleep tracker
-BOOKS: stats|to-read         # Book tracker
-MOVIES: watchlist|favorites  # Movie tracker
-FUTURELOG: 6-months          # Future log calendar
-PROMPT: What inspired you today? # Prompt widget
-(SCHEDULED: 2025-09-01)      # Scheduled task
-(REPEAT: every monday)       # Recurring task
-(NOTIFY: 2025-07-20 09:00)   # Push notification
+[[Page Title]]                # Wiki-style link
+GOAL: Learn French            # Goal
+TASKS: this-week              # Task summary
+HABITS: today|chart           # Habit tracker widgets
+MOOD: calendar, emoji         # Mood chart
+FINANCE: chartpie, USD        # Finance overview
+CALORIE: summary+chart, 2000  # Calorie intake
+WORKOUTS: summary+chart       # Workouts
+SLEEP: summary+chart          # Sleep tracking
+BOOKS: to-read|stats          # Reading list
+MOVIES: watchlist|favorites   # Movie tracker
+PROMPT: What inspired you?    # Prompt widget
+(SCHEDULED: 2025-07-20)       # Scheduled item
+(REPEAT: every friday)        # Recurring item
+(NOTIFY: 2025-07-20 09:00)    # Notification
 ```
 
 ---
 
-## 📝 Sample Page
+## 🧪 Sample Page
 
 ```markdown
 # Weekly Planner
 
 ## Tasks
-- [ ] Finish project report (SCHEDULED: 2025-07-14)
+- [ ] Finish report (SCHEDULED: 2025-07-14)
 - [x] Submit tax forms (SCHEDULED: 2025-07-15)
 - [ ] Call Alice (REPEAT: every friday)
 
@@ -93,7 +122,7 @@ HABITS: define
 - Drink water
 - Meditate
 - Exercise
-HABITS: day
+HABITS: today
 
 ## Mood
 MOOD: calendar, emoji, 2025-07-12:😊
@@ -107,52 +136,40 @@ BOOKS: to-read
 ## Movies
 MOVIES: watchlist
 
-## Future Log
-FUTURELOG: 12-months
-- [ ] Renew passport (SCHEDULED: 2025-09-01)
-- Team meeting (REPEAT: every monday)
-
 ## Notifications
 - [ ] Dentist appointment (NOTIFY: 2025-07-20 09:00)
- 
-## Calorie
-CALORIE: summary+chart, 2000, this-week
-- 2025-07-19, Breakfast (Oatmeal), 350, Morning meal
-- 2025-07-19, Lunch (Chicken Salad), 600, Protein boost
 
 ## Workouts
-WORKOUTS: summary+chart, , this-week
-- 2025-07-19, Running, 30, Morning run
-- 2025-07-18, Yoga, 45, Evening stretch
+WORKOUTS: summary+chart
+- 2025-07-19, Running, 30
+- 2025-07-18, Yoga, 45
 
 ## Sleep
-SLEEP: summary+chart, , this-week
-- 2025-07-19, 7.5, 8, Slept well
-- 2025-07-18, 6.0, 6, Woke up early
-
-## Prompt
-PROMPT: What is one thing you are grateful for today?
+SLEEP: summary+chart
+- 2025-07-19, 7.5
+- 2025-07-18, 6.0
 ```
 
 ---
 
-## 🛠 Tech Stack
+## 🛠️ Tech Stack
 
 * **Frontend:** HTML5, CSS3, Vanilla JavaScript (ES6+)
 * **Libraries:** `date-fns`, `marked.js`, Feather Icons
-* **Storage:** Browser `localStorage` (default), Firebase (optional)
+* **Storage:** `localStorage` (default), Firebase (optional cloud sync)
+* **AI:** Google Gemini (for syntax generation)
 * **Deployment:** GitHub Pages
 
-To run locally:
+### 🧪 Run Locally
 
 ```bash
 # From the project root
 python -m http.server
-# Or for Python 2
+# Or (Python 2)
 # python -m SimpleHTTPServer
 ```
 
-Visit: [http://localhost:8000](http://localhost:8000)
+Go to [http://localhost:8000](http://localhost:8000)
 
 ---
 
@@ -162,6 +179,4 @@ MIT License
 
 ---
 
-Created by **Lunedor**
-
----
+Built with ❤️ and Markdown by **Lunedor**
