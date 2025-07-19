@@ -82,16 +82,8 @@ TASKS: Getting Started
 
 This page demonstrates all features of Focal.
 
----
 
 ## Checkboxes & Markdown
-- [ ] Simple task
-- [x] Completed task
-- [ ] **Bold task**
-- [ ] *Italic task*
-- [ ] Task with a [[Wiki Link]]
-- [ ] Task with (SCHEDULED: ${todayDateStr})
-- [ ] Task with a notification (NOTIFY: ${notificationTimeStr})
 
 Weekly team meeting (REPEAT: every monday)
 Daily standup (REPEAT: everyday)
@@ -99,17 +91,30 @@ Events with (REPEAT: every friday from ${todayDateStr} to ${dayAfterTomorrowDate
 Events like anniversary (REPEAT: ${dateFns.format(today, 'dd.MM')})
 
 ### REPEAT Syntax Options
-- **Weekly**: \`(REPEAT: every monday)\` - Repeats every Monday
-- **Daily**: \`(REPEAT: everyday)\` - Repeats every day (great for habits)
-- **Date Range**: \`(REPEAT: every friday from 2025-01-01 to 2025-12-31)\` - Repeats weekly within a specific range
-- **Annual**: \`(REPEAT: 15.06)\` - Repeats annually on June 15th
-- **Full Date**: \`(REPEAT: 2025-06-15)\` - Repeats annually on this date
 
 All REPEAT items become clickable links that navigate to the next occurrence date in the planner.
 
----
 
-## Task Summary
+  ## Mind Map Widget Example
+
+  MINDMAP:
+  {
+    "meta": {"name": "Simple Mind Map"},
+    "format": "node_tree",
+    "data": {
+      "id": "root1",
+      "topic": "Main Idea",
+      "children": [
+        {"id": "n1", "topic": "Branch 1"},
+        {"id": "n2", "topic": "Branch 2", "children": [
+          {"id": "n3", "topic": "Sub-branch"}
+        ]}
+      ]
+    }
+  }
+
+  This creates a mind map with a root node and two branches, one of which has a sub-branch.
+
 TASKS: Demo Tasks
 - [x] Task 1
 - [ ] Task 2
@@ -933,8 +938,105 @@ FUTURELOG: 6-months
     // Save sample habit data
     setStorage(storageKey, JSON.stringify(sampleHabitData));
 
-    // 13. Set the visited flag
-    localStorage.setItem('focal-journal-visited', 'true');
+
+  // 14. Add a Health & Wellness page with Calorie, Workouts, and Sleep widgets
+  const healthWellnessContent = `
+# Health & Wellness 🏃‍♂️🍎💤
+
+Track your health habits, workouts, calories, and sleep in one place!
+
+---
+
+## Calorie Tracker
+
+CALORIE: summary+chart, kcal, this-week
+- 2025-07-19, Breakfast (Oatmeal), 350, Morning meal
+- 2025-07-19, Lunch (Chicken Salad), 600, Protein boost
+- 2025-07-19, Snack (Apple), 95, Afternoon
+- 2025-07-18, Dinner (Pasta), 700, Family dinner
+- 2025-07-18, Snack (Yogurt), 120, Evening
+- 2025-07-17, Breakfast (Eggs), 300, 
+- 2025-07-17, Lunch (Sandwich), 500, 
+
+---
+
+## Workouts Tracker
+
+WORKOUTS: summary+chart, , this-week
+- 2025-07-19, Running, 30, Morning run
+- 2025-07-18, Yoga, 45, Evening stretch
+- 2025-07-17, Cycling, 60, Cardio
+- 2025-07-16, Rest, 0, Recovery day
+
+---
+
+## Sleep Tracker
+
+SLEEP: summary+chart, , this-week
+- 2025-07-19, 7.5, 8, Slept well
+- 2025-07-18, 6.0, 6, Woke up early
+- 2025-07-17, 8.0, 9, Deep sleep
+- 2025-07-16, 5.5, 5, Trouble falling asleep
+
+---
+
+## Tips
+- Log your meals and workouts daily for best results
+- Use the sleep tracker to spot patterns and improve rest
+- Set calorie targets in the CALORIE widget config line (e.g., \`CALORIE: summary+chart, 2200, this-week\`)
+  `.trim();
+  setStorage('page-Health & Wellness', healthWellnessContent);
+
+  // 15. Add a Prompts page with prompt widget examples
+  const promptsContent = `
+# Daily Prompts & Inspiration 💡
+
+Use prompt widgets to add daily questions, affirmations, or reminders to your planner!
+
+---
+
+## Simple Prompt
+
+PROMPT: What is one thing you are grateful for today?
+
+---
+
+## Daily Sequential Prompt
+
+PROMPT(mode: daily-sequential, start: 2025-07-17):
+- Reflect on a recent success.
+- What challenge did you overcome this week?
+- Name a skill you want to improve.
+- Who inspired you recently?
+
+---
+
+## Daily Random Prompt
+
+PROMPT(mode: daily-random):
+- Share a favorite quote.
+- What made you smile today?
+- What is your top priority for tomorrow?
+- Describe your ideal weekend.
+
+---
+
+## Prompt with Date
+
+PROMPT(show-on: 2025-07-20):
+This prompt will only appear on July 20, 2025!
+
+---
+
+## Tips
+- Use \`mode: daily-sequential\` for rotating questions
+- Use \`show-on: YYYY-MM-DD\` to show a prompt on a specific date
+- Prompts can be used in any page, or in the planner for daily reflection
+  `.trim();
+  setStorage('page-Prompts', promptsContent);
+
+  // 13. Set the visited flag
+  localStorage.setItem('focal-journal-visited', 'true');
   }
   else {
     // If sample data already exists, do nothing

@@ -128,6 +128,28 @@ WIDGET_NAME: config1, config2, ...
     - Pay rent (REPEAT: every month)
     
 
+**i) Mind Map Widget**
+*   **Command:** MINDMAP:
+*   **Data:** JSON block describing the mind map structure.
+*   **Example:**
+    
+        MINDMAP:
+        {
+            "meta": {"name": "Simple Mind Map"},
+            "format": "node_tree",
+            "data": {
+                "id": "root1",
+                "topic": "Main Idea",
+                "children": [
+                    {"id": "n1", "topic": "Branch 1"},
+                    {"id": "n2", "topic": "Branch 2", "children": [
+                        {"id": "n3", "topic": "Sub-branch"}
+                    ]}
+                ]
+            }
+        }
+
+        This creates a mind map with a root node and two branches, one of which has a sub-branch.
 #### **3. Goals (GOAL: ...)**
 
 There are two types of goals:
