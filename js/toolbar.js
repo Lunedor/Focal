@@ -144,6 +144,7 @@ const EditModeManager = {
                 { icon: 'moon', action: 'sleep', title: 'Insert Sleep Tracker', md: null },
                 { icon: 'activity', action: 'workouts', title: 'Insert Workouts Tracker', md: null },
                 { icon: 'bar-chart-2', action: 'mood', title: 'Insert Mood Tracker', md: null },
+                { icon: 'grid', action: 'mindmap', title: 'Insert (MINDMAP: )', md: { prefix: 'MINDMAP: ' } },
                 { icon: 'book-open', action: 'books', title: 'Insert Book Tracker', md: null },
                 { icon: 'film', action: 'movies', title: 'Insert Movie Tracker', md: null },
                 { separator: true },
