@@ -18,8 +18,12 @@ A minimalist, local-first digital bullet journal and planner—designed to help 
 * **Habit Tracker:** Define routines, track streaks, view charts and rewards.
 * **Mood Tracker:** Log moods with emojis/colors; view trends as calendar, chart, or circular.
 * **Finance Tracker:** Manage income and expenses with categories, charts, and summaries.
+* **Calorie Tracker:** Log daily calorie intake, set targets, and visualize with charts.
+* **Workouts Tracker:** Track workouts, durations, and see progress over time.
+* **Sleep Tracker:** Record sleep hours and quality, view trends and averages.
 * **Book Tracker:** Track reading progress and stats, with Google Books integration.
 * **Movie Tracker:** Manage watchlists, favorites, and stats via TMDB.
+* **Prompt Widgets:** Add daily prompts, affirmations, or questions to any page.
 * **Wiki-Style Notes:** Use `[[links]]` to create interconnected pages and backlink navigation.
 * **Notifications:** Add reminders with `(NOTIFY: YYYY-MM-DD HH:mm)` syntax.
 * **Recurring & Scheduled Items:** Use `(REPEAT: ...)` and `(SCHEDULED: YYYY-MM-DD)` in any planner view.
@@ -56,9 +60,13 @@ HABITS: define               # Define habits
 HABITS: today|stats|chart    # Habit widgets
 MOOD: chart, emoji           # Mood chart
 FINANCE: chartpie, USD       # Finance overview
+CALORIE: summary+chart, 2000 # Calorie tracker
+WORKOUTS: summary+chart      # Workouts tracker
+SLEEP: summary+chart         # Sleep tracker
 BOOKS: stats|to-read         # Book tracker
 MOVIES: watchlist|favorites  # Movie tracker
 FUTURELOG: 6-months          # Future log calendar
+PROMPT: What inspired you today? # Prompt widget
 (SCHEDULED: 2025-09-01)      # Scheduled task
 (REPEAT: every monday)       # Recurring task
 (NOTIFY: 2025-07-20 09:00)   # Push notification
@@ -106,6 +114,24 @@ FUTURELOG: 12-months
 
 ## Notifications
 - [ ] Dentist appointment (NOTIFY: 2025-07-20 09:00)
+ 
+## Calorie
+CALORIE: summary+chart, 2000, this-week
+- 2025-07-19, Breakfast (Oatmeal), 350, Morning meal
+- 2025-07-19, Lunch (Chicken Salad), 600, Protein boost
+
+## Workouts
+WORKOUTS: summary+chart, , this-week
+- 2025-07-19, Running, 30, Morning run
+- 2025-07-18, Yoga, 45, Evening stretch
+
+## Sleep
+SLEEP: summary+chart, , this-week
+- 2025-07-19, 7.5, 8, Slept well
+- 2025-07-18, 6.0, 6, Woke up early
+
+## Prompt
+PROMPT: What is one thing you are grateful for today?
 ```
 
 ---
