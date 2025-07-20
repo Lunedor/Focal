@@ -72,7 +72,7 @@
     align-items: center;
     margin-top: 12px;
     padding: 16px;
-    background: var(--color-bg-secondary);
+    background: var(--color-sidebar-bg);
     border-radius: 8px;
     border: 1px solid var(--color-border);
 }
@@ -156,7 +156,7 @@
     align-items: center;
     gap: 12px;
     padding: 12px;
-    background: var(--color-bg-secondary);
+    background: var(--color-sidebar-bg);
     border: 1px solid var(--color-border);
     border-radius: 8px;
     transition: all 0.2s ease;
@@ -192,7 +192,7 @@
 
 /* Enhanced Category Card Styles */
 .habit-category-card {
-    background: var(--color-bg-secondary);
+    background: var(--color-sidebar-bg);
     border: 1px solid var(--color-border);
     border-radius: 12px;
     padding: 20px;
@@ -2269,7 +2269,7 @@ body.dark-mode .habit-cell.not-scheduled {
     align-items: center;
     margin-top: 12px;
     padding: 16px;
-    background: var(--color-bg-secondary);
+    background: var(--color-sidebar-bg);
     border-radius: 8px;
     border: 1px solid var(--color-border);
 }
@@ -2347,7 +2347,7 @@ body.dark-mode .habit-cell.not-scheduled {
     align-items: center;
     gap: 12px;
     padding: 12px;
-    background: var(--color-bg-secondary);
+    background: var(--color-sidebar-bg);
     border: 1px solid var(--color-border);
     border-radius: 8px;
     transition: all 0.2s ease;
@@ -2390,7 +2390,7 @@ body.dark-mode .habit-cell.not-scheduled {
 }
 
 .habit-goal-card {
-    background: var(--color-bg-secondary);
+    background: var(--color-sidebar-bg);
     border: 1px solid var(--color-border);
     border-radius: 12px;
     padding: 20px;
@@ -2407,7 +2407,7 @@ body.dark-mode .habit-cell.not-scheduled {
 /* Goal Status Classes */
 .habit-goal-card.complete {
     border-left-color: #4CAF50;
-    background: linear-gradient(135deg, var(--color-bg-secondary) 0%, rgba(76, 175, 80, 0.05) 100%);
+    background: linear-gradient(135deg, var(--color-sidebar-bg) 0%, rgba(76, 175, 80, 0.05) 100%);
 }
 
 .habit-goal-card.almost-complete {
@@ -2673,7 +2673,7 @@ body.dark-mode .habit-cell.not-scheduled {
     align-items: center;
     margin-top: 12px;
     padding: 20px;
-    background: var(--color-bg-secondary);
+    background: var(--color-sidebar-bg);
     border-radius: 12px;
     border: 1px solid var(--color-border);
 }
@@ -2771,7 +2771,7 @@ body.dark-mode .habit-cell.not-scheduled {
     align-items: center;
     gap: 12px;
     padding: 12px;
-    background: var(--color-bg-secondary);
+    background: var(--color-sidebar-bg);
     border: 1px solid var(--color-border);
     border-radius: 8px;
     transition: all 0.2s ease;
@@ -2814,7 +2814,7 @@ body.dark-mode .habit-cell.not-scheduled {
 }
 
 .habit-stat-card {
-    background: var(--color-bg-secondary);
+    background: var(--color-sidebar-bg);
     border: 1px solid var(--color-border);
     border-radius: 12px;
     padding: 20px;
@@ -2830,7 +2830,7 @@ body.dark-mode .habit-cell.not-scheduled {
 /* Performance Level Classes for Stats */
 .habit-stat-card.excellent {
     border-left-color: #4CAF50;
-    background: linear-gradient(135deg, var(--color-bg-secondary) 0%, rgba(76, 175, 80, 0.03) 100%);
+    background: linear-gradient(135deg, var(--color-sidebar-bg) 0%, rgba(76, 175, 80, 0.03) 100%);
 }
 
 .habit-stat-card.good {
