@@ -1,3 +1,31 @@
+#persistent-mindmap-widget {
+  width: 100%;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  margin: 16px 0;
+  padding: 0;
+}
+
+#persistent-mindmap-widget #controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 20px 0;
+  padding: 8px 12px;
+  background: var(--color-background);
+  border-bottom: 1px solid var(--color-border, #e0e0e0);
+}
+
+#persistent-jsmind-container {
+  width: 100%;
+  height: 600px;
+  border: solid 1px var(--border-color, #ccc);
+  background: var(--background-primary, var(--background-secondary, #222));
+  color: var(--text-primary, #eee);
+  transition: background 0.2s, color 0.2s;
+}
 /* Date picker styles moved to centralizedDatePicker.css */
 
 @media (min-width: 769px) {
@@ -114,7 +142,7 @@
 }
 
 .dropdown-item.selected {
-  background-color: var(--color-bg-highlight, rgba(0,0,0,0.05));
+  background-color: var(--accent-color, rgba(0,0,0,0.05));
 }
 
 .dropdown-done-button {
@@ -151,4 +179,36 @@ emoji-picker {
   --category-button-active-background: var(--color-border);
   --accent-color: var(--color-link);
   --button-hover-background: var(--color-border);
+}
+
+#persistent-mindmap-widget .mindmap-btn {
+  background: var(--color-button);
+  color:  #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 4px;
+  font-size: 0.1em;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-right: 2px;
+}
+#persistent-mindmap-widget .mindmap-btn:hover {
+  background: var(--button-hover-bg, #357ae8);
+}
+#persistent-mindmap-widget .mindmap-select {
+  background: var(--color-sidebar-bg, #222);
+  color: var(--color-text, #eee);
+  border: 1px solid var(--color-border, #444);
+  border-radius: 4px;
+  padding: 5px 10px;
+  font-size: 1em;
+  margin-right: 2px;
+}
+#persistent-mindmap-widget {
+  background: inherit !important;
+  color: inherit !important;
+}
+#persistent-jsmind-container {
+  background: inherit !important;
+  color: inherit !important;
 }

@@ -50,25 +50,13 @@ const widgetRegistry = {
     let persistentContainer = document.getElementById('persistent-mindmap-widget');
     let persistentMapArea = document.getElementById('persistent-jsmind-container');
     if (!persistentContainer) {
-      persistentContainer = document.createElement('div');
-      persistentContainer.id = 'persistent-mindmap-widget';
-      persistentContainer.style.width = '100%';
-      persistentContainer.style.background = '#fff';
-      persistentContainer.style.border = '1px solid #ccc';
-      persistentContainer.style.borderRadius = '8px';
-      persistentContainer.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
-      persistentContainer.style.margin = '16px 0';
-      persistentContainer.style.padding = '0';
+  persistentContainer = document.createElement('div');
+  persistentContainer.id = 'persistent-mindmap-widget';
+  // Styles moved to layout.css
       // Controls (styled with theme)
-      const controls = document.createElement('div');
-      controls.id = 'controls';
-      controls.style.display = 'flex';
-      controls.style.alignItems = 'center';
-      controls.style.gap = '8px';
-      controls.style.margin = '12px 0 20px 0';
-      controls.style.padding = '8px 12px';
-      controls.style.background = 'var(--widget-toolbar-bg, var(--background-secondary, #f7f7f7))';
-      controls.style.borderBottom = '1px solid var(--border-color, #e0e0e0)';
+  const controls = document.createElement('div');
+  controls.id = 'controls';
+  // Styles moved to layout.css
       controls.innerHTML = `
         <button id="add_node" class="mindmap-btn" title="Add Node">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -104,12 +92,7 @@ const widgetRegistry = {
       // Mind map area
   persistentMapArea = document.createElement('div');
   persistentMapArea.id = 'persistent-jsmind-container';
-  persistentMapArea.style.width = '100%';
-  persistentMapArea.style.height = '600px';
-  persistentMapArea.style.border = 'solid 1px var(--border-color, #ccc)';
-  persistentMapArea.style.background = 'var(--background-primary, var(--background-secondary, #222))';
-  persistentMapArea.style.color = 'var(--text-primary, #eee)';
-  persistentMapArea.style.transition = 'background 0.2s, color 0.2s';
+  // Styles moved to layout.css
   persistentContainer.appendChild(persistentMapArea);
       // Prevent event propagation for the whole widget
       preventPropagation(persistentContainer);
@@ -258,50 +241,13 @@ const widgetRegistry = {
             jm.view.zoomOut();
           });
       // Update background and color for dark theme support
-      persistentMapArea.style.background = 'var(--background-primary, var(--background-secondary, #222))';
-      persistentMapArea.style.color = 'var(--text-primary, #eee)';
-      persistentMapArea.style.transition = 'background 0.2s, color 0.2s';
-      controls.style.background = 'var(--widget-toolbar-bg, var(--background-secondary, #222))';
-      controls.style.borderBottom = '1px solid var(--border-color, #444)';
+  // Styles moved to layout.css
 
       // Add/replace theme style for dark mode
       const styleId = 'mindmap-theme-style';
       if (!document.getElementById(styleId)) {
         const style = document.createElement('style');
         style.id = styleId;
-        style.textContent = `
-          #persistent-mindmap-widget .mindmap-btn {
-            background: var(--button-bg, var(--primary, #4f8cff));
-            color: var(--button-text, #fff);
-            border: none;
-            border-radius: 4px;
-            padding: 4px;
-            font-size: 0.1em;
-            cursor: pointer;
-            transition: background 0.2s;
-            margin-right: 2px;
-          }
-          #persistent-mindmap-widget .mindmap-btn:hover {
-            background: var(--button-hover-bg, #357ae8);
-          }
-          #persistent-mindmap-widget .mindmap-select {
-            background: var(--background-secondary, #222);
-            color: var(--text-primary, #eee);
-            border: 1px solid var(--border-color, #444);
-            border-radius: 4px;
-            padding: 5px 10px;
-            font-size: 1em;
-            margin-right: 2px;
-          }
-          #persistent-mindmap-widget {
-            background: inherit !important;
-            color: inherit !important;
-          }
-          #persistent-jsmind-container {
-            background: inherit !important;
-            color: inherit !important;
-          }
-        `;
         document.head.appendChild(style);
       }
         });
