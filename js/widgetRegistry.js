@@ -1,5 +1,314 @@
+// Mindmap widget
+// Hide any raw JSON block after rendering the widget
+function removeMindMapRawTextAfterWidget() {
+  // Remove any <pre> or <code> blocks that follow the mindmap widget
+  const widget = document.getElementById('persistent-mindmap-widget');
+  if (widget && widget.nextSibling && widget.nextSibling.nodeType === 1) {
+    const next = widget.nextSibling;
+    if (next.tagName === 'PRE' || next.tagName === 'CODE' || next.classList.contains('mindmap-raw-json')) {
+      next.remove();
+    }
+  }
+}
 
 const widgetRegistry = {
+  'mindmap': (placeholder) => {
+    // Helper to prevent event propagation for the widget
+    function preventPropagation(el) {
+      ['mousedown','mouseup','click','dblclick','keydown'].forEach(evt => {
+        el.addEventListener(evt, e => e.stopPropagation());
+      });
+    }
+    // Load jsMind and CSS if not already loaded
+    function loadJsMind(callback) {
+      if (window.jsMind) { callback(); return; }
+      const script1 = document.createElement('script');
+      script1.src = 'https://cdn.jsdelivr.net/npm/jsmind@0.8.7/js-legacy/jsmind.min.js';
+      script1.onload = () => {
+        const script2 = document.createElement('script');
+        script2.src = 'https://cdn.jsdelivr.net/npm/jsmind@0.8.7/js-legacy/jsmind.draggable-node.js';
+        script2.onload = () => {
+          const script3 = document.createElement('script');
+          script3.src = 'https://cdn.jsdelivr.net/npm/jsmind@0.8.7/js-legacy/jsmind.screenshot.js';
+          script3.onload = callback;
+          document.head.appendChild(script3);
+        };
+        document.head.appendChild(script2);
+      };
+      document.head.appendChild(script1);
+      if (!document.getElementById('jsmind-css')) {
+        const link = document.createElement('link');
+        link.id = 'jsmind-css';
+        link.rel = 'stylesheet';
+        link.type = 'text/css';
+        link.href = 'https://cdn.jsdelivr.net/npm/jsmind@0.8.7/style/jsmind.min.css';
+        document.head.appendChild(link);
+      }
+    }
+
+    // Use a persistent container and jsMind instance, and delay jsMind init until visible
+    let persistentContainer = document.getElementById('persistent-mindmap-widget');
+    let persistentMapArea = document.getElementById('persistent-jsmind-container');
+    if (!persistentContainer) {
+      persistentContainer = document.createElement('div');
+      persistentContainer.id = 'persistent-mindmap-widget';
+      persistentContainer.style.width = '100%';
+      persistentContainer.style.background = '#fff';
+      persistentContainer.style.border = '1px solid #ccc';
+      persistentContainer.style.borderRadius = '8px';
+      persistentContainer.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
+      persistentContainer.style.margin = '16px 0';
+      persistentContainer.style.padding = '0';
+      // Controls (styled with theme)
+      const controls = document.createElement('div');
+      controls.id = 'controls';
+      controls.style.display = 'flex';
+      controls.style.alignItems = 'center';
+      controls.style.gap = '8px';
+      controls.style.margin = '12px 0 20px 0';
+      controls.style.padding = '8px 12px';
+      controls.style.background = 'var(--widget-toolbar-bg, var(--background-secondary, #f7f7f7))';
+      controls.style.borderBottom = '1px solid var(--border-color, #e0e0e0)';
+      controls.innerHTML = `
+        <button id="add_node" class="mindmap-btn" title="Add Node">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+        <button id="remove_node" class="mindmap-btn" title="Remove Node">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+        <button id="zoom_in" class="mindmap-btn" title="Zoom In">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+        </button>
+        <button id="zoom_out" class="mindmap-btn" title="Zoom Out">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+        </button>
+        <select id="theme_select" class="mindmap-select" title="Theme">
+          <option value="primary">Primary</option>
+          <option value="warning">Warning</option>
+          <option value="danger">Danger</option>
+          <option value="success">Success</option>
+          <option value="info">Info</option>
+          <option value="greensea">Greensea</option>
+          <option value="nephrite">Nephrite</option>
+          <option value="belizehole">Belize Hole</option>
+          <option value="wisteria">Wisteria</option>
+          <option value="asphalt">Asphalt</option>
+          <option value="orange">Orange</option>
+          <option value="pumpkin">Pumpkin</option>
+          <option value="pomegranate">Pomegranate</option>
+          <option value="clouds">Clouds</option>
+          <option value="asbestos">Asbestos</option>
+        </select>
+      `;
+      persistentContainer.appendChild(controls);
+      // Mind map area
+  persistentMapArea = document.createElement('div');
+  persistentMapArea.id = 'persistent-jsmind-container';
+  persistentMapArea.style.width = '100%';
+  persistentMapArea.style.height = '600px';
+  persistentMapArea.style.border = 'solid 1px var(--border-color, #ccc)';
+  persistentMapArea.style.background = 'var(--background-primary, var(--background-secondary, #222))';
+  persistentMapArea.style.color = 'var(--text-primary, #eee)';
+  persistentMapArea.style.transition = 'background 0.2s, color 0.2s';
+  persistentContainer.appendChild(persistentMapArea);
+      // Prevent event propagation for the whole widget
+      preventPropagation(persistentContainer);
+  placeholder.innerHTML = '';
+  placeholder.replaceWith(persistentContainer);
+    } else {
+  placeholder.innerHTML = '';
+  placeholder.replaceWith(persistentContainer);
+    }
+
+    // Delay jsMind initialization until container is visible and sized
+    function initJsMindWhenReady() {
+      if (persistentMapArea.offsetWidth === 0 || persistentMapArea.offsetHeight === 0) {
+        requestAnimationFrame(initJsMindWhenReady);
+  // Remove any raw JSON block after rendering
+  setTimeout(removeMindMapRawTextAfterWidget, 0);
+        return;
+      }
+      if (!persistentMapArea._jm) {
+        loadJsMind(() => {
+          // Load mind map data as before
+          const pageWrapper = persistentContainer.closest('[data-key]');
+          const currentPageKey = pageWrapper ? pageWrapper.dataset.key : null;
+          let mind = null;
+          let mindmapData = '';
+          if (currentPageKey && typeof getStorage === 'function') {
+            const currentContent = getStorage(currentPageKey);
+            const mindmapMatch = currentContent && currentContent.match(/MINDMAP:\s*([\s\S]*?)(?:\n\n|$)/);
+            if (mindmapMatch) {
+              mindmapData = mindmapMatch[1].trim();
+            }
+          }
+          try {
+            mind = JSON.parse(mindmapData);
+          } catch { mind = null; }
+          if (!mind || !mind.data || !Array.isArray(mind.data.children) || mind.data.children.length === 0) {
+            mind = {
+              meta: { name: 'jsMind remote', author: 'hizzgdev@163.com', version: '0.2', theme: 'primary' },
+              format: 'node_tree',
+              data: {
+                id: 'root',
+                topic: 'Central Topic',
+                children: [
+                  { id: 'easy', topic: 'Easy to use', direction: 'right', children: [
+                    { id: 'easy1', topic: 'Easy to create' },
+                    { id: 'easy2', topic: 'Easy to edit' }
+                  ] },
+                  { id: 'open', topic: 'Open Source', direction: 'right', children: [
+                    { id: 'open1', topic: 'on GitHub' }
+                  ] },
+                  { id: 'powerful', topic: 'Powerful', direction: 'left', children: [
+                    { id: 'powerful1', topic: 'Many features' },
+                    { id: 'powerful2', topic: 'Customizable' }
+                  ] }
+                ]
+              }
+            };
+          }
+          // Use theme from mind.meta.theme if present, else default to 'primary'
+          const themeValue = (mind && mind.meta && mind.meta.theme) ? mind.meta.theme : 'primary';
+          const options = {
+            container: persistentMapArea.id,
+            editable: true,
+            theme: themeValue,
+            view: 'canvas'
+          };
+          const jm = new window.jsMind(options);
+          jm.show(mind);
+          persistentMapArea._jm = jm;
+          // Controls logic
+          let rootDirectionToggle = true;
+          // Theme dropdown
+          const themeSelect = persistentContainer.querySelector('#theme_select');
+          themeSelect.value = options.theme;
+          themeSelect.addEventListener('change', function() {
+            jm.set_theme(this.value);
+            // Save theme in mind.meta.theme and persist
+            if (mind && mind.meta) {
+              mind.meta.theme = this.value;
+            }
+            saveMindMap();
+          });
+
+          function saveMindMap() {
+            if (!currentPageKey || typeof getStorage !== 'function' || typeof setStorage !== 'function') {
+              console.warn('[MindMap] saveMindMap: Missing currentPageKey or storage functions');
+              return;
+            }
+            let currentContent = getStorage(currentPageKey) || '';
+            // Always persist the current theme in meta.theme
+            let mindData = jm.get_data();
+            if (mind && mind.meta && mindData.meta) {
+              mindData.meta.theme = mind.meta.theme || options.theme || 'primary';
+            }
+            const newJson = JSON.stringify(mindData, null, 2);
+            const mindmapRegex = /MINDMAP:\s*[\s\S]*?(?:\n\n|$)/;
+            const hasBlock = mindmapRegex.test(currentContent);
+             if (hasBlock) {
+              currentContent = currentContent.replace(mindmapRegex, 'MINDMAP:\n' + newJson + '\n\n');
+            } else {
+              currentContent += '\n\nMINDMAP:\n' + newJson + '\n\n';
+            }
+            setStorage(currentPageKey, currentContent);
+          }
+          persistentContainer.querySelector('#add_node').addEventListener('click', function(){
+            var selected_node = jm.get_selected_node();
+            if(!selected_node){
+                alert('Please select a node first.');
+                return;
+            }
+            var nodeid = jsMind.util.uuid.newid();
+            var topic = 'New Node';
+            if(selected_node.isroot){
+              var direction = rootDirectionToggle ? 'left' : 'right';
+              rootDirectionToggle = !rootDirectionToggle;
+              jm.add_node(selected_node, nodeid, topic, { direction });
+            } else {
+              jm.add_node(selected_node, nodeid, topic);
+            }
+            saveMindMap();
+          });
+          // Save on all relevant jsMind events and log them for debugging
+          jm.add_event_listener(function(type, data) {
+            // jsMind event codes: 1=update_node, 2=add_node, 3=remove_node
+            if (type === 1 || type === 2 || type === 3) {
+              saveMindMap();
+            }
+          });
+          persistentContainer.querySelector('#remove_node').addEventListener('click', function(){
+            var selected_node = jm.get_selected_node();
+            if(!selected_node){
+                alert('Please select a node first.');
+                return;
+            }
+            if(selected_node.isroot){
+                 alert('Cannot remove the root node.');
+                 return;
+            }
+            jm.remove_node(selected_node);
+            saveMindMap();
+          });
+          persistentContainer.querySelector('#zoom_in').addEventListener('click', function(){
+            jm.view.zoomIn();
+          });
+          persistentContainer.querySelector('#zoom_out').addEventListener('click', function(){
+            jm.view.zoomOut();
+          });
+      // Update background and color for dark theme support
+      persistentMapArea.style.background = 'var(--background-primary, var(--background-secondary, #222))';
+      persistentMapArea.style.color = 'var(--text-primary, #eee)';
+      persistentMapArea.style.transition = 'background 0.2s, color 0.2s';
+      controls.style.background = 'var(--widget-toolbar-bg, var(--background-secondary, #222))';
+      controls.style.borderBottom = '1px solid var(--border-color, #444)';
+
+      // Add/replace theme style for dark mode
+      const styleId = 'mindmap-theme-style';
+      if (!document.getElementById(styleId)) {
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.textContent = `
+          #persistent-mindmap-widget .mindmap-btn {
+            background: var(--button-bg, var(--primary, #4f8cff));
+            color: var(--button-text, #fff);
+            border: none;
+            border-radius: 4px;
+            padding: 4px;
+            font-size: 0.1em;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-right: 2px;
+          }
+          #persistent-mindmap-widget .mindmap-btn:hover {
+            background: var(--button-hover-bg, #357ae8);
+          }
+          #persistent-mindmap-widget .mindmap-select {
+            background: var(--background-secondary, #222);
+            color: var(--text-primary, #eee);
+            border: 1px solid var(--border-color, #444);
+            border-radius: 4px;
+            padding: 5px 10px;
+            font-size: 1em;
+            margin-right: 2px;
+          }
+          #persistent-mindmap-widget {
+            background: inherit !important;
+            color: inherit !important;
+          }
+          #persistent-jsmind-container {
+            background: inherit !important;
+            color: inherit !important;
+          }
+        `;
+        document.head.appendChild(style);
+      }
+        });
+      }
+    }
+    requestAnimationFrame(initJsMindWhenReady);
+  },
   'mood': (placeholder) => {
     if (typeof moodTracker !== 'undefined' && moodTracker.init) {
       const command = placeholder.dataset.command;

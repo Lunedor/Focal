@@ -57,23 +57,12 @@ function renderView() {
   } else {
     renderLibraryPage(appState.currentView);
     if (DOM.libraryView) { DOM.libraryView.classList.add('active'); DOM.libraryView.classList.remove('hidden'); }
-        // Only run Mermaid after rendering a library (markdown) page
-        const renderedContentContainer = document.querySelector('#library-page-view .rendered-content');
-        // 1. Check if the container exists AND if it contains a mermaid element.
-    if (renderedContentContainer && renderedContentContainer.querySelector('.mermaid')) {
-        if (window.mermaid && typeof window.mermaid.run === 'function') {
-            // 2. Use an async IIFE to handle the promise correctly.
-            (async () => {
-                try {
-                    // Use await to properly catch promise rejections.
-                    await window.mermaid.run({ nodes: [renderedContentContainer] });
-                } catch (err) {
-                    // This will now catch the error from Mermaid.
-                    console.error('Mermaid rendering error:', err);
-                }
-            })();
-        }
-    }
+  }
+
+  // Initialize widgets after content is rendered
+  const renderedContent = document.querySelector('.rendered-content');
+  if (renderedContent) {
+    initializeWidgetsInContainer(renderedContent);
   }
 
   updateSidebarActiveState();

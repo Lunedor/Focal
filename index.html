@@ -17,18 +17,11 @@
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <!-- Chart.js for widget charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <!-- Mermaid.js for Mind Map Widget -->
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
-  <script>
-    // Initialize Mermaid with mindmap support, default theme, and verbose logging
-    if (window.mermaid) {
-      window.mermaid.initialize({
-        startOnLoad: false,
-        theme: 'default',
-        logLevel: 5 // Verbose logging for debugging
-      });
-    }
-  </script>
+  <!-- jsMind for Mind Map Widget -->
+  <link type="text/css" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsmind@0.8.7/style/jsmind.min.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/jsmind@0.8.7/js-legacy/jsmind.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsmind@0.8.7/js-legacy/jsmind.draggable-node.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsmind@0.8.7/js-legacy/jsmind.screenshot.js"></script>
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/movie-tracker.css">
   <!-- Feather Icons for minimalist icons -->
@@ -441,14 +434,6 @@
   <!-- <script src="js/initWidgets.js"></script> -->
   <script src="js/habitTracker.js"></script>
   <script src="js/widgetRegistry.js"></script>
-  <script>
-    // Initialize Mermaid globally after DOM loads
-    document.addEventListener('DOMContentLoaded', function() {
-      if (window.mermaid) {
-        mermaid.initialize({ startOnLoad: false });
-      }
-    });
-  </script>
   <script src="js/notifications.js"></script>
   <script src="js/extensionsMarkdown.js"></script>
   <script src="js/markdown.js"></script>

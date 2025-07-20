@@ -312,14 +312,17 @@ function debounce(fn, delay) {
 }
 
 // Add this near the top, after your imports and before parseMarkdown
-window.getNextRepeatOccurrence = function(rule, start, end) {// Use today's date
+window.getNextRepeatOccurrence = function(rule, start, end) {
+  console.log(`[DEBUG] getNextRepeatOccurrence: Called with rule: "${rule}"`);
+  // Use today's date
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   // Helper to format date as yyyy-MM-dd
   function formatDate(d) {
     if (!d || isNaN(d.getTime())) {
-      return null; // Add check for invalid date
+        console.log(`[DEBUG] getNextRepeatOccurrence: Invalid date passed to formatDate:`, d);
+        return null; // Add check for invalid date
     }
     return d.toISOString().slice(0, 10);
   }
@@ -329,6 +332,7 @@ window.getNextRepeatOccurrence = function(rule, start, end) {// Use today's date
     const next = new Date(today);
     next.setDate(today.getDate() + 1);
     const formattedNext = formatDate(next);
+    console.log(`[DEBUG] getNextRepeatOccurrence: "everyday" rule, next occurrence: ${formattedNext}`);
     return formattedNext;
   }
 
@@ -336,7 +340,8 @@ window.getNextRepeatOccurrence = function(rule, start, end) {// Use today's date
   if (/^everyday/i.test(rule.trim())) {
     const next = new Date(today);
     next.setDate(today.getDate() + 1);
-    const formattedNext = formatDate(next);
+     const formattedNext = formatDate(next);
+    console.log(`[DEBUG] getNextRepeatOccurrence: "everyday" with time rule, next occurrence: ${formattedNext}`);
     return formattedNext;
   }
 
@@ -349,7 +354,8 @@ window.getNextRepeatOccurrence = function(rule, start, end) {// Use today's date
     let days = (target - today.getDay() + 7) % 7;
     if (days === 0) days = 7; // If today is the target day, next occurrence is next week
     next.setDate(today.getDate() + days);
-    const formattedNext = formatDate(next);
+     const formattedNext = formatDate(next);
+    console.log(`[DEBUG] getNextRepeatOccurrence: "every weekday" rule, next occurrence: ${formattedNext}`);
     return formattedNext;
   }
 
@@ -361,6 +367,7 @@ window.getNextRepeatOccurrence = function(rule, start, end) {// Use today's date
     let startDate = window.parseDateString ? window.parseDateString(rangeMatch[2]) : null;
     let endDate = window.parseDateString ? window.parseDateString(rangeMatch[3]) : null;
     if (!startDate || !endDate) {
+        console.log(`[DEBUG] getNextRepeatOccurrence: Invalid start/end dates for weekly range rule.`);
         return null;
     }
     
@@ -378,9 +385,11 @@ window.getNextRepeatOccurrence = function(rule, start, end) {// Use today's date
 
     // If the found date is after the end date, there are no more occurrences in the range
     if (next > endDate) {
+        console.log(`[DEBUG] getNextRepeatOccurrence: Next occurrence ${formatDate(next)} is after end date ${formatDate(endDate)}.`);
         return null;
     }
     const formattedNext = formatDate(next);
+    console.log(`[DEBUG] getNextRepeatOccurrence: "every weekday from date to date" rule, next occurrence: ${formattedNext}`);
     return formattedNext;
   }
 
@@ -390,6 +399,7 @@ window.getNextRepeatOccurrence = function(rule, start, end) {// Use today's date
     let startDate = window.parseDateString ? window.parseDateString(everydayRangeMatch[1]) : null;
     let endDate = window.parseDateString ? window.parseDateString(everydayRangeMatch[2]) : null;
     if (!startDate || !endDate) {
+        console.log(`[DEBUG] getNextRepeatOccurrence: Invalid start/end dates for everyday range rule.`);
         return null;
     }
     
@@ -402,9 +412,11 @@ window.getNextRepeatOccurrence = function(rule, start, end) {// Use today's date
 
     // If the found date is after the end date, there are no more occurrences in the range
     if (next > endDate) {
-         return null;
+         console.log(`[DEBUG] getNextRepeatOccurrence: Next occurrence ${formatDate(next)} is after end date ${formatDate(endDate)}.`);
+        return null;
     }
     const formattedNext = formatDate(next);
+    console.log(`[DEBUG] getNextRepeatOccurrence: "everyday from date to date" rule, next occurrence: ${formattedNext}`);
     return formattedNext;
   }
 
@@ -420,12 +432,15 @@ window.getNextRepeatOccurrence = function(rule, start, end) {// Use today's date
 
       let year = today.getFullYear();
       let next = new Date(year, targetMonth, targetDay);
-      
+       console.log(`[DEBUG] getNextRepeatOccurrence: Parsed date "${dateStr}", initial next: ${formatDate(next)}`);
+
       // If the date this year is in the past, use next year
       if (next < today) {
           next.setFullYear(year + 1);
+           console.log(`[DEBUG] getNextRepeatOccurrence: Initial next is in the past, using next year: ${formatDate(next)}`);
       }
       const formattedNext = formatDate(next);
+      console.log(`[DEBUG] getNextRepeatOccurrence: Annual/Full date rule, next occurrence: ${formattedNext}`);
       return formattedNext;
   }
 
@@ -434,9 +449,11 @@ window.getNextRepeatOccurrence = function(rule, start, end) {// Use today's date
     const d = window.parseDateString(rule);
     if (d && !isNaN(d.getTime())) {
         const formattedNext = formatDate(d);
+        console.log(`[DEBUG] getNextRepeatOccurrence: Fallback parseDateString, result: ${formattedNext}`);
         return formattedNext;
     }
   }
+  console.log(`[DEBUG] getNextRepeatOccurrence: No match found for rule: "${rule}"`);
   return null; // Return null if no format matched or date is invalid
 };
 
