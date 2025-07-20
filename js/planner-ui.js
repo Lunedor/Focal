@@ -1,6 +1,6 @@
 // --- Flag to prevent scroll event conflicts ---
 let isProgrammaticScroll = false;
-const microAdjust = 25;
+const microAdjust = 15;
 
 function goToNextDay() {
   if (window.innerWidth > 768) return;
