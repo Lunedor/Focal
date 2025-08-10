@@ -617,20 +617,27 @@ const MainWidget = (() => {
                     </div>
                 `;
                 // Modal event handlers (copied from main render)
+                const addBtn = container.querySelector('.finance-add-button');
                 const modal = container.querySelector('.modal-overlay');
+                if (addBtn && modal) {
+                    addBtn.addEventListener('click', () => modal.classList.add('active'));
+                }
                 if (modal) {
-                    container.querySelector('.finance-add-button').addEventListener('click', () => modal.classList.add('active'));
-                    modal.querySelector('.modal-close').addEventListener('click', () => modal.classList.remove('active'));
-                    modal.querySelector('.modal-btn.secondary').addEventListener('click', () => modal.classList.remove('active'));
+                    const closeBtn = modal.querySelector('.modal-close');
+                    if (closeBtn) closeBtn.addEventListener('click', () => modal.classList.remove('active'));
+                    const secondaryBtn = modal.querySelector('.modal-btn.secondary');
+                    if (secondaryBtn) secondaryBtn.addEventListener('click', () => modal.classList.remove('active'));
                     const categorySelect = modal.querySelector('select[name="category"]');
                     if (categorySelect) {
                         categorySelect.addEventListener('change', () => {
                             const customInput = modal.querySelector('input[name="category-custom"]');
-                            customInput.style.display = categorySelect.value === '__custom__' ? 'block' : 'none';
+                            if (customInput) customInput.style.display = categorySelect.value === '__custom__' ? 'block' : 'none';
                         });
                     }
-                    modal.querySelector('.modal-btn.primary').addEventListener('click', () => {
+                    const primaryBtn = modal.querySelector('.modal-btn.primary');
+                    if (primaryBtn) primaryBtn.addEventListener('click', () => {
                         const form = modal.querySelector('.app-entry-form');
+                        if (!form) return;
                         const formData = new FormData(form);
                         const values = Object.fromEntries(formData.entries());
                         if (form.checkValidity() === false) {
