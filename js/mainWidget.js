@@ -468,9 +468,12 @@ const MainWidget = (() => {
                 const newPeriod = e.target.dataset.range;
                 let cmdLines = command.split('\n');
                 let firstLine = cmdLines[0] || `${type.toUpperCase()}: summary, ${settings.unit}, all`;
-                let parts = firstLine.replace(/^[A-Z]+:/i, '').split(',').map(p => p.trim());
-                parts[2] = newPeriod;
-                cmdLines[0] = (firstLine.match(/^[A-Z]+:/i) || `${type.toUpperCase()}:`)[0] + ' ' + parts.join(', ');
+                // Split only the first two commas, so layout/unit are preserved even if they contain commas
+                let rest = firstLine.replace(/^[A-Z]+:/i, '').trim();
+                let [layout, unit, ...restParts] = rest.split(',');
+                let period = restParts.length ? restParts.join(',').trim() : '';
+                cmdLines[0] = (firstLine.match(/^[A-Z]+:/i) || `${type.toUpperCase()}:`)[0] +
+                    ' ' + [layout.trim(), unit ? unit.trim() : '', newPeriod].join(', ');
                 if (onCommandChange) onCommandChange(cmdLines.join('\n'));
             });
         });
