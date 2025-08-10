@@ -484,6 +484,7 @@ const MainWidget = (() => {
                     unit = rest.slice(firstComma + 1, secondComma).trim();
                     period = rest.slice(secondComma + 1).trim();
                 }
+                // Preserve the original layout structure
                 cmdLines[0] = (firstLine.match(/^[A-Z]+:/i) || `${type.toUpperCase()}:`)[0] +
                     ' ' + [layout.trim(), unit, newPeriod].join(', ');
                 console.log(`DEBUG: Changing filter period to ${newPeriod} for command: ${cmdLines[0]}`);
@@ -612,9 +613,54 @@ const MainWidget = (() => {
     return {
         render,
         // Expose individual renderers if still needed for legacy/specific uses, otherwise they can be removed.
-        renderSummary: (container, type, command, dataStr, onCommandChange) => render(container, type, command.replace(/chart|pie/g, 'summary'), dataStr, onCommandChange),
-        renderChart: (container, type, command, dataStr, onCommandChange) => render(container, type, command.replace(/summary|pie/g, 'chart'), dataStr, onCommandChange),
-        renderPie: (container, type, command, dataStr, onCommandChange) => render(container, type, command.replace(/summary|chart/g, 'pie'), dataStr, onCommandChange),
+        renderSummary: (container, type, command, dataStr, onCommandChange) => {
+            // Update command to ensure 'summary' is included without replacing other views
+            const cmdLines = command.split('\n');
+            const firstLine = cmdLines[0] || '';
+            const prefix = firstLine.match(/^[A-Z]+:/i) || `${type.toUpperCase()}:`;
+            const parts = firstLine.replace(/^[A-Z]+:/i, '').split(',');
+            
+            // Ensure the first part (layout) contains 'summary'
+            const layouts = parts[0].trim().split('+');
+            if (!layouts.includes('summary')) {
+                layouts.push('summary');
+            }
+            
+            cmdLines[0] = `${prefix[0]} ${layouts.join('+')}${parts.length > 1 ? ',' + parts.slice(1).join(',') : ''}`;
+            return render(container, type, cmdLines.join('\n'), dataStr, onCommandChange);
+        },
+        renderChart: (container, type, command, dataStr, onCommandChange) => {
+            // Update command to ensure 'chart' is included without replacing other views
+            const cmdLines = command.split('\n');
+            const firstLine = cmdLines[0] || '';
+            const prefix = firstLine.match(/^[A-Z]+:/i) || `${type.toUpperCase()}:`;
+            const parts = firstLine.replace(/^[A-Z]+:/i, '').split(',');
+            
+            // Ensure the first part (layout) contains 'chart'
+            const layouts = parts[0].trim().split('+');
+            if (!layouts.includes('chart')) {
+                layouts.push('chart');
+            }
+            
+            cmdLines[0] = `${prefix[0]} ${layouts.join('+')}${parts.length > 1 ? ',' + parts.slice(1).join(',') : ''}`;
+            return render(container, type, cmdLines.join('\n'), dataStr, onCommandChange);
+        },
+        renderPie: (container, type, command, dataStr, onCommandChange) => {
+            // Update command to ensure 'pie' is included without replacing other views
+            const cmdLines = command.split('\n');
+            const firstLine = cmdLines[0] || '';
+            const prefix = firstLine.match(/^[A-Z]+:/i) || `${type.toUpperCase()}:`;
+            const parts = firstLine.replace(/^[A-Z]+:/i, '').split(',');
+            
+            // Ensure the first part (layout) contains 'pie'
+            const layouts = parts[0].trim().split('+');
+            if (!layouts.includes('pie')) {
+                layouts.push('pie');
+            }
+            
+            cmdLines[0] = `${prefix[0]} ${layouts.join('+')}${parts.length > 1 ? ',' + parts.slice(1).join(',') : ''}`;
+            return render(container, type, cmdLines.join('\n'), dataStr, onCommandChange);
+        },
         parseCommand,
         parseData,
         widgetConfigs
