@@ -407,14 +407,11 @@ const MainWidget = (() => {
         }
         tableHtml = renderEntryTable(filteredEntries, config);
 
-        // Use unique IDs for chart and pie widgets
-        let chartId = `chart-${instanceId}`;
-        let pieId = `pie-${instanceId}`;
         if (settings.layout.includes('chart') && config.chart) {
-            chartHtml = renderChartContainer(chartId, `${config.title} Chart`);
+            chartHtml = renderChartContainer(`chart-${instanceId}`, `${config.title} Chart`);
         }
         if (settings.layout.includes('pie') && config.pie) {
-            pieHtml = renderChartContainer(pieId, `Expense Breakdown`);
+            pieHtml = renderChartContainer(`pie-${instanceId}`, `Expense Breakdown`);
         }
 
         // --- Final Assembly ---
@@ -427,18 +424,18 @@ const MainWidget = (() => {
                 ${tableHtml}
                 ${renderModal(type, config, allEntries)}
             </div>`;
-
+        
         // --- Render Charts ---
-        if (settings.layout.includes('chart') && config.chart) {
+        if (chartHtml) {
             const chartData = getChartData(filteredEntries, type);
-            const ctx = container.querySelector(`#${chartId}`);
+            const ctx = container.querySelector(`#chart-${instanceId}`);
             if (ctx && window.Chart && chartData) {
                 new window.Chart(ctx, { type: 'bar', data: chartData, options: { responsive: true, plugins: { legend: { display: true } }, scales: { x: {}, y: { beginAtZero: true } } }});
             }
         }
-        if (settings.layout.includes('pie') && config.pie) {
+        if (pieHtml) {
             const pieData = getPieData(filteredEntries, type);
-            const ctx = container.querySelector(`#${pieId}`);
+            const ctx = container.querySelector(`#pie-${instanceId}`);
             if (ctx && window.Chart && pieData) {
                 new window.Chart(ctx, { type: 'pie', data: pieData, options: { responsive: true, plugins: { legend: { display: true } } } });
             }
@@ -599,102 +596,9 @@ const MainWidget = (() => {
     return {
         render,
         // Expose individual renderers if still needed for legacy/specific uses, otherwise they can be removed.
-        renderSummary: (container, type, command, dataStr, onCommandChange) => {
-            // Render full widget as in original render function
-            const instanceId = type + '-' + Math.random().toString(36).substr(2, 9);
-            const { config, settings } = parseCommand(command, type);
-            config.type = type;
-            if (type === 'calorie') {
-                const target = getCalorieTargetFromCommand(command);
-                window.MainWidget._currentCalorieTarget = target;
-            }
-            const allEntries = parseData(dataStr, type);
-            const filteredEntries = filterEntriesByPeriod(allEntries, settings.period);
-            let summaryHtml = '', tableHtml = '', modalHtml = '';
-            if (settings.layout.includes('summary')) {
-                const summaryData = getSummaryData(filteredEntries, type);
-                summaryHtml = renderSummaryCards(summaryData, config, settings.unit);
-            }
-            tableHtml = renderEntryTable(filteredEntries, config);
-            modalHtml = renderModal(type, config, allEntries);
-            container.innerHTML = `
-                <div class="finance-widget" id="widget-root-${instanceId}">
-                    ${renderHeader(config.title, settings.period)}
-                    ${summaryHtml}
-                    ${tableHtml}
-                    ${modalHtml}
-                </div>`;
-            // Modal event handlers (copied from main render)
-            const widgetRoot = container.querySelector(`#widget-root-${instanceId}`);
-            const modal = widgetRoot.querySelector('.modal-overlay');
-            widgetRoot.querySelector('.finance-add-button').addEventListener('click', () => modal.classList.add('active'));
-            modal.querySelector('.modal-close').addEventListener('click', () => modal.classList.remove('active'));
-            modal.querySelector('.modal-btn.secondary').addEventListener('click', () => modal.classList.remove('active'));
-            const categorySelect = modal.querySelector('select[name="category"]');
-            if (categorySelect) {
-                categorySelect.addEventListener('change', () => {
-                    const customInput = modal.querySelector('input[name="category-custom"]');
-                    customInput.style.display = categorySelect.value === '__custom__' ? 'block' : 'none';
-                });
-                const formData = new FormData(form);
-                const values = Object.fromEntries(formData.entries());
-                if (form.checkValidity() === false) {
-                    alert('Please fill out all required fields.');
-                    return;
-                }
-                let newLine = '- ';
-                if (type === 'finance') {
-                    let category = values.category === '__custom__' ? values['category-custom'] : values.category;
-                    const amount = values.entryType === 'expense' ? -Math.abs(parseFloat(values.amount)) : Math.abs(parseFloat(values.amount));
-                    newLine += `${values.date}, ${values.note}, ${amount.toFixed(2)}, ${category}`;
-                } else {
-                    newLine += config.fields.map(field => values[field] || '').join(', ');
-                }
-                if (onCommandChange) onCommandChange(command + '\n' + newLine);
-                modal.classList.remove('active');
-            });
-        },
-        },
-        renderChart: (container, type, command, dataStr, onCommandChange) => {
-            // Only render chart widget
-            const { config, settings } = parseCommand(command, type);
-            const allEntries = parseData(dataStr, type);
-            const filteredEntries = filterEntriesByPeriod(allEntries, settings.period);
-            if (settings.layout.includes('chart') && config.chart) {
-                const instanceId = type + '-chart-' + Math.random().toString(36).substr(2, 9);
-                container.innerHTML = renderChartContainer(`chart-${instanceId}`, `${config.title} Chart`);
-                // Render chart after DOM update
-                setTimeout(() => {
-                    const chartData = getChartData(filteredEntries, type);
-                    const ctx = container.querySelector(`#chart-${instanceId}`);
-                    if (ctx && window.Chart && chartData) {
-                        new window.Chart(ctx, { type: 'bar', data: chartData, options: { responsive: true, plugins: { legend: { display: true } }, scales: { x: {}, y: { beginAtZero: true } } }});
-                    }
-                }, 0);
-            } else {
-                container.innerHTML = '';
-            }
-        },
-        renderPie: (container, type, command, dataStr, onCommandChange) => {
-            // Only render pie widget
-            const { config, settings } = parseCommand(command, type);
-            const allEntries = parseData(dataStr, type);
-            const filteredEntries = filterEntriesByPeriod(allEntries, settings.period);
-            if (settings.layout.includes('pie') && config.pie) {
-                const instanceId = type + '-pie-' + Math.random().toString(36).substr(2, 9);
-                container.innerHTML = renderChartContainer(`pie-${instanceId}`, `Expense Breakdown`);
-                // Render pie after DOM update
-                setTimeout(() => {
-                    const pieData = getPieData(filteredEntries, type);
-                    const ctx = container.querySelector(`#pie-${instanceId}`);
-                    if (ctx && window.Chart && pieData) {
-                        new window.Chart(ctx, { type: 'pie', data: pieData, options: { responsive: true, plugins: { legend: { display: true } } } });
-                    }
-                }, 0);
-            } else {
-                container.innerHTML = '';
-            }
-        },
+        renderSummary: (container, type, command, dataStr, onCommandChange) => render(container, type, command.replace(/chart|pie/g, 'summary'), dataStr, onCommandChange),
+        renderChart: (container, type, command, dataStr, onCommandChange) => render(container, type, command.replace(/summary|pie/g, 'chart'), dataStr, onCommandChange),
+        renderPie: (container, type, command, dataStr, onCommandChange) => render(container, type, command.replace(/summary|chart/g, 'pie'), dataStr, onCommandChange),
         parseCommand,
         parseData,
         widgetConfigs
