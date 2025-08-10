@@ -407,11 +407,14 @@ const MainWidget = (() => {
         }
         tableHtml = renderEntryTable(filteredEntries, config);
 
+        // Use unique IDs for chart and pie widgets
+        let chartId = `chart-${instanceId}`;
+        let pieId = `pie-${instanceId}`;
         if (settings.layout.includes('chart') && config.chart) {
-            chartHtml = renderChartContainer(`chart-${instanceId}`, `${config.title} Chart`);
+            chartHtml = renderChartContainer(chartId, `${config.title} Chart`);
         }
         if (settings.layout.includes('pie') && config.pie) {
-            pieHtml = renderChartContainer(`pie-${instanceId}`, `Expense Breakdown`);
+            pieHtml = renderChartContainer(pieId, `Expense Breakdown`);
         }
 
         // --- Final Assembly ---
@@ -424,18 +427,18 @@ const MainWidget = (() => {
                 ${tableHtml}
                 ${renderModal(type, config, allEntries)}
             </div>`;
-        
+
         // --- Render Charts ---
-        if (chartHtml) {
+        if (settings.layout.includes('chart') && config.chart) {
             const chartData = getChartData(filteredEntries, type);
-            const ctx = container.querySelector(`#chart-${instanceId}`);
+            const ctx = container.querySelector(`#${chartId}`);
             if (ctx && window.Chart && chartData) {
                 new window.Chart(ctx, { type: 'bar', data: chartData, options: { responsive: true, plugins: { legend: { display: true } }, scales: { x: {}, y: { beginAtZero: true } } }});
             }
         }
-        if (pieHtml) {
+        if (settings.layout.includes('pie') && config.pie) {
             const pieData = getPieData(filteredEntries, type);
-            const ctx = container.querySelector(`#pie-${instanceId}`);
+            const ctx = container.querySelector(`#${pieId}`);
             if (ctx && window.Chart && pieData) {
                 new window.Chart(ctx, { type: 'pie', data: pieData, options: { responsive: true, plugins: { legend: { display: true } } } });
             }
