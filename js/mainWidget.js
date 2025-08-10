@@ -467,7 +467,7 @@ const MainWidget = (() => {
                 e.preventDefault();
                 const newPeriod = e.target.dataset.range;
                 let cmdLines = command.split('\n');
-                console.log(`DEBUG: Changing filter period to ${newPeriod} for command: ${cmdLines[0]}`);
+                console.log(`DEBUG: Changing: ${cmdLines}`);
                 let firstLine = cmdLines[0] || `${type.toUpperCase()}: summary, ${settings.unit}, all`;
                 // Split only the first two commas, so layout/unit are preserved even if they contain commas
                 let rest = firstLine.replace(/^[A-Z]+:/i, '').trim();
