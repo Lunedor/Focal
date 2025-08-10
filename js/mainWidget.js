@@ -600,13 +600,55 @@ const MainWidget = (() => {
         render,
         // Expose individual renderers if still needed for legacy/specific uses, otherwise they can be removed.
         renderSummary: (container, type, command, dataStr, onCommandChange) => {
-            // Only render summary widget
+            // Render summary cards, recent entries table, and modal
             const { config, settings } = parseCommand(command, type);
             const allEntries = parseData(dataStr, type);
             const filteredEntries = filterEntriesByPeriod(allEntries, settings.period);
             if (settings.layout.includes('summary')) {
                 const summaryData = getSummaryData(filteredEntries, type);
-                container.innerHTML = renderSummaryCards(summaryData, config, settings.unit);
+                const summaryHtml = renderSummaryCards(summaryData, config, settings.unit);
+                const tableHtml = renderEntryTable(filteredEntries, config);
+                const modalHtml = renderModal(type, config, allEntries);
+                container.innerHTML = `
+                    <div class="finance-widget-summary">
+                        ${summaryHtml}
+                        ${tableHtml}
+                        ${modalHtml}
+                    </div>
+                `;
+                // Modal event handlers (copied from main render)
+                const modal = container.querySelector('.modal-overlay');
+                if (modal) {
+                    container.querySelector('.finance-add-button').addEventListener('click', () => modal.classList.add('active'));
+                    modal.querySelector('.modal-close').addEventListener('click', () => modal.classList.remove('active'));
+                    modal.querySelector('.modal-btn.secondary').addEventListener('click', () => modal.classList.remove('active'));
+                    const categorySelect = modal.querySelector('select[name="category"]');
+                    if (categorySelect) {
+                        categorySelect.addEventListener('change', () => {
+                            const customInput = modal.querySelector('input[name="category-custom"]');
+                            customInput.style.display = categorySelect.value === '__custom__' ? 'block' : 'none';
+                        });
+                    }
+                    modal.querySelector('.modal-btn.primary').addEventListener('click', () => {
+                        const form = modal.querySelector('.app-entry-form');
+                        const formData = new FormData(form);
+                        const values = Object.fromEntries(formData.entries());
+                        if (form.checkValidity() === false) {
+                            alert('Please fill out all required fields.');
+                            return;
+                        }
+                        let newLine = '- ';
+                        if (type === 'finance') {
+                            let category = values.category === '__custom__' ? values['category-custom'] : values.category;
+                            const amount = values.entryType === 'expense' ? -Math.abs(parseFloat(values.amount)) : Math.abs(parseFloat(values.amount));
+                            newLine += `${values.date}, ${values.note}, ${amount.toFixed(2)}, ${category}`;
+                        } else {
+                            newLine += config.fields.map(field => values[field] || '').join(', ');
+                        }
+                        if (onCommandChange) onCommandChange(command + '\n' + newLine);
+                        modal.classList.remove('active');
+                    });
+                }
             } else {
                 container.innerHTML = '';
             }
