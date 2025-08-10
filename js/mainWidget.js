@@ -470,9 +470,21 @@ const MainWidget = (() => {
                 let firstLine = cmdLines[0] || `${type.toUpperCase()}: summary, ${settings.unit}, all`;
                 // Split only the first two commas, so layout/unit are preserved even if they contain commas
                 let rest = firstLine.replace(/^[A-Z]+:/i, '').trim();
-                let [layout, unit, ...restParts] = rest.split(',');
+                let layout = '', unit = '', period = '';
+                const firstComma = rest.indexOf(',');
+                const secondComma = rest.indexOf(',', firstComma + 1);
+                if (firstComma === -1) {
+                    layout = rest;
+                } else if (secondComma === -1) {
+                    layout = rest.slice(0, firstComma);
+                    unit = rest.slice(firstComma + 1).trim();
+                } else {
+                    layout = rest.slice(0, firstComma);
+                    unit = rest.slice(firstComma + 1, secondComma).trim();
+                    period = rest.slice(secondComma + 1).trim();
+                }
                 cmdLines[0] = (firstLine.match(/^[A-Z]+:/i) || `${type.toUpperCase()}:`)[0] +
-                    ' ' + [layout.trim(), unit ? unit.trim() : '', newPeriod].join(', ');
+                    ' ' + [layout.trim(), unit, newPeriod].join(', ');
                 console.log(`DEBUG: Changing filter period to ${newPeriod} for command: ${cmdLines[0]}`);
                 if (onCommandChange) onCommandChange(cmdLines.join('\n'));
             });
