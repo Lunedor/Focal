@@ -600,65 +600,60 @@ const MainWidget = (() => {
         render,
         // Expose individual renderers if still needed for legacy/specific uses, otherwise they can be removed.
         renderSummary: (container, type, command, dataStr, onCommandChange) => {
-            // Render summary cards, recent entries table, and modal
+            // Render full widget as in original render function
+            const instanceId = type + '-' + Math.random().toString(36).substr(2, 9);
             const { config, settings } = parseCommand(command, type);
+            config.type = type;
+            if (type === 'calorie') {
+                const target = getCalorieTargetFromCommand(command);
+                window.MainWidget._currentCalorieTarget = target;
+            }
             const allEntries = parseData(dataStr, type);
             const filteredEntries = filterEntriesByPeriod(allEntries, settings.period);
+            let summaryHtml = '', tableHtml = '', modalHtml = '';
             if (settings.layout.includes('summary')) {
                 const summaryData = getSummaryData(filteredEntries, type);
-                const summaryHtml = renderSummaryCards(summaryData, config, settings.unit);
-                const tableHtml = renderEntryTable(filteredEntries, config);
-                const modalHtml = renderModal(type, config, allEntries);
-                container.innerHTML = `
-                    <div class="finance-widget-summary">
-                        ${summaryHtml}
-                        ${tableHtml}
-                        ${modalHtml}
-                    </div>
-                `;
-                // Modal event handlers (copied from main render)
-                const addBtn = container.querySelector('.finance-add-button');
-                const modal = container.querySelector('.modal-overlay');
-                if (addBtn && modal) {
-                    addBtn.addEventListener('click', () => modal.classList.add('active'));
-                }
-                if (modal) {
-                    const closeBtn = modal.querySelector('.modal-close');
-                    if (closeBtn) closeBtn.addEventListener('click', () => modal.classList.remove('active'));
-                    const secondaryBtn = modal.querySelector('.modal-btn.secondary');
-                    if (secondaryBtn) secondaryBtn.addEventListener('click', () => modal.classList.remove('active'));
-                    const categorySelect = modal.querySelector('select[name="category"]');
-                    if (categorySelect) {
-                        categorySelect.addEventListener('change', () => {
-                            const customInput = modal.querySelector('input[name="category-custom"]');
-                            if (customInput) customInput.style.display = categorySelect.value === '__custom__' ? 'block' : 'none';
-                        });
-                    }
-                    const primaryBtn = modal.querySelector('.modal-btn.primary');
-                    if (primaryBtn) primaryBtn.addEventListener('click', () => {
-                        const form = modal.querySelector('.app-entry-form');
-                        if (!form) return;
-                        const formData = new FormData(form);
-                        const values = Object.fromEntries(formData.entries());
-                        if (form.checkValidity() === false) {
-                            alert('Please fill out all required fields.');
-                            return;
-                        }
-                        let newLine = '- ';
-                        if (type === 'finance') {
-                            let category = values.category === '__custom__' ? values['category-custom'] : values.category;
-                            const amount = values.entryType === 'expense' ? -Math.abs(parseFloat(values.amount)) : Math.abs(parseFloat(values.amount));
-                            newLine += `${values.date}, ${values.note}, ${amount.toFixed(2)}, ${category}`;
-                        } else {
-                            newLine += config.fields.map(field => values[field] || '').join(', ');
-                        }
-                        if (onCommandChange) onCommandChange(command + '\n' + newLine);
-                        modal.classList.remove('active');
-                    });
-                }
-            } else {
-                container.innerHTML = '';
+                summaryHtml = renderSummaryCards(summaryData, config, settings.unit);
             }
+            tableHtml = renderEntryTable(filteredEntries, config);
+            modalHtml = renderModal(type, config, allEntries);
+            container.innerHTML = `
+                <div class="finance-widget" id="widget-root-${instanceId}">
+                    ${renderHeader(config.title, settings.period)}
+                    ${summaryHtml}
+                    ${tableHtml}
+                    ${modalHtml}
+                </div>`;
+            // Modal event handlers (copied from main render)
+            const widgetRoot = container.querySelector(`#widget-root-${instanceId}`);
+            const modal = widgetRoot.querySelector('.modal-overlay');
+            widgetRoot.querySelector('.finance-add-button').addEventListener('click', () => modal.classList.add('active'));
+            modal.querySelector('.modal-close').addEventListener('click', () => modal.classList.remove('active'));
+            modal.querySelector('.modal-btn.secondary').addEventListener('click', () => modal.classList.remove('active'));
+            const categorySelect = modal.querySelector('select[name="category"]');
+            if (categorySelect) {
+                categorySelect.addEventListener('change', () => {
+                    const customInput = modal.querySelector('input[name="category-custom"]');
+                    customInput.style.display = categorySelect.value === '__custom__' ? 'block' : 'none';
+                });
+                const formData = new FormData(form);
+                const values = Object.fromEntries(formData.entries());
+                if (form.checkValidity() === false) {
+                    alert('Please fill out all required fields.');
+                    return;
+                }
+                let newLine = '- ';
+                if (type === 'finance') {
+                    let category = values.category === '__custom__' ? values['category-custom'] : values.category;
+                    const amount = values.entryType === 'expense' ? -Math.abs(parseFloat(values.amount)) : Math.abs(parseFloat(values.amount));
+                    newLine += `${values.date}, ${values.note}, ${amount.toFixed(2)}, ${category}`;
+                } else {
+                    newLine += config.fields.map(field => values[field] || '').join(', ');
+                }
+                if (onCommandChange) onCommandChange(command + '\n' + newLine);
+                modal.classList.remove('active');
+            });
+        },
         },
         renderChart: (container, type, command, dataStr, onCommandChange) => {
             // Only render chart widget
