@@ -471,9 +471,9 @@ const MainWidget = (() => {
                 // Split only the first two commas, so layout/unit are preserved even if they contain commas
                 let rest = firstLine.replace(/^[A-Z]+:/i, '').trim();
                 let [layout, unit, ...restParts] = rest.split(',');
-                let period = restParts.length ? restParts.join(',').trim() : '';
                 cmdLines[0] = (firstLine.match(/^[A-Z]+:/i) || `${type.toUpperCase()}:`)[0] +
                     ' ' + [layout.trim(), unit ? unit.trim() : '', newPeriod].join(', ');
+                console.log(`DEBUG: Changing filter period to ${newPeriod} for command: ${cmdLines[0]}`);
                 if (onCommandChange) onCommandChange(cmdLines.join('\n'));
             });
         });
