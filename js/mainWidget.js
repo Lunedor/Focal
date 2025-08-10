@@ -600,38 +600,56 @@ const MainWidget = (() => {
         render,
         // Expose individual renderers if still needed for legacy/specific uses, otherwise they can be removed.
         renderSummary: (container, type, command, dataStr, onCommandChange) => {
-            let lines = command.split('\n');
-            let firstLine = lines[0] || '';
-            let parts = firstLine.replace(/^[A-Z]+:/i, '').split(',').map(p => p.trim());
-            let layout = (parts[0] || '').split('+').map(s => s.trim().toLowerCase()).filter(Boolean);
-            if (!layout.includes('summary')) layout.unshift('summary');
-            // Remove duplicates
-            layout = [...new Set(layout)];
-            parts[0] = layout.join('+');
-            lines[0] = (firstLine.match(/^[A-Z]+:/i) || [`${type.toUpperCase()}:`])[0] + ' ' + parts.join(', ');
-            render(container, type, lines.join('\n'), dataStr, onCommandChange);
+            // Only render summary widget
+            const { config, settings } = parseCommand(command, type);
+            const allEntries = parseData(dataStr, type);
+            const filteredEntries = filterEntriesByPeriod(allEntries, settings.period);
+            if (settings.layout.includes('summary')) {
+                const summaryData = getSummaryData(filteredEntries, type);
+                container.innerHTML = renderSummaryCards(summaryData, config, settings.unit);
+            } else {
+                container.innerHTML = '';
+            }
         },
         renderChart: (container, type, command, dataStr, onCommandChange) => {
-            let lines = command.split('\n');
-            let firstLine = lines[0] || '';
-            let parts = firstLine.replace(/^[A-Z]+:/i, '').split(',').map(p => p.trim());
-            let layout = (parts[0] || '').split('+').map(s => s.trim().toLowerCase()).filter(Boolean);
-            if (!layout.includes('chart')) layout.push('chart');
-            layout = [...new Set(layout)];
-            parts[0] = layout.join('+');
-            lines[0] = (firstLine.match(/^[A-Z]+:/i) || [`${type.toUpperCase()}:`])[0] + ' ' + parts.join(', ');
-            render(container, type, lines.join('\n'), dataStr, onCommandChange);
+            // Only render chart widget
+            const { config, settings } = parseCommand(command, type);
+            const allEntries = parseData(dataStr, type);
+            const filteredEntries = filterEntriesByPeriod(allEntries, settings.period);
+            if (settings.layout.includes('chart') && config.chart) {
+                const instanceId = type + '-chart-' + Math.random().toString(36).substr(2, 9);
+                container.innerHTML = renderChartContainer(`chart-${instanceId}`, `${config.title} Chart`);
+                // Render chart after DOM update
+                setTimeout(() => {
+                    const chartData = getChartData(filteredEntries, type);
+                    const ctx = container.querySelector(`#chart-${instanceId}`);
+                    if (ctx && window.Chart && chartData) {
+                        new window.Chart(ctx, { type: 'bar', data: chartData, options: { responsive: true, plugins: { legend: { display: true } }, scales: { x: {}, y: { beginAtZero: true } } }});
+                    }
+                }, 0);
+            } else {
+                container.innerHTML = '';
+            }
         },
         renderPie: (container, type, command, dataStr, onCommandChange) => {
-            let lines = command.split('\n');
-            let firstLine = lines[0] || '';
-            let parts = firstLine.replace(/^[A-Z]+:/i, '').split(',').map(p => p.trim());
-            let layout = (parts[0] || '').split('+').map(s => s.trim().toLowerCase()).filter(Boolean);
-            if (!layout.includes('pie')) layout.push('pie');
-            layout = [...new Set(layout)];
-            parts[0] = layout.join('+');
-            lines[0] = (firstLine.match(/^[A-Z]+:/i) || [`${type.toUpperCase()}:`])[0] + ' ' + parts.join(', ');
-            render(container, type, lines.join('\n'), dataStr, onCommandChange);
+            // Only render pie widget
+            const { config, settings } = parseCommand(command, type);
+            const allEntries = parseData(dataStr, type);
+            const filteredEntries = filterEntriesByPeriod(allEntries, settings.period);
+            if (settings.layout.includes('pie') && config.pie) {
+                const instanceId = type + '-pie-' + Math.random().toString(36).substr(2, 9);
+                container.innerHTML = renderChartContainer(`pie-${instanceId}`, `Expense Breakdown`);
+                // Render pie after DOM update
+                setTimeout(() => {
+                    const pieData = getPieData(filteredEntries, type);
+                    const ctx = container.querySelector(`#pie-${instanceId}`);
+                    if (ctx && window.Chart && pieData) {
+                        new window.Chart(ctx, { type: 'pie', data: pieData, options: { responsive: true, plugins: { legend: { display: true } } } });
+                    }
+                }, 0);
+            } else {
+                container.innerHTML = '';
+            }
         },
         parseCommand,
         parseData,
