@@ -624,7 +624,7 @@ const MainWidget = (() => {
             let firstLine = lines[0] || '';
             let parts = firstLine.replace(/^[A-Z]+:/i, '').split(',').map(p => p.trim());
             let layout = (parts[0] || '').split('+').map(s => s.trim().toLowerCase()).filter(Boolean);
-            if (!layout.includes('chartpie')) layout.push('chartpie');
+            if (!layout.includes('pie')) layout.push('pie');
             layout = [...new Set(layout)];
             parts[0] = layout.join('+');
             lines[0] = (firstLine.match(/^[A-Z]+:/i) || [`${type.toUpperCase()}:`])[0] + ' ' + parts.join(', ');

@@ -89,7 +89,7 @@ GOAL: Learn French            # Goal
 TASKS: this-week              # Task summary
 HABITS: today|chart           # Habit tracker widgets
 MOOD: calendar, emoji         # Mood chart
-FINANCE: chartpie, USD        # Finance overview
+FINANCE: pie, USD        # Finance overview
 CALORIE: summary+chart, 2000  # Calorie intake
 WORKOUTS: summary+chart       # Workouts
 SLEEP: summary+chart          # Sleep tracking

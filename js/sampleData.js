@@ -150,7 +150,7 @@ Use the MOOD: syntax with different view types (calendar, circular, chart) and s
 ## Finance Tracking
 Track your finances and visualize spending patterns on the [[Finances]] page.
 
-Use the FINANCE: syntax with different view types (summary, chart, chartpie) and time filters.
+Use the FINANCE: syntax with different view types (summary, chart, pie) and time filters.
 
 Each transaction follows this format: Date, Description, Amount, Category
 
@@ -292,7 +292,7 @@ Track all your income and expenses in one place with Focal's finance tracking sy
 
 ## This Month's Summary
 
-FINANCE: summary+chart+chartpie, USD, this-month
+FINANCE: summary+chart+pie, USD, this-month
 - ${todayDateStr}, Coffee, -4.50, Food
 - ${todayDateStr}, Lunch, -12.75, Food
 - ${yesterdayStr}, Freelance Payment, +500.00, Income
@@ -315,7 +315,7 @@ You can customize finance widgets with the following options:
 ### View Types
 - \`summary\`: Shows total income, expenses, and balance
 - \`chart\`: Bar chart of income/expenses over time
-- \`chartpie\`: Pie chart showing category distribution
+- \`pie\`: Pie chart showing category distribution
 
 ### Time Filters
 - \`this-week\`: Current week transactions
@@ -330,7 +330,7 @@ You can customize finance widgets with the following options:
 
 ### Combined Widgets
 - Combine multiple views using +
-- Example: \`FINANCE: summary+chartpie, USD, this-month\`
+- Example: \`FINANCE: summary+pie, USD, this-month\`
     `.trim();
     setStorage('page-Finances', financesContent);
 

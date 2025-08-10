@@ -94,16 +94,16 @@ const DropdownConfigs = {
             {
                 title: 'Layout',
                 options: [
-                    { label: 'All Widgets', value: 'summary+chart+chartpie', default: true },
+                    { label: 'All Widgets', value: 'summary+chart+pie', default: true },
                     { label: 'Summary Only', value: 'summary' },
                     { label: 'Bar Chart Only', value: 'chart' },
-                    { label: 'Pie Chart Only', value: 'chartpie' },
+                    { label: 'Pie Chart Only', value: 'pie' },
                     { label: 'Summary + Bar Chart', value: 'summary+chart' },
-                    { label: 'Summary + Pie Chart', value: 'summary+chartpie' }
+                    { label: 'Summary + Pie Chart', value: 'summary+pie' }
                 ]
             }
         ],
-        buildResult: (selections) => `FINANCE: ${selections.layout || 'summary+chart+chartpie'}, USD, ${selections['time-period'] || 'this-year'}\n- `
+        buildResult: (selections) => `FINANCE: ${selections.layout || 'summary+chart+pie'}, USD, ${selections['time-period'] || 'this-year'}\n- `
     },
     
     mood: {

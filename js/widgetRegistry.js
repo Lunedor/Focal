@@ -344,7 +344,7 @@ const widgetRegistry = {
         window.MainWidget.renderChart(chartDiv, 'finance', configLine, dataStr, onCommandChange, currentPageKey);
         placeholder.appendChild(chartDiv);
       }
-      if (layout.includes('chartpie')) {
+      if (layout.includes('pie')) {
         const pieDiv = document.createElement('div');
         window.MainWidget.renderPie(pieDiv, 'finance', configLine, dataStr, onCommandChange, currentPageKey);
         placeholder.appendChild(pieDiv);
@@ -405,7 +405,7 @@ const widgetRegistry = {
         window.MainWidget.renderChart(chartDiv, 'calorie', configLine, dataStr, onCommandChange, currentPageKey);
         placeholder.appendChild(chartDiv);
       }
-      if (layout.includes('chartpie')) {
+      if (layout.includes('pie')) {
         const pieDiv = document.createElement('div');
         window.MainWidget.renderPie(pieDiv, 'calorie', configLine, dataStr, onCommandChange, currentPageKey);
         placeholder.appendChild(pieDiv);
@@ -466,7 +466,7 @@ const widgetRegistry = {
         window.MainWidget.renderChart(chartDiv, 'workouts', configLine, dataStr, onCommandChange, currentPageKey);
         placeholder.appendChild(chartDiv);
       }
-      if (layout.includes('chartpie')) {
+      if (layout.includes('pie')) {
         const pieDiv = document.createElement('div');
         window.MainWidget.renderPie(pieDiv, 'workouts', configLine, dataStr, onCommandChange, currentPageKey);
         placeholder.appendChild(pieDiv);
@@ -527,7 +527,7 @@ const widgetRegistry = {
         window.MainWidget.renderChart(chartDiv, 'sleep', configLine, dataStr, onCommandChange, currentPageKey);
         placeholder.appendChild(chartDiv);
       }
-      if (layout.includes('chartpie')) {
+      if (layout.includes('pie')) {
         const pieDiv = document.createElement('div');
         window.MainWidget.renderPie(pieDiv, 'sleep', configLine, dataStr, onCommandChange, currentPageKey);
         placeholder.appendChild(pieDiv);
