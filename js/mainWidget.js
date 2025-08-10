@@ -612,6 +612,9 @@ const MainWidget = (() => {
     return {
         render,
         // Expose individual renderers if still needed for legacy/specific uses, otherwise they can be removed.
+        renderSummary: (container, type, command, dataStr, onCommandChange) => render(container, type, command.replace(/chart|pie/g, 'summary'), dataStr, onCommandChange),
+        renderChart: (container, type, command, dataStr, onCommandChange) => render(container, type, command.replace(/summary|pie/g, 'chart'), dataStr, onCommandChange),
+        renderPie: (container, type, command, dataStr, onCommandChange) => render(container, type, command.replace(/summary|chart/g, 'pie'), dataStr, onCommandChange),
         parseCommand,
         parseData,
         widgetConfigs
