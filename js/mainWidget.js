@@ -596,9 +596,31 @@ const MainWidget = (() => {
     return {
         render,
         // Expose individual renderers if still needed for legacy/specific uses, otherwise they can be removed.
-        renderSummary: (container, type, command, dataStr, onCommandChange) => render(container, type, command.replace(/chart|pie/g, 'summary'), dataStr, onCommandChange),
-        renderChart: (container, type, command, dataStr, onCommandChange) => render(container, type, command.replace(/summary|pie/g, 'chart'), dataStr, onCommandChange),
-        renderPie: (container, type, command, dataStr, onCommandChange) => render(container, type, command.replace(/summary|chart/g, 'pie'), dataStr, onCommandChange),
+        renderSummary: (container, type, command, dataStr, onCommandChange) => {
+            // Only replace the layout part (before first comma)
+            let lines = command.split('\n');
+            let firstLine = lines[0] || '';
+            let parts = firstLine.replace(/^[A-Z]+:/i, '').split(',').map(p => p.trim());
+            parts[0] = 'summary';
+            lines[0] = (firstLine.match(/^[A-Z]+:/i) || [`${type.toUpperCase()}:`])[0] + ' ' + parts.join(', ');
+            render(container, type, lines.join('\n'), dataStr, onCommandChange);
+        },
+        renderChart: (container, type, command, dataStr, onCommandChange) => {
+            let lines = command.split('\n');
+            let firstLine = lines[0] || '';
+            let parts = firstLine.replace(/^[A-Z]+:/i, '').split(',').map(p => p.trim());
+            parts[0] = 'chart';
+            lines[0] = (firstLine.match(/^[A-Z]+:/i) || [`${type.toUpperCase()}:`])[0] + ' ' + parts.join(', ');
+            render(container, type, lines.join('\n'), dataStr, onCommandChange);
+        },
+        renderPie: (container, type, command, dataStr, onCommandChange) => {
+            let lines = command.split('\n');
+            let firstLine = lines[0] || '';
+            let parts = firstLine.replace(/^[A-Z]+:/i, '').split(',').map(p => p.trim());
+            parts[0] = 'pie';
+            lines[0] = (firstLine.match(/^[A-Z]+:/i) || [`${type.toUpperCase()}:`])[0] + ' ' + parts.join(', ');
+            render(container, type, lines.join('\n'), dataStr, onCommandChange);
+        },
         parseCommand,
         parseData,
         widgetConfigs
