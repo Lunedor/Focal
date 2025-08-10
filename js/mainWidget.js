@@ -389,7 +389,7 @@ const MainWidget = (() => {
         const instanceId = type + '-' + Math.random().toString(36).substr(2, 9);
         const { config, settings } = parseCommand(command, type);
         config.type = type; // inject type into config for convenience
-
+        console.log(`DEBUG: Rendering ${type} widget with command:`, command);
         // For calorie widget, parse and store target globally for use in summary/chart
         if (type === 'calorie') {
             const target = getCalorieTargetFromCommand(command);
