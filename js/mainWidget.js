@@ -597,11 +597,14 @@ const MainWidget = (() => {
         render,
         // Expose individual renderers if still needed for legacy/specific uses, otherwise they can be removed.
         renderSummary: (container, type, command, dataStr, onCommandChange) => {
-            // Only replace the layout part (before first comma)
             let lines = command.split('\n');
             let firstLine = lines[0] || '';
             let parts = firstLine.replace(/^[A-Z]+:/i, '').split(',').map(p => p.trim());
-            parts[0] = 'summary';
+            let layout = (parts[0] || '').split('+').map(s => s.trim().toLowerCase()).filter(Boolean);
+            if (!layout.includes('summary')) layout.unshift('summary');
+            // Remove duplicates
+            layout = [...new Set(layout)];
+            parts[0] = layout.join('+');
             lines[0] = (firstLine.match(/^[A-Z]+:/i) || [`${type.toUpperCase()}:`])[0] + ' ' + parts.join(', ');
             render(container, type, lines.join('\n'), dataStr, onCommandChange);
         },
@@ -609,7 +612,10 @@ const MainWidget = (() => {
             let lines = command.split('\n');
             let firstLine = lines[0] || '';
             let parts = firstLine.replace(/^[A-Z]+:/i, '').split(',').map(p => p.trim());
-            parts[0] = 'chart';
+            let layout = (parts[0] || '').split('+').map(s => s.trim().toLowerCase()).filter(Boolean);
+            if (!layout.includes('chart')) layout.push('chart');
+            layout = [...new Set(layout)];
+            parts[0] = layout.join('+');
             lines[0] = (firstLine.match(/^[A-Z]+:/i) || [`${type.toUpperCase()}:`])[0] + ' ' + parts.join(', ');
             render(container, type, lines.join('\n'), dataStr, onCommandChange);
         },
@@ -617,7 +623,10 @@ const MainWidget = (() => {
             let lines = command.split('\n');
             let firstLine = lines[0] || '';
             let parts = firstLine.replace(/^[A-Z]+:/i, '').split(',').map(p => p.trim());
-            parts[0] = 'pie';
+            let layout = (parts[0] || '').split('+').map(s => s.trim().toLowerCase()).filter(Boolean);
+            if (!layout.includes('pie')) layout.push('pie');
+            layout = [...new Set(layout)];
+            parts[0] = layout.join('+');
             lines[0] = (firstLine.match(/^[A-Z]+:/i) || [`${type.toUpperCase()}:`])[0] + ' ' + parts.join(', ');
             render(container, type, lines.join('\n'), dataStr, onCommandChange);
         },
