@@ -319,36 +319,19 @@ const widgetRegistry = {
           }
         }
       };
-      // Multi-widget rendering logic
-      const layout = (() => {
-        const lines = command.split('\n').map(l => l.trim()).filter(Boolean);
-        if (lines.length > 0) {
-          const firstLine = lines[0];
-          const parts = firstLine.replace(/^[A-Z]+:/i, '').split(',').map(p => p.trim());
-          return (parts[0] || 'summary').toLowerCase();
-        }
-        return 'summary';
-      })();
+      
       // Clear container
       placeholder.innerHTML = '';
-      // Render requested widgets
+      // Create a single container div for the widget
+      const widgetDiv = document.createElement('div');
+      
+      // Get the page wrapper for storage key
       const pageWrapper = placeholder.closest('[data-key]');
       const currentPageKey = pageWrapper ? pageWrapper.dataset.key : null;
-      if (layout.includes('summary')) {
-        const summaryDiv = document.createElement('div');
-        window.MainWidget.renderSummary(summaryDiv, 'finance', configLine, dataStr, onCommandChange, currentPageKey);
-        placeholder.appendChild(summaryDiv);
-      }
-      if (layout.includes('chart')) {
-        const chartDiv = document.createElement('div');
-        window.MainWidget.renderChart(chartDiv, 'finance', configLine, dataStr, onCommandChange, currentPageKey);
-        placeholder.appendChild(chartDiv);
-      }
-      if (layout.includes('pie')) {
-        const pieDiv = document.createElement('div');
-        window.MainWidget.renderPie(pieDiv, 'finance', configLine, dataStr, onCommandChange, currentPageKey);
-        placeholder.appendChild(pieDiv);
-      }
+      
+      // Call the main render method once with the full command
+      window.MainWidget.render(widgetDiv, 'finance', configLine, dataStr, onCommandChange, currentPageKey);
+      placeholder.appendChild(widgetDiv);
     }
   },
 
@@ -383,33 +366,15 @@ const widgetRegistry = {
           }
         }
       };
-      const layout = (() => {
-        const lines = command.split('\n').map(l => l.trim()).filter(Boolean);
-        if (lines.length > 0) {
-          const firstLine = lines[0];
-          const parts = firstLine.replace(/^[A-Z]+:/i, '').split(',').map(p => p.trim());
-          return (parts[0] || 'summary').toLowerCase();
-        }
-        return 'summary';
-      })();
+      
+      // Clear container
       placeholder.innerHTML = '';
-      if (layout.includes('summary')) {
-        const summaryDiv = document.createElement('div');
-        const pageWrapper = placeholder.closest('[data-key]');
-        const currentPageKey = pageWrapper ? pageWrapper.dataset.key : null;
-        window.MainWidget.renderSummary(summaryDiv, 'calorie', configLine, dataStr, onCommandChange, currentPageKey);
-        placeholder.appendChild(summaryDiv);
-      }
-      if (layout.includes('chart')) {
-        const chartDiv = document.createElement('div');
-        window.MainWidget.renderChart(chartDiv, 'calorie', configLine, dataStr, onCommandChange, currentPageKey);
-        placeholder.appendChild(chartDiv);
-      }
-      if (layout.includes('pie')) {
-        const pieDiv = document.createElement('div');
-        window.MainWidget.renderPie(pieDiv, 'calorie', configLine, dataStr, onCommandChange, currentPageKey);
-        placeholder.appendChild(pieDiv);
-      }
+      // Create a single container div for the widget
+      const widgetDiv = document.createElement('div');
+      
+      // Call the main render method once with the full command
+      window.MainWidget.render(widgetDiv, 'calorie', configLine, dataStr, onCommandChange, currentPageKey);
+      placeholder.appendChild(widgetDiv);
     }
   },
 
@@ -444,33 +409,19 @@ const widgetRegistry = {
           }
         }
       };
-      const layout = (() => {
-        const lines = command.split('\n').map(l => l.trim()).filter(Boolean);
-        if (lines.length > 0) {
-          const firstLine = lines[0];
-          const parts = firstLine.replace(/^[A-Z]+:/i, '').split(',').map(p => p.trim());
-          return (parts[0] || 'summary').toLowerCase();
-        }
-        return 'summary';
-      })();
+      
+      // Clear container
       placeholder.innerHTML = '';
+      // Create a single container div for the widget
+      const widgetDiv = document.createElement('div');
+      
+      // Get the page wrapper for storage key
       const pageWrapper = placeholder.closest('[data-key]');
       const currentPageKey = pageWrapper ? pageWrapper.dataset.key : null;
-      if (layout.includes('summary')) {
-        const summaryDiv = document.createElement('div');
-        window.MainWidget.renderSummary(summaryDiv, 'workouts', configLine, dataStr, onCommandChange, currentPageKey);
-        placeholder.appendChild(summaryDiv);
-      }
-      if (layout.includes('chart')) {
-        const chartDiv = document.createElement('div');
-        window.MainWidget.renderChart(chartDiv, 'workouts', configLine, dataStr, onCommandChange, currentPageKey);
-        placeholder.appendChild(chartDiv);
-      }
-      if (layout.includes('pie')) {
-        const pieDiv = document.createElement('div');
-        window.MainWidget.renderPie(pieDiv, 'workouts', configLine, dataStr, onCommandChange, currentPageKey);
-        placeholder.appendChild(pieDiv);
-      }
+      
+      // Call the main render method once with the full command
+      window.MainWidget.render(widgetDiv, 'workouts', configLine, dataStr, onCommandChange, currentPageKey);
+      placeholder.appendChild(widgetDiv);
     }
   },
 
@@ -505,33 +456,15 @@ const widgetRegistry = {
           }
         }
       };
-      const layout = (() => {
-        const lines = command.split('\n').map(l => l.trim()).filter(Boolean);
-        if (lines.length > 0) {
-          const firstLine = lines[0];
-          const parts = firstLine.replace(/^[A-Z]+:/i, '').split(',').map(p => p.trim());
-          return (parts[0] || 'summary').toLowerCase();
-        }
-        return 'summary';
-      })();
+      
+      // Clear container
       placeholder.innerHTML = '';
-      if (layout.includes('summary')) {
-        const summaryDiv = document.createElement('div');
-        const pageWrapper = placeholder.closest('[data-key]');
-        const currentPageKey = pageWrapper ? pageWrapper.dataset.key : null;
-        window.MainWidget.renderSummary(summaryDiv, 'sleep', configLine, dataStr, onCommandChange, currentPageKey);
-        placeholder.appendChild(summaryDiv);
-      }
-      if (layout.includes('chart')) {
-        const chartDiv = document.createElement('div');
-        window.MainWidget.renderChart(chartDiv, 'sleep', configLine, dataStr, onCommandChange, currentPageKey);
-        placeholder.appendChild(chartDiv);
-      }
-      if (layout.includes('pie')) {
-        const pieDiv = document.createElement('div');
-        window.MainWidget.renderPie(pieDiv, 'sleep', configLine, dataStr, onCommandChange, currentPageKey);
-        placeholder.appendChild(pieDiv);
-      }
+      // Create a single container div for the widget
+      const widgetDiv = document.createElement('div');
+      
+      // Call the main render method once with the full command
+      window.MainWidget.render(widgetDiv, 'sleep', configLine, dataStr, onCommandChange, currentPageKey);
+      placeholder.appendChild(widgetDiv);
     }
   },
   // In js/widgetRegistry.js
